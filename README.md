@@ -53,6 +53,8 @@ All Trust Over IP Foundation Technical Stack Working Group deliverables are publ
 * [Patent and Copyright Grants](LICENSE.md)
 * [Source Code](SOURCE_CODE.md)
 
+* EasyCLA test
+
 #### Getting involved
 
 Join a community of individuals and organizations solving the toughest technical and human-centric problems in digital trust. https://trustoverip.org/get-involved/membership/
