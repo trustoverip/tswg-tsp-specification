@@ -4,7 +4,7 @@ This document contains a template specification for `ToIP`!.
 
 Information about the current status of this document, any errata,
 and how to provide feedback on it, may be obtained at
-[https://github.com/trustoverip/specification-template](https://github.com/trustoverip/specification-template).
+[https://github.com/trustoverip/tswg-tsp-specification](https://github.com/trustoverip/tswg-tsp-specification).
 
 ## Copyright Notice
 

@@ -2,13 +2,13 @@
 
 This is the working area for the Trust over IP specification template.
 
-* [Editor's Copy](https://trustoverip.github.io/specification-template/)
+* [Editor's Copy](https://trustoverip.github.io/tswg-tsp-specification/)
 
 ## Using this template
 
 Two ways to use the template:
 * The green `Use this template` button in the upper right. Then select `Create new repository` or
-* When creating a new repository from the `Repository template` menu select `toip/specification-template`
+* When creating a new repository from the `Repository template` menu select `toip/tswg-tsp-specification`
 
 After setting up your new repository you will need to configure GitHub pages.
 
@@ -26,7 +26,7 @@ Run `npm run render` to render the HTML under `docs/index.html` this can then be
 
 Run `npm run edit` to watch for changes and re-render the HTML.
 
-Be sure to remove references to `specification-template` in favor of your new specification!
+Be sure to remove references to `tswg-tsp-specification` in favor of your new specification!
 
 ### Experimental PDF generation
 

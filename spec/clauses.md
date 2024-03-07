@@ -83,4 +83,4 @@ The following is a quote from a referenced source:
 
 CoLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Mi ipsum faucibus vitae aliquet nec ullamcorper sit amet. Scelerisque fermentum dui faucibus in ornare quam viverra orci. Maecenas ultricies mi eget mauris pharetra. Tempor nec feugiat nisl pretium fusce id. In ante metus dictum at tempor commodo ullamcorper a. Nulla at volutpat diam ut venenatis tellus in.
 
-- This section seems incorrectly indented: https://github.com/trustoverip/specification-template/issues/1
+- This section seems incorrectly indented: https://github.com/trustoverip/tswg-tsp-specification/issues/1

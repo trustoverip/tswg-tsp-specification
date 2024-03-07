@@ -5,7 +5,7 @@ ToIP Template Specification
 
 **Latest Draft:**
 
-[https://github.com/trustoverip/specification-template](https://github.com/trustoverip/specification-template)
+[https://github.com/trustoverip/tswg-tsp-specification](https://github.com/trustoverip/tswg-tsp-specification)
 
 **Editors:**
 
@@ -15,8 +15,8 @@ ToIP Template Specification
 
 **Participate:**
 
-~ [GitHub repo](https://github.com/trustoverip/specification-template)
-~ [Commit history](https://github.com/trustoverip/specification-template/commits/main)
+~ [GitHub repo](https://github.com/trustoverip/tswg-tsp-specification)
+~ [Commit history](https://github.com/trustoverip/tswg-tsp-specification/commits/main)
 
 ------------------------------------
 
