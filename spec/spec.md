@@ -95,13 +95,15 @@ The Trust Spanning Protocol is defined within the Reference Architecture (RA) il
 
 In TSP, these properties are defined within the context of a directional relationship formed by a pair of verifiable identifiers between a source and a destination endpoint. In this context, the source is also referred to as the sender and the destination as the receiver of a message. Authenticity is ascertained by the receiver, providing confidence that the received message remains unaltered and that the message genuinely originates from the sender. Confidentiality ensures that only the sender and receiver have access to the protected confidential payload data content. However, some parts of the message's envelope, not shielded by confidentiality protection, can be observed and used to infringe upon privacy through traffic analysis, correlation or other exploitative means. TSP provides optional mechanisms to safeguard against these vulnerabilities. This specific type of protection is termed "metadata privacy," differentiating it from the narrower understanding of privacy, which concerns the prevention of content exposure to unauthorized parties, synonymous with confidentiality.
 
-TSP messages always assure authenticity, optionally confidentiality, and if utilized, metadata privacy.
+TSP messages always assure authenticity, optionally confidentiality, and if utilized, metadata privacy. The authenticity and confidentiality goals are achieved by a scheme combining a public key authenticated encryption (PKAE) and a public key signature. The metadata privacy protections are achieved by nested TSP messages and routed messages through intermediaries.
 
 ### Use of Formats
 
-TSP specifies message types that will have varying formats or representations during their lifecycle, both within systems that process or store them and networks that transport them. Additionally, for purposes such as debugging, documentation, or logging, these messages may need to be represented in a text format that is more accessible for human interpretation or for legal and administrative treatments.
+TSP specifies message types that will have varying formats or representations during their lifecycle, both within systems that process or store them and networks that transport them. Additionally, for purposes such as debugging, documentation, or logging, these messages may need to be represented in a text format that is more accessible for human interpretation or better accepted for legal and administrative treatments.
 
-TSP uses CESR encoding for the envelope, payload structure and signature parts of TSP messages. CESR encoding allows composibility for complex cryptographic objects and easy convertions between text and binary representations while maintaining alignments of data objects. Within TSP's payload, other types of encoding may also be used in a mixed mode. The use of CESR encoding allows this specification to define TSP messages simply as concatenation of encoded objects. We will follow this simple method for the most sections of this specification and postpone encoding details to [Section 9](#serialization-and-encoding).
+TSP uses CESR encoding for the envelope, payload structure and signature parts of TSP messages. CESR encoding allows composibility for complex cryptographic objects and easy convertions between text and binary representations while maintaining alignments of data objects. Within TSP's payload, other types of encoding may also be used in a mixed mode. 
+
+We introduce the notation `“{a, b, c}”` is a concatenation of CESR encoded objects. This does not mean that the data objects have to or always are in a concatenated form, but because CESR encoding is self-framed and composible, the actual concatenation can be performed whenever is needed. With at caution, we will follow this simple method throughout this specification and postpone the encoding details to [Section 9](#serialization-and-encoding).
 
 In this specification, we utilize text formats for clarity and illustrative purposes. However, it should be understood that such text-based descriptions are solely to illustrate how the messages are structured. Implmentors should be aware of other formats in which cryptographic primitives are operated on or the message is encoded for transport. For more details on serialization and encoding, please refer to Section 7.
 
@@ -115,7 +117,7 @@ In TSP, pairs of TSP endpoints establish directional [[ref: relationships]]. In 
 
 ### VID Use Scenarios
 
-In the Trust Spanning Protocol, VIDs function as identifiers  within protocol envelopes and other control fields (see Section 3). As identifiers in exposed envelopes, VIDs may be visible to third parties with access to the network transports, allowing for potential correlation with other identifying transport mechanism information, such as IP addresses, transport protocol header information, and other metadata like packet size, timing, and approximate location. To mitigate the risk of metadata exploitation, TSP provides Nested Messages (Section 4) and Routed Messages (Section 5) for certain metadata privacy protections. Given the varied roles VIDs play in different scenarios, their management requires distinct considerations. To clarify and simplify the discussion of these scenarios, we categorize VID uses into three types: public, well-known, and private.
+In the Trust Spanning Protocol, VIDs function as identifiers  within protocol envelopes and other control fields (see Section 3). As identifiers in exposed envelopes, VIDs may be visible to third parties with access to the network transports, allowing for potential correlation with other identifying transport mechanism information, such as IP addresses, transport protocol header information, and other metadata like packet size, timing, and approximate location. To mitigate the risk of metadata exploitation, TSP provides Nested Messages (Section 4) and Routed Messages (Section 5) for certain metadata privacy protections. Given the varied roles VIDs play in different scenarios, their management requires distinct considerations. To clarify and simplify the discussion of these scenarios, we categorize VID uses into three scenarios: public, well-known, and private.
 
 We refer to the scenarios where VIDs are exposed to external entities as their 'public use'. The address resolution operations of public use VIDs may provide visible information to an adversary.
 
@@ -130,11 +132,17 @@ Figure 3: VIDs a0 and b0 are in public use; VIDs a1 and b1 are in private use.
 VIDs are considered to be in 'private use' when their usage is safeguarded within another instance of TSP relationship through a nested approach (See Section 4). This private utilization is facilitated by nesting, where the inner VIDs bypass the need for address resolution. Their establishment operations are managed by TSP control messages, and all relevant operations are secured by the encryption provided by the outer layer of TSP. For an in-depth explanation of these nested modes of TSP, please refer to Section 4. The specifics regarding control messages are detailed in Section 7.
 
 ### VID General Requirements
+This section specifies general expections TSP asks VIDs to meet. TSP uses VID as an abstract data type that must support a set of abstract operations. This section also lists these operations in a format like `VID.OPERATION`.
 
 #### Cryptographic Non-Correlation
+
 An endpoint can control multiple VIDs simultaneously and over extended periods. It is imperative that these VIDs are cryptographically non-correlatable in an information-theoretic security context, meaning the knowledge of one VID does not reveal any information about another.
 
 For example, in Figure 3, an adversary might observe VIDs a0 and b0, which are categorized as public and could be linked to a specific endpoint using additional metadata. However, if the same adversary also happens to observe VID a1, it should be impossible, based on the design of the VIDs, for the adversary to establish a correlation between a1 and a0, and consequently, to associate a1 with endpoint A.
+
+::: issue
+Use an alternative expression to tie to 128-bits of strength
+:::
 
 #### VID Type
 
@@ -144,50 +152,65 @@ Each VID type MUST have a unique type code allocated for its exclusive use. The 
 Need to add how the code space is administered.
 :::
 
-### VID Syntax
+#### VID Syntax
 
 TSP tries not to impose any additional syntax requirements beyond any VID type already mandates. But since TSP uses CESR for VID encoding, any VID's syntax MUST specify at least one compliant CESR encoding. 
 
 #### Resolution to Transport Address
-For every VID to be in public use, an address resolution mechanism is necessary. This mechanism MUST be capable of taking a VID as input and producing a transport or other communication layer access point, ensuring the successful delivery of messages. The specific details of this procedure will, of course, vary based on the transport mechanism in use.
+
+For every VID to be in public use, the VID MUST support an address resolution operation `VID.RESOLVEADDRESS` for each transport mechanism that the VID supports. 
+
+Implementation of this address resolution operation is VID type specific.
 
 For any VID that is used in private only, an address resolution mechanism is unnecessary.
 
+#### Mapping VID to Keys
+VIDs MUST support operations by the controlling endpoint to map a VID of its own to keys required by TSP.
+- Mapping to public and private keys used by PKAE: `VID.PK_e` and `VID.SK_e`.
+- Mapping to private key or keys used by signature signing: `VID.SK_s` or `VID.SK_s[i]`.
+
+VIDs MUST support operations by an assessing endpoint to map a VID of another endpoint to keys required by TSP.
+- Mapping to the public key used by VID verification: `VID.PK_s`. (*Is it always the same as the signing key?*)
+- Mapping to the public key used by PKAE: `VID.PK_e`.
+- Mapping to the public key used by signature verification: `VID.PK_s`.
+
+Implementation of these mapping operations is VID type specific.
+
 #### Verification
-VIDs for public use MUST be based on and be verifiable through Public Key Cryptography (PKC). If endpoint 'a' uses VID_a as one of its identifiers, any party evaluating VID_a should be able to resolve VID_a to its associated public key for the purpose of verification, PK_a. Furthermore, they should be able to verify that endpoint 'a' has access to the corresponding secret key, SK_a, using a PKC algorithm. These verification processes inevitably depend on the specific design and implementation of each identifier, as well as the trust information source they utilize. In many instances, this trust source can't be independently verified by an endpoint. In such cases, it MAY be appraised through other methods that satisfy the endpoint within its application context.
+VIDs MUST support an operation by an assessing endpoint to verify a VID of another endpoint: 
+- `VID.VERIFY` for TSP to verify that endpoint `A` has access to the corresponding secret key, `VID.SK_s`, using a PKC algorithm. VID types MAY use additional information in assessing the VID in the same `VID.VERIFY` operation.
 
-Endpoints MUST execute verification procedures as required corresponding to each type of public VID upon initial use and whenever any changes that necessitate re-verification.
+Implementation of this mapping and verification operations is VID type specific.
 
-For any VID that is for private use, while the same verification procedure requirements above still apply, they MAY use much simpler VID types because its verification is between two endpoints who already have a verified TSP relationship between them and the verification is conducted through trusted TSP messages of that verified relationship. TSP defines message types for such cases of private VID verification.
-
-Ultimately, whether an endpoint accepts the verification result as part of its broader acceptance criteria depends on the endpoint and the application context. Endpoints must always take into account the governance frameworks associated with the specific VID type, which may not be fully assessable through purely cryptographic means or in real-time. The verification requirements specified above should not be seen as exhaustive.
+For any VID designated for private use, while the same verification procedure requirements as outlined above still apply, simpler VID types MAY be employed. This is because the verification process occurs between two endpoints that already possess a verified TSP relationship between them, and the verification is conducted through TSP messages within that established relationship. TSP defines specific message types for such instances of private VID verification in Section [Control Payloads](#control-payloads).
 
 #### Handling Changes
-VIDs may require handling of key rotations, replacement of intermediaries, and other types of changes over the lifetime of a VID. If such changes occur, then the endpoints MAY be required to re-verify or refresh the dependent information before they use them again.
+
+::: issue
+TODO
+:::
 
 ### Examples
 
 ::: issue
-This section should include a list of example [[ref: Verifiable Identifiers]]. The list may include: KERI AID, `did:webs`, `did:x509`, `did:peer` for private use, and one or two examples based on a public blockchain.
+This section should include a list of example [[ref: Verifiable Identifiers]]. The list may include: KERI AID, `did:webs`, `did:x509`, `did:peer` for private use, and one or two examples based on a public blockchain. For each example, information discussions can provide recommendations on how the required primitives may be implemented.
+
+TODO
 :::
 
 ## Messages
 
 TSP operates as a message-based communication protocol. The messages in TSP are asynchronous, can vary in length, and are inherently directional. Each message has a designated sender (alternatively termed "source") and a receiver (or "destination"). Throughout this specification, in particular when we describe the routed mode in Section 6, the terms "sender" and "receiver" will be used to refer to direct neighbors, while the terms "source" and "destination" will be used for the originating and ending endpoints of the carried message. Within the context of TSP, both the sender and the receiver of a message qualify as "endpoints." Entities such as Intermediaries or Support Systems can also function as endpoints when they are participating in TSP communications themselves. For the sake of simplicity, we will uniformly refer to all these entities as "endpoints," unless a distinction is necessary for clarity.
 
-In this section, we specify TSP messages that are used in Direct Mode between neighboring endpoints with any intermediaries in between. By being *direct*, we mean that a direct transport mechanism between the two endpoints with a TSP intermediary in the TSP layer. In comparision, Routed Mode, which is specified in [Section 5](#routed-messages-through-intermediaries), involves at least one intermediary or more in the TSP layer.
+In this section, we specify TSP messages that are used in Direct Mode between neighboring endpoints without any intermediaries in between. By being *direct*, we mean that there is a direct transport layler link between the two endpoints in the TSP layer. In comparision, Routed Mode, specified in [Section 5](#routed-messages-through-intermediaries), involves at least one intermediary or more in the TSP layer.
 
-As outlined in Section 2, VIDs serve as identifiers for any entities involved in TSP. Both the sender's VID and the receiver's VID fulfill the dual roles of identifier root of trust verification  and resolution to a transport address for delivering the TSP message.  The sender and receiver VIDs can be of different VID types.
+As outlined in Section 2, VIDs serve as identifiers for any endpoints involved in TSP. Both the sender's VID and the receiver's VID can map to required keys used by TSP in the sender and the receiver, and to a transport address for delivering the TSP message.  The sender and receiver VIDs can be of different VID types.
 
 TSP messages are made of three parts: envelope, payload and signature, as illustrated in the pseudo-formula below.
 
 ```text
 TSP_Message = {TSP_Envelope, TSP_Payload, TSP_Signature}
 ```
-
-The notation `“{a, b, c}”` may be read as a concatenation of CESR encoded objects in text. This is a convenient and intuitive way of representing the underlying data objects but are not always accurate. As noted before, TSP messages may be in any of the raw computer data format, network transport format, or text format throughout their lifecycles. The envelope, payload and signature parts do not have to be continuously cancatenated together in binary or text, and even if they do, not always. For more information on serialization and encoding with CESR, please refer to [Section 8](#serialization-and-encoding). 
-
-Figure 4: TSP Message
 
 We now define these parts in the following sections.
 
@@ -237,23 +260,25 @@ Type and subtype code to be finalized
 
 #### Confidential Fields
 
-The confidential fields of the payload are encrypted. What is encoded in the message is the ciphertext of the corresponding plaintext which may contain both header and data fields in the same way as the non-confidential fields.
+The confidential fields of the payload are encrypted through PKAE. What is encoded in the message is the ciphertext of the corresponding plaintext which may contain both header and data fields in the same way as the non-confidential fields.
 
 And the ciphertext is produced as:
 
 ```text
-Confidential_Fields_Ciphertext = TSP_ENCRYPT({Confidential_Fields_Plaintext})
+Confidential_Fields_Ciphertext = TSP_SEAL({Confidential_Fields_Plaintext})
 ```
 
-The ciphertext is generated by a public key authenticated encryption (PKAE) algorithm and can only be decrypted by the receiver identified by VID_rcvr. The details of the supported PKAE schemes for the `TSP_ENCRYPT` operation are specified in Section [Cryptographic Algorithms](#cryptographic-algorithms).
+The details of the supported PKAE schemes for the `TSP_SEAL` operation are specified in Section [Cryptographic Algorithms](#cryptographic-algorithms).
 
-The confidential header fields may contain an optional list of VIDs, the payload data Type and Subtype codes, and other control fields as defined in specific messages.
+The confidential header fields may contain an optional list of VIDs, the payload data Type and Subtype codes, and other control fields. We will define these fields when we define individual payload fields for specific messages.
 
-The VID list MAY contain `VID_sndr` for some type of PKAE variants for Direct Mode messages. See [Section 8](#cryptographic-algorithms) for the details.
+For PKAE schemes *HPKE-Base* [ref:RFC9180] and *Libsodium sealed box* [ref:TOADD], the `VID_sndr` MUST appear in the confidential heade fields following the ESSR scheme from [2]. See [Section 8](#cryptographic-algorithms) for the details.
 
-The VID list can also contain a list of intermediary hops' VIDs for Routed Mode messages. See [Section 5](#routed-messages-through-intermediaries) for the detailed description.
+The header fields also contain a list of intermediary hop VIDs for Routed Mode messages. See [Section 5](#routed-messages-through-intermediaries) for the detailed description.
 
 The confidential payload data field can be any data encoded in CESR, including mixed JSON, CBOR and MsgPack encoded data as supported by CESR. Since TSP message itself is encoded in CESR, it can be embedded in the data field, resulting a [[ref:Nested Message]].
+
+On the receiving side, the corresponding TSP primitive is `TSP_OPEN`.
 
 #### Header Fields
 
@@ -290,7 +315,8 @@ The third part of a TSP message is the signature signed by the sender.
 ```text
 TSP_Signature = TSP_SIGN({TSP_Envelope, TSP_Payload})
 ```
-The details of the `TSP_SIGN` are specified in Section [Cryptographic Algorithms](#cryptographic-algorithms).
+
+On the receiving side, the corresponding primitive is `TSP_SIG_VERIFY`. The details of the `TSP_SIGN` and `TSP_SIG_VERIFY` are specified in Section [Cryptographic Algorithms](#cryptographic-algorithms).
 
 ### TSP Message Examples
 
@@ -304,7 +330,7 @@ Authentic_Confidential_Message  = {TSP_Envelope, Confidential_Payload_Ciphertext
                                     Confidential_Payload_Ciphertext, TSP_Signature},
 where,
 
-Confidential_Payload_Ciphertext = TSP_ENCRYPT ({Confidential_Payload_Header, 
+Confidential_Payload_Ciphertext = TSP_SEAL ({Confidential_Payload_Header, 
                                                 Confidential_Payload_Data}),
 
 and
@@ -322,7 +348,7 @@ Authentic_Non_Confidential_Message  = {TSP_Envelope, Non_Confidential_Payload, T
                                         Non_Confidential_Payload, TSP_Signature},
 where,
 
-TSP_Signature = SIGN ( {TSP_Envelope, Non_Confidential_Payload} ).
+TSP_Signature = TSP_SIGN ({TSP_Envelope, Non_Confidential_Payload}).
 ```
 
 These messages do not have `VID_rcvr` and the payload is entirely non-confidential. 
@@ -362,10 +388,10 @@ Endpoint `A`, which controls `VID_a` associated with Support System `A*`, acquir
 The following is an example procedure that Endpoint `A` may follow when sending its inaugural message to `VID_b` using its own `VID_a`. This example is only illustrative. Implementors will need to pay considerations to the actual VID type's and the chosen transport mechanism's requirements, and the requirements of applications they intend to support.
 
 - Step 1: Resolve `VID_b` to acquire access to the following mandatory information
-    - Public keys bound to the VID for a TSP crypto suite
+    - Public keys bound to the VID for TSP: `VID_b.PK_e`, `VID_b.PK_s`
     - All other VID verification information as required by the VID type (Section 2 [Verifiable Identifiers](#verifiable-identifiers))
     - Transport information, if it is not yet known.
-- Step 2: Verify, and appraise `VID_b` using additional information and processes specific to the VID.
+- Step 2: Verify `VID_b` with `VID_b.VERIFY`.
 - Step 3: Create a TSP message
     - As the first TSP message, it MUST contain the relationship forming payload fields.
     - It may optionally also contain other user data. In other words, applications do not have to wait for a round trip delay for relationship establishment.
@@ -408,6 +434,60 @@ For the purpose of TSP, information obtained from OOBI methods must not be assum
 Because TSP relationships can be highly authentic, confidential and potentially more private with respect to metadata, they can be used for the purpose of passing VID information for forming new relationships. Details of such procedures are specified in Section [Control Payloads](#control-payloads).
 
 ## Nested Messages
+When TSP sender `A` dispatches a TSP Message with confidential payload intended for receiver `B`, the observable data structure for any third party not involved in the message exchange between `A` and `B` appears as:
+
+```text
+{TSP_Tag, TSP_Version, VID_a, VID_b, TSP_Payload_Ciphertext, TSP_Signature}
+```
+
+Over time, with a sustained exchange of such messages, an external observer may accumulate a significant volume of data. This data, once analyzed, could reveal patterns related to time, frequency, and size of the messages. Using `VID_a` and `VID_b` as keys, an observer can index this dataset. It's then possible to correlate this indexed data with other available metadata, potentially revealing more insights into the communication.
+
+To mitigate this threat, TSP offers a technique whereby parties encapsulate a specific conversation — for instance, a sequence of messages — within an additional TSP envelope, as described below.
+
+### Payload Nesting
+Suppose endpoints `A` and `B` have established a prior direct relationship `(VID_a0, VID_b0>), they can then embed the messages of a new relationship `(VID_a1, VID_b1)`  in the confidential payload of `(VID_a0, VID_b0)` messages. In such a setup, `VID_a1` and `VID_b1` are protected from third party snooping. We may refer `(VID_a0, VID_b0)` the *outer relatioship and the messages of `(VID_a0, VID_b0)` as *outer messages*, and `(VID_a1, VID_b1)` the *inner relationship` and the messages of `(VID_a1, VID_b1)` as *inner messages*.
+
+The above description also applies to unidirectional relationships.
+
+This nesting scheme can be illustrated as follows using the confidential data field of its payload.
+
+```text
+Outer_Message = {Envelope_0, Payload_0, Signature_0},
+Inner_Message = {Envelope_1, Payload_1, Signature_1}, 
+Nested_Message = {Envelope_0, {Non_Confidential_Fields_0,
+                                TSP_SEAL_0({Header_Fields_0, Inner_Message})}, Signature0}
+```
+
+In this scheme, the inner message MUST use the confidential data field of the outer message in order to achieve the protection of the inner message metadata. Other than that, we do not restrict the structures of inner and outer messages. For example, if the endpoints do not find the need for additional encryption of the inner message, they MAY choose to use the non-confidential payload fields for the inner message payload data. Applicatios should be aware that the confidentiality assurances would only be extended to the outer relationship if the inner message is embedded in the non-confidential field of the outer message.
+
+### Nested Relationships
+
+When TSP messages utilize this nesting approach, a new relationship, for example `(VID_a1, VID_b1)`, is created between the same endpoints `A` and `B`. This new type of relationships may be used for providing *context* over the aggregate of all messages between the same pair of endpoints. The privacy protection afforded by this method is designated as one example of *metadata privacy.* Since the nested messages hide the inner VID pair from being collected as a part of potential correlation attacks, we also refer to this style of privacy protection as *correlation privacy.*
+
+The process for establishing such relationships with nested messages is detailed in Section 5.2. It's important to note that this nesting can be recursively applied, adding additional layers as required. Inner relationships are situated within an outer relationship that has been verified and deemed suitable for the intended purpose by both participating endpoints. The VIDs engaged in these inner relationships are therefore *private*, do not require same level of verification as *public* VIDs, and do not require transport layer address resolution of their own.
+
+### A Shorthand Notation
+For brevity and ease of presentation, we introduct a shorthand notation for nested messages, and indirectly the relationship in which these messages are communicated, as follows.
+
+``` text
+[VID_sndr, VID_rcvr, Payload] = {TSP_Tag, TSP_Version, VID_sndr, VID_rcvr, Payload, Signature}
+```
+This is only a simplication in notation. All message fields remain the same as defined in the previous sections, including the generation of ciphertext and signature fields.
+
+``` text
+[VID_sndr_out, VID_rcvr_out, [VID_sndr_in, VID_rcvr_in, Payload_in]] = {
+    Envelope_out, {Non_Confidential_Fields_out, TSP_SEAL_out(Header_Fields_out, Inner_Message)},
+    Signature_out }
+
+where,
+Inner_Message = [VID_sndr_in, VID_rcvr_in, Payload_in, Signature_in]
+```
+
+Such a notation does not imply any extra requirements or restrictions for the messages. 
+
+For example, we may use the following shorter notation to represent the example nested message shown above:
+
+`[VID_a0, VID_b0, [VID_a1, VID_b1, Payload]]`
 
 ## Routed Messages Through Intermediaries
 
