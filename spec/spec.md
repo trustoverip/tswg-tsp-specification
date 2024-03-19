@@ -688,6 +688,188 @@ TODO or consider to keep it out of scope
 
 ## Control Payloads
 
+This section specifies control payload fields that are for the proper functioning of TSP. Although messages that carry such control fields may be informally referred to as *control messages*, these fields can be carried in any messages, not just a message *exclusively* for control purposes. All such control messages, with exclusive control data or mixed with user data, will utilize the same formats.
+
+For either Direct Mode or Routed Mode endpoint-to-endpoint relationships, Authentic and Confidential (AAC)messages defined in Section [3.5.1](#authentic-and-confidential-aac-messages) SHOULD be used with control data being carried in the confidential header and payload fields.
+
+TSP payload is structured as follows: {Payload_Header_Fields, Payload_Data_Fields}. In the header, the `Type` field is always `TSP_CTL` for control fields, and `Subtype` varies depending on each specific control message defined in this section.
+
+Both the header and data sections of the payload are extendable. While we define the necessary TSP control fields here, higher layers have the flexibility to expand upon them. Each upper layer protocol with a designated `Type` also can allocate its own `Subtype` codes.
+
+This structure ensures a standardized approach for the essential components of the message while allowing adaptability for specific use cases or additional requirements at the higher layer. 
+
+### Relationship Forming
+#### Direct Relationship Forming
+When an endpoint `A` learns from another endpoint `B` the VID for `B`, say `VID_b`, through an Out-Of-Band Introduction method, the endpoint `A` may use the following message type to form a direct relationship with `B`. Suppose the source VID that endpoint `A` uses is `VID_a`, then the relationship A and B establishes is `(VID_a, VID_b)`.
+``` text
+Out-Of-Band Introduction to A: VID_b
+The relationship forming message from A to B: [VID_a, VID_b, Payload]
+Payload fields:
+    - Type = TSP_CTL
+    - Subtype = NEW_REL
+    - Nonce_Field = Nonce
+```
+
+Endpoint `B` retrieves and verifies `VID_a`, and if agrees, replies with the following:
+``` text
+Message: [VID_b, VID_a, Payload]
+Payload fields:
+    - Type = TSP_CTL
+    - Subtype = NEW_REL_REPLY
+    - Nonce_Field = Nonce
+    - Thread_ID = TSP_DIGEST([VID_b, VID_a, Payload])
+```
+
+The result is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` and `(VID_b, VID_a)` in endpoint `B`. The Thread-ID is recorded by both endpoints and used in all future messages.
+
+If endpoint `B` fails to verify `VID_a`, it SHOULD silently drop the message and MAY direct the transport layer to disconnect or otherwise block or filter out further incoming messages from `VID_a` for a period of time..
+
+If endpoint `B`, for any other reason, does not want to or can not engage with endpoint `A`, it MAY simply remain silent (if `B` does not want to give `A` any private information), or it MAY reply with a `REL_CANCEL` message as specified in Section [7.4](#relationship-events) with proper event code (if `B` is willing to risk additional information disclosure by providing `A` some useful information). 
+
+
+If endpoint `B` is OK with receiving the incoming messages from endpoint `A`, but declines to reply to endpoint `A` to establish the opposite direction relationship, it MAY simply remain silent. 
+
+Other actions that endpoint B may take MAY be application specific and are left unspecified.
+
+In all of the above cases, the responding party (endpoint `B`) should be careful about privacy leaks if it chooses to respond to an incoming message. The more private option is to remain silent.
+
+#### Relationship over a Routed Path
+When an endpoint `A` learns from another endpoint `B` through an Out-Of-Band Introduction method the VID for `B`, say `VID_b`, together with a routed path, say `{VID_hop2, …, VID_hopk, VID_exit}`, endpoint `A` may use the following `Type` to form a relationship with `B`. Suppose the source VID that endpoint `A` uses is `VID_a`, and optionally endpoint `A` specifies a return routed path `{VID_rethop2, …,  VID_rethopk, VID_retexit}`, then the relationship `A` and `B` establishes is `(VID_a, VID_b)`.
+
+``` text
+Out-Of-Band Introduction: VID_b, VID_hop2, …, VID_hopk, VID_exit
+The relationship forming message = [VID_a, VID_b, VID_hop1, …, VID_hopk, VID_exit, Payload]
+
+Payload fields:
+    - Type = TSP_CTL
+    - Subtype = NEW_REL
+    - Nonce, 
+    - VID_hop1, …, VID_hopk, VID_exit
+```
+
+Endpoint `B` retrieves and verifies `VID_a`, and if agrees, replies with the following:
+
+``` text
+Return message: [VID_b, VID_a, VID_rethop1, …, VID_rethopk, VID_retexit, Msg]
+Payload fields:
+    - Type = TSP_CTL
+    - Subtype = NEW_REL_REPLY
+    - Nonce,
+    - Thread-ID = TSP_DIGEST([VID_a, VID_b, VID_hop1, …, VID_hopk, VID_exit, Payload])
+```
+
+Note either `A` or `B` may choose to specify a routed path for the relationship forming messages. If one party specifies a routed path while the other party does not (but they both agree to such an arrangement), then the result can be a relationship where it is over a routed path in one direction but direct in the other direction.
+
+The result of the above message exchange is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` over a routed path to `B` and vice versa. The `Thread_ID` is recorded by both endpoints and used in all future messages.
+
+::: issue
+TODO: exceptions
+:::
+
+### Parallel Relationship Forming
+
+If endpoints `A` and `B` have a relationship `(VID_a0, VID_b0)` in `A` and `(VID_b0, VID_a0)` in `B`, they can establish a new parallel relationship using the current relationship as a way of referral.
+
+Endpoint `B` sends to `A` this relationship forming message:
+
+``` text
+Message: [VID_b0, VID_a0, …, Payload], 
+we omitted the optional route path VID list so this can either a Direct or Routed message.
+
+Payload control fields:
+    - Type = TSP_CTL
+    - Subtype=NEW_REFER_REL
+    - Payload fields = {VID_b1, VID_List|NULL}
+```
+
+When endpoint `A` receives this message from `B` and it treats it as an introduction, then `A` initiates a normal new relationship forming procedure as specified in Section [7.1](#relationship-forming).
+
+In this procedure, `VID_b1` is the new VID for endpoint `B`. If endpoint `A` picks `VID_a`, then the new relationship `(VID_a1, VID_b1)` is parallel to `(VID_a0, VID_b0)` in endpoint `A`..
+
+If `VID_List` is present, then `A` uses the specified routed path to send the `NEW_REL` message to endpoint `B`.
+
+### Nested Relationship Forming
+
+If endpoints `A` and `B` have a relationship `(VID_a0, VID_b0)` in `A` and `(VID_b0, VID_a0)` in `B`, they can also establish a new nested relationship using the current relationship as a referal. The new relationship can be *private* as discussed in Section [2.1](#vid-use-scenarios).
+
+Endpoint `A` sends to `B` the following relationship forming message: 
+
+``` text
+Message: [VID_a0, VID_b0, …, [VID_a1, NULL, Payload]]
+where the optional VID list is omitted so this can be either Direct or Routed Mode.
+
+Payload control fields:
+    - Type = TSP_CTL
+    - Subtype=NEW_NEST_REL
+    - Payload fields: VID_a1.VeriInfo
+```
+
+`VID_a1.VeriInfo` is a field defined by the VID type as information for `VID_a1` verification, e.g. public key for `did:peer`. The detail format of this field is to be specified by individual VID specifications.
+
+::: issue
+An example
+:::
+
+Endpoint `B` replies to `A` the following message if it choooses: 
+
+``` text
+Return Message: [VID_b0, VID_a0, …, [VID_b1, VID_a1, Payload]]
+where the optional VID list is omitted so this can be either Direct or Routed Mode.
+
+Payload control fields:
+    - Type = TSP_CTL
+    - Subtype=NEW_NEST_REL_REPLY
+    - Payload fields: {VID_b1.VeriInfo, Thread_ID}
+```
+
+The new relationship formed by the above control message exchange is: `(VID_a1, VID_b1)` in `A` and `(VID_b1, VID_a1)` in `B`. Because these relationships are private, the verification can be done through the above two messages privately. No address resolution procedure is required.
+
+The outer relationship can be either direct or over routed mode, the same procedure applies. Similarly, the outer relationship itself can be a nested relationship, the same procedure applies. The resulting new relationship can only be used for nested messages with the coupled outer relationship.
+
+### Relationship Events
+
+### Key Info Update
+
+::: issue
+Key rotation is TBD
+:::
+
+#### Route Info
+
+An Intermediary MAY send a TSP message to either another Intermediary or an endpoint to report route related information that MAY be useful for diagnoses or other legitimate purposes.
+
+::: issue
+TODO
+:::
+
+#### Relationship Cancellation
+Bidirectional relationships in TSP are essentially a combination of two unidirectional relationships that involve the same pair of VIDs. Due to the asymmetric nature of TSP messages, it's possible for a relationship to exist unidirectionally for a time — where messages flow in one direction but not yet in the reverse. This scenario can occur both when a relationship is being established and when it's being terminated.
+
+While sending explicit messages to cancel a relationship is not strictly necessary in TSP, such messages MAY be beneficial for upper-layer protocols that require a clear and definite termination of relationships. For this purpose, endpoints utilize `REL_CANCEL` control payloads.
+
+The process for canceling a relationship is uniform, regardless of whether the relationship uses a direct or a routed path.
+
+For a relationship denoted as `(VID_a, VID_b)` in endpoint `A`, `A` can initiate the cancellation by sending a `REL_CANCEL` message. The same could happen from `B` to cancel in the opposite direction. This process is asynchronous, meaning it's possible for cancellation messages from both `A` and `B` to cross paths.
+
+When `A` initiates the cancellation, `A` sends a control message with the following structure:
+
+``` text
+Message: [VID_a, VID_b, Payload]
+Payload control fields:
+    - Type = TSP_CTL
+    - Subtype: REL_CANCEL
+    - Nonce
+    - Payload control fields: Thread-ID
+```
+
+When `B` Receives a cancellation:
+
+If the relationship is `(VID_b, VID_a)` in `B`: `B` should reply with REL_CANCEL and then remove the relationship from its local relationship table.
+
+If the relationship is `<VID_a, VID_b>` in `B`: `B` should remove the relationship but does not need to send a reply.
+
+If the relationship does not exist or is not recognized: `B` should ignore the cancellation request.
+
 ## Cryptographic Algorithms
 
 ## Serialization and Encoding
