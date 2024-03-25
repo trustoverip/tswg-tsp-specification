@@ -296,11 +296,9 @@ For each `Type`, a space of `Subtype` is available for use by the application de
 
 For `TSP_CTL`, we will introduce `Subtype` codes in Section [Control Payloads](#control-payloads).
 
-- *Thread-ID*
+- *Thread_ID*
 
-::: issue
-To do
-:::
+The `Thread_ID` field is generated using TSP_DIGEST over the binary representation of the received message
 
 - *Nonce* and/or *Timestamp*
 
@@ -720,7 +718,7 @@ Payload fields:
     - Thread_ID = TSP_DIGEST([VID_b, VID_a, Payload])
 ```
 
-The result is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` and `(VID_b, VID_a)` in endpoint `B`. The Thread-ID is recorded by both endpoints and used in all future messages.
+The result is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` and `(VID_b, VID_a)` in endpoint `B`. The Thread_ID is recorded by both endpoints and used in all future messages.
 
 If endpoint `B` fails to verify `VID_a`, it SHOULD silently drop the message and MAY direct the transport layer to disconnect or otherwise block or filter out further incoming messages from `VID_a` for a period of time..
 
@@ -755,7 +753,7 @@ Payload fields:
     - Type = TSP_CTL
     - Subtype = NEW_REL_REPLY
     - Nonce,
-    - Thread-ID = TSP_DIGEST([VID_a, VID_b, VID_hop1, …, VID_hopk, VID_exit, Payload])
+    - Thread_ID = TSP_DIGEST([VID_a, VID_b, VID_hop1, …, VID_hopk, VID_exit, Payload])
 ```
 
 Note either `A` or `B` may choose to specify a routed path for the relationship forming messages. If one party specifies a routed path while the other party does not (but they both agree to such an arrangement), then the result can be a relationship where it is over a routed path in one direction but direct in the other direction.
@@ -859,7 +857,7 @@ Payload control fields:
     - Type = TSP_CTL
     - Subtype: REL_CANCEL
     - Nonce
-    - Payload control fields: Thread-ID
+    - Payload control fields: Thread_ID
 ```
 
 When `B` Receives a cancellation:
@@ -872,7 +870,355 @@ If the relationship does not exist or is not recognized: `B` should ignore the c
 
 ## Cryptographic Algorithms
 
+TSP utilizes VIDs that are strongly bound to public-key pairs. The authenticity and confidentiality properties of TSP rely on public-key signature and encryption schemes based on public-key. In this section, we specify supported cryptographic schemes and how they combine together as a TSP crypto suite. The choices we make here reflect our priority to 
+- achieve the strongest notions of security with modern and efficient algorithms,
+- have clear specifications in standards for interoperability,
+- and prefer schemes that have good quality open source implementations. 
+
+The overall design and use of self-framed encoding allow TSP easy adaptability for future requirements, including new emerging schemes and post-quantum cryptography.
+
+TSP combines public-key authenticated encryption (PKAE) with public-key signature. This combination is necessary for several reasons:
+- In TSP, authenticity (both the identity of the sender and integrity of the message) is required for all messages while confidentiality is optional by choice.
+- PKAE schemes have weaknesses, such as Post Compromise Impersonation (PCI) attacks, which TSP aims to guard against in order to support its wider use cases.
+
+### Public-Key Signature
+`Ed25519` is a EdDSA signature algorithm with `Curve-25519` and `SHA2-512` as defined in IETF [[spec-norm:RFC8032]]. 
+
+Ed25519 supports a stronger sense of unforgeability, namely SUF-CMA (Strong UnForgeability under Chosen Message Attack).
+
+TSP implementations MUST support Ed25519.
+
+::: note
+This implementor's draft only specifies one signature scheme at the moment. Future drafts will add additional signature schemes.
+:::
+
+### Public-Key Authenticated Encryption
+
+TSP uses strong public key encryption schemes that supports IND-CCA2 (Indistinguishability under Adaptive Chosen Ciphertext Attack). These schemes are also called Integrated Encryption Schemes (IES), or ECIES if using Elliptic Curves. or Hybrid Public Key Encryption (HPKE) since they combine public key cryptography with the efficiency of symmetric key encryption/decryption operations. These schemes follow similar designs that incorporate a key exchange mechanism (KEM), a key derivation function (KDF), and a symmetric encryption scheme using the ephemeral derived key, or formalized as an Authenticated Encryption with Associated Data (AEAD) function. The use of AEAD also leads to the acrynym PKAE (public-key authenticated encryption). We use the term PKAE as a general term for this class of algorithms.  
+
+#### TSP Encryption and Decryption Primitives
+
+TSP defines a standard way to encrypt a single TSP message to a receiver's public key. The operations use the following `seal` and `open` primitives.
+
+``` text
+Ciphertext = TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Data, Plaintext)
+Plaintext = TSP_OPEN(VID_sndr, VID_rcvr, Ciphertext)
+```
+
+This section specifies all PKAE schemes that TSP impelementations MUST or optionaly SHOULD support.
+
+#### Hybrid Public Key Encryption (HPKE) 
+
+HPKE is a draft standard defined in IETF [[spec-norm:RFC9180]] which formalizes and generalizes similar schemes and implementations that support encryption of messages for a receiver with a public-private key pair. [[spec-norm:RFC9180]] defines a framework from which we specify a subset of concrete configuration to best meet TSP requirements. HPKE uses modern cryptographic algorithms and has been studied with proofs of IND-CCA2 security. The HPKE base mode does not use sender authentication in the HPKE itself. The algorithms in a HPKE suite are KEM (Key Exchange Mechanism), KDF (Key Derivation Function), and AEAD (Authenticated Encryption with Associated Data function). Schemes that follow [[spec-norm:RFC9180]] have seen adoption in Messaging Layer Security [[spec-inform:RFC9420]] and TLS Encrypted ClientHello [[TLS-ECH]].
+
+TSP implementations MUST support both HPKE-Auth and HPKE-Base modes.
+
+##### HPKE Cryptographic Algorithm Suite
+
+HPKE configuration(s) supported by TSP:
+
+Primitive | Code | Descryption
+----:|----:|--------:
+KEM | 0x0020 | DHKEM(X25519, HKDF-SHA256)
+KDF | 0x0001 | HKDF-SHA256
+AEAD | 0x0003 | ChaCha20Poly1305
+
+##### HPKE Auth Mode
+
+In the HPKE-Auth mode, for TSP message that uses confidential payload, the ciphertext MUST generated by HPKE-Auth single-shot API defined in [[spec-norm:RFC9180]] as follows:
+
+``` text
+def TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Plaintext):
+    skS = VID_sndr.SK_e
+    pkR = VID_rcvr.PK_e
+    aad = CONCAT(VID_sndr, VID_rcvr, Non_Confidential_Data)
+    info = NULL
+    pt = Plaintext
+    enc, ct = SealAuth(pkR, info, aad, ct, skS)
+    return CONCAT(end, ct)
+
+Ciphertext = TSP_SEAL(VID_sndr, VID_rcvr,
+                Non_Confidential_Fields, 
+                Confidential_Fields_Plaintext)
+
+```
+The receiver MUST use the corresponding single-shot API to decrypt:
+
+``` text
+def TSP_OPEN(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Ciphertext):
+    pkS = VID_sndr.PK_e
+    skR = VID_rcvr.SK_e
+    aad = CONCAT(VID_sndr, VID_rcvr, Non_Confidential_Fields)
+    info = NULL
+    enc, ct = SPLIT(Confidential_Fields_Ciphertext)
+    return OpenAuth(enc, skR, info, aad, ct, pkS)
+
+Plaintext = TSP_OPEN(VID_sndr, VID_rcvr, 
+                Non_Confidential_Fields, 
+                Confidential_Fields_Ciphertext)
+```
+
+In HPKE-Auth mode, the `VID_sndr` field is not necessary in the Confidential Header Fields (as required by [[spec-inform:ESSR]]).
+
+##### HPKE Base Mode
+
+The HPKE-Base mode works similarly to HPKE-Auth except that it does not include the authentication mechanism allowing the receiver to verify that the sender possessed a given KEM private key `VID_sndr.SK_e`. Leaving this verification out MAY be acceptable because TSP also has `VID_sndr` in the encrypted payload ciphertext and a separate signature for sender authentication. For additional discussions comparing the HPKE-Base mode and HPKE-Auth mode use in TSP, please refer to Section [Security and Privacy Considerations](#security-and-privacy-considerations).
+
+The HPKE-Base mode is also required if in the future TSP supports non-authenticated KEMs.
+
+In the HPKE-Base mode, for TSP message that uses confidential payload, the ciphertext MUST generated by HPKE-Base single-shot API defined in [[spec-norm:RFC9180]] as follows:
+
+``` text
+def TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Plaintext):
+    pkR = VID_rcvr.PK_e
+    aad = CONCAT(VID_sndr, VID_rcvr, Non_Confidential_Fields)
+    info = NULL
+    pt = Confidential_Fields_Plaintext
+    enc, ct = SealBase(pkR, info, aad, pt)
+    return CONCAT(end, ct)
+
+Ciphertext = TSP_SEAL(VID_sndr, VID_rcvr,
+                Non_Confidential_Fields, 
+                Confidential_Fields_Plaintext)
+
+```
+The receiver MUST use the corresponding single-shot API to decrypt:
+
+``` text
+def TSP_OPEN(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Ciphertext):
+    skR = VID_rcvr.SK_e
+    aad = CONCAT(VID_sndr, VID_rcvr, Non_Confidential_Fields)
+    info = NULL
+    enc, ct = SPLIT(Confidential_Fields_Ciphertext)
+    return OpenBase(enc, skR, info, aad, ct)
+
+Plaintext = TSP_OPEN(VID_sndr, VID_rcvr, 
+                Non_Confidential_Fields, 
+                Confidential_Fields_Ciphertext)
+```
+
+In HPKE-Base mode, the `VID_sndr` field MUST be present in the Confidential Header Fields (as required by [[spec-inform:ESSR]]).
+
+#### Lipsodium Sealed Box
+
+Libsodium is a popularly available open source software library that is a fork of [[spec-inform:NaCl]]. Among many modern and easy-to-use cryptographic tools, it implements a crypto_box primitive that is essentially a non-standardized PKAE scheme. We specify a way for TSP to use the lipsodium sealed box API as a PKAE choice here because its popularity. However, since the sealed box API is not standardized and the fact that the Lipsodium community is also implementing HPKE options, implementors SHOULD consider to migrate to one of the HPKE options. We MAY remove this option in the future.
+
+::: issue
+We specify the use of `sealed box` here but not the more general `crypto_box` construction that supports authentication of the sender. Question to all: do people who have existing implementations have a strong preference of what to include? If possible, fewer option is better here.
+:::
+
+##### Sealed Box
+
+Per [[spec-norm:libsodium]] documentation, the combined mode API defined in `C` is as follows.
+
+``` text
+int crypto_box_seal(unsigned char *c, const unsigned char *m,
+                    unsigned long long mlen, const unsigned char *pk);
+```
+`crypto_box_seal()` encrypts plaintext `m` of length `mlen` using the receiver's public key `pk`, and outputs to buffer `c` the ciphertext. 
+
+``` text
+int crypto_box_seal_open(unsigned char *m, const unsigned char *c,
+                         unsigned long long clen,
+                         const unsigned char *pk, const unsigned char *sk);
+```
+`crypto_box_seal_open()` decrypts the ciphertext `c` of length `clen` using the sender's public key `pk` and the receiver's secret key `sk`, and outputs the plaintext to `m`.
+
+##### TSP USE of Sealed Box for PKAE
+
+To use sealed box as the PKAE in TSP, for TSP message that uses confidential payload, the ciphertext MUST generated by `crypto_box_seal()` API as follows or an equivalent procedure:
+
+``` text
+def TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Plaintext):
+    pkR = VID_rcvr.PK_e
+    pt = Confidential_Fields_Plaintext
+    mlen = lengthof(pt)
+    crypto_box_seal(&ct, &pt, mlen, &pkR)
+    return ct
+
+Ciphertext = TSP_SEAL(VID_sndr, VID_rcvr,
+                Non_Confidential_Fields, 
+                Confidential_Fields_Plaintext)
+```
+
+The receiver MUST use the corresponding `crypto_box_seal_open()` API or an equivalent procedure to decrypt:
+
+``` text
+def TSP_OPEN(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Ciphertext):
+    pkS = VID_sndr.PK_e
+    skR = VID_rcvr.SK_e
+    ct = Confidential_Fields_Ciphertext
+    clen = lengthof(ct)
+    crypto_box_seal_open(&output, &ct, clen, &pkS, &skR)
+
+Plaintext = TSP_OPEN(VID_sndr, VID_rcvr, 
+                Non_Confidential_Fields, 
+                Confidential_Fields_Ciphertext)
+```
+
+Similar to HPKE-Base mode, the sealed box API also does not have sender authentication, and therefore the `VID_sndr` field MUST be present in the Confidential Header Fields (as required by [[spec-inform:ESSR]]).
+
+##### Sealed Box Cryptographic Algorithms
+
+Per [[spec-norm:libsodium]] documentation, the sealed box API leverages the `crypto_box` construction which in turn uses `X25519` and `XSalsa20-Poly1305`, and uses `blake2b` for nonce. As a non-standard implementation, such information is not precisely known and is implementation specific depending on the open source development of lipsodium.
+
+### Secure Hash and Digest Functions
+
+All TSP implementations MUST support the following secure hash and digest functions. They can be used for nonce and Thread_ID constructions as the operator TSP_DIGEST.
+
+- SHA2-256 [[spec-norm:RFC6234]]
+
+- Blake2b [[spec-norm:RFC7693]]
+
 ## Serialization and Encoding
+
+TSP uses CESR [[spec-norm:CESR]] version 2.0 (master code table for `--AAACAA`) for message serialization and encoding. The TSP payload however may have data encoded in other formats including CBOR, JSON, MsgPak and other compatible formats.
+
+In this section, we describe the relevant CESR codes used in TSP.
+
+::: issue
+Align with CESR version 2.0
+:::
+
+### TSP Envelope Encoding
+TSP Envelope consists of four objects: TSP_Tag, TSP_Version, VID_sndr, VID_rcvr. Each VID consists of VID_Type followed by VID_String. The VID_String may be of variable length which may be encoded using CESR count code. The details of VID encoding are VID type depedent.
+
+Object | Descryption | Code | Note
+----:|----:|--------:|--------:
+TSP_Tag | Indicating the start of a TSP envelope | `-E##` or `-0E#####`| Use `-E##` for signable data up to 4095 quadlets/triplets, `-0E#####` for signable data up to 1,073,741,823 quadlets/triplets. The length does not include signature part.
+TSP_Version | TSP protocol version | `X###` | The first version is `XAAB`
+VID_Type | VID Type | `X###` | Type number may be allocated for exclusive use
+VID_String | VID | *as defined by the VID type* | The string can be fixed length or variable length
+
+::: note
+CESR uses a unit of 4 Base64 letters (Quadlet) to represent an equivalent unit of 3 bytes in binary (Triplet). Therefore, a two letter count code `0E##` in text domain provides a value in range of 0 to 4095 (`64 x 64 - 1`) where each unit is a qualet/triplet. The corresponding value in actual bytes in binary is 12,285 (`4095 x 3`). Similarly, `-0E#####` provides 0 to 1,073,741,823 (`64^5 - 1`) quadlets/triplets which corresponds to 3,221,225,472 bytes in binary.
+:::
+
+### TSP Payload Encoding
+TSP Payload consists of non-confidential fields followed by ciphertext that is generated from confidential data fields. We define the non-confidential fields first, then define ciphertext encoding.
+
+#### Non-Confidential Payload Fields
+Non-confidential payload fields are encoded in CESR directly without encryption. The following control fields are currently defined in the specification. Additional control fields may be defined in the future. Higher layer applications may define their own data fields. Application specific data fields are not defined in this specification but they MUST not conflict with TSP defined fields.
+
+Defined payload fields include: Payload Type, Subtype, VID_sndr, VID Hop List, Nonce, Thread-ID. The VID fields are encoded in the same way as defined in [TSP Envelope Encoding](#tsp-envelope-encoding). 
+
+Object | Descryption | Code | Note
+----:|----:|--------:|--------:
+Type | Type of TSP payload | `-Z##` or `-0Z#####` | Use `-Z##` for type code up to 4095 quadlets/triplets, `-0Z#####` for up to 1,073,741,823 quadlets/triplets
+Subtype | Subtype of TSP control payload | `-Z##` or `-0Z#####` | Use `-Z##` for type code up to 4095 quadlets/triplets, `-0Z#####` for up to 1,073,741,823 quadlets/triplets
+Hop Count | Count of VID Hop List | `-I##` | Hop count up to 4095
+Thread-ID | A Digest of received message | `I` for SHA2-256, `F` for Blake2b-256 | ~
+Nonce | TBD if needed | `0A` for a nonce of 128 bits | ~
+
+The TSP control type codes:
+Object | Descryption | Code | Note
+----:|----:|--------:|--------:
+TSP_CTL | control type | `-ZAB` | For TSP control payload use, numerical value `1`
+TSP_GEN | general type | `-ZAC` | For undistingsuihed application payload use, numerical value `2`
+
+The TSP control subtype codes:
+Object | Descryption | Code | Note
+----:|----:|--------:|--------:
+NEW_REL | new relationship forming | `0EAB` | numerical value `1`
+NEW_REL_REPLY | bi-directional relatinship forming | `0EAC` | numerical value `2`
+NEW_REFER_REL | parallel relationship forming by referral | `0EAD` | numerical value `3`
+NEW_REFER_REL_REPLY | parallel relationship forming reply by referral | `0EAE` | numerical value `4`
+NEW_NEST_REL | new nested relationship forming | `0EAF`| numerical value `5`
+NEW_NEST_REL_REPLY | new nested bi-directional relationship forming | `0EAG` | numerical value `6`
+REL_CANCEL | cancel a relationship | `0EAH` | numerical value `7`
+
+
+
+::: issue
+Decide on if or when an extra nonce may be needed
+:::
+
+A TSP message's payload may include both control fields and application data fields which start with Type = TSP_GEN, or with an application specific type code.
+
+::: issue
+Need to specify the allocation of the application type code
+:::
+
+
+#### Confidential Payload Fields
+
+The confidential payload is encoded as ciphertext. The corresponding control field plaintext has the same format as the non-confidential payload fields as defined above.
+
+The encryption algorithm MUST be one of the following:
+
+- `HPKE-v1-Base`
+- `HPKE-v1-Auth`
+- `Sealed-Box`
+
+##### HPKE-Auth and HPKE-Base Mode Encoding
+The HPKE ciphertext consists of the Encapuslated Key structure `enc` and the encrypted payload `ct`.
+
+``` text
+HPKE-Auth:
+...
+enc, ct = SealAuth(pkR, info, aad, ct, skS)
+return CONCAT(end, ct)
+
+HPKE-Base:
+...
+enc, ct = SealBase(pkR, info, aad, pt)
+return CONCAT(end, ct)
+```
+
+The `enc` is defined by HPKE [[spec-norm:RFC9180]] which contains identifiers for KEM, KDF and AEAD functions and a bytestring for the encapsulated key.
+
+Name | Data Type | Value Registry | Description
+----:|----:|--------:|--------:
+kem_id | uint | HPKE KEM IDs Registry | Identifier for the KEM
+kdf_id | uint | HPKE KDF IDs Registry | Identifier for the KDF ID
+aead_id | uint | HPKE AEAD IDs Registry | Identifier for the AEAD ID
+enc | bstr | NA | Encapsulated key defined by HPKE
+
+The ID values that MUST be supported by TSP:
+Primitive | Code | Descryption
+----:|----:|--------:
+KEM | 0x0020 | DHKEM(X25519, HKDF-SHA256)
+KDF | 0x0001 | HKDF-SHA256
+AEAD | 0x0003 | ChaCha20Poly1305
+
+::: note
+`SHA256` should be read as `SHA2-256`. The HPKE [[spec-norm:RFC9180]] and many other specifications still use `SHA256` to mean `SHA2-256`.
+:::
+
+::: note
+This implementor's draft only specify a single configuration as above. Additional configurations will be added in the future.
+:::
+
+::: issue
+To finalize with CESR the encoding of `{enc, ct}`
+:::
+
+The following table summarizes CESR encoding for the Ciphertext field:
+Todo
+
+Example:
+``` text
+Todo
+```
+
+##### Lipsodium Sealed Box Encoding
+See [[spec-norm:CESR]] on X25519 Sealed Box cipher bytes encoding.
+
+Example:
+``` text
+Todo
+```
+
+#### Nested Payload
+In TSP Nested Mode, the inner TSP message is carried inside a payload field of the outer TSP message. When the outer message is being parsed, the message may carry a simple application payload or a nested TSP message which will require additional processing. This can be parsed unambiguously because TSP messages all start with the exclusive codes `-E##`.
+
+### TSP Signature Encoding
+The TSP Signature is encoded as an attachment group in CESR. TSP allows multiple signatures.
+
+- Attachment group: `-C##` (Attachments only group up to 4,095 quadlets/triplets)
+- Indexed signature group: `-J##` (Indexed signature group up to 4,095 quadlets/triplets)
+- Ed25519 signature: `0B` (followed by 64 bytes)
+
 
 ## Transports
 
@@ -881,17 +1227,22 @@ If the relationship does not exist or is not recognized: `B` should ignore the c
 ## References
 
 ### Normative References
+[[spec-norm]]
 
+[CESR]. Composable Event Streaming Representation (CESR), *Samuel Smith*
+[CESR]: https://trustoverip.github.io/tswg-cesr-specification/
 
 ### Informational References
-[//]: # (\newpage)
+[[spec-inform]]
 
-[//]: # (\makebibliography)
+[ESSR]. Authenticated Encryption in the Public-Key Setting: Security Notations and Analyses, *Jee Hea An*, Cryptology ePrint Archive, Paper 2001/079.
+[ESSR]: https://eprint.iacr.org/2001/079
 
-[[spec]]
+[TOIP-TAS]. ToIP Technology Architecture Specification (DRAFT)
+[TAS]: https://github.com/trustoverip/TechArch/blob/main/spec.md
 
-[1]. ToIP Technology Architecture Specification (DRAFT)
-[1]: https://github.com/trustoverip/TechArch/blob/main/spec.md
+[TLS-ECH]. TLS Encrypted Client Hello, *Rescorla, E., Oku, K., Sullivan, N., and C. A. Wood,* Work in Progress, Internet-Draft, draft-ietf-tls-esni-18, 4 March 2024.
+[TLS-ECH]: https://datatracker.ietf.org/doc/html/draft-ietf-tls-esni-18
 
 ## Appendix A: Test Vectors
 
