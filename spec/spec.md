@@ -1221,10 +1221,75 @@ The TSP Signature is encoded as an attachment group in CESR. TSP allows multiple
 
 
 ## Transports
+The TSP messages are mostly agnostic to transport mechanisms which deliver them from a sender to a receiver endpoint. The authenticity, confidentiality and privacy properties of the TSP messages are designed to be independent of the choice of transport layer. This is one of the main goals of TSP. That being said, it does not mean that the choice and implementation of transport mechanisms are not important to the proper function of TSP. In this section, we describe a generic service interface between TSP and the transport layer, and provide guidances on some aspects of how various transport mechanisms can be used to carry TSP messages.
+
+This section is informative.
+
+### Transport Service Interface
+
+In this section, we define a generic transport service interface that the TSP layer relies on. Each actual transport mechanism then instantiates a particular mechanism. Interoperability of TSP requires the interoperability of transport mechanisms. We discuss a few examples of these mechanisms in the next section [Transport Mechanism Examples](#transport-mechanism-examples).
+
+- `TSP_TRANSPORT_SETUP`: called by the TSP layer to perform necessary preparation before sending or receiving TSP messages.
+
+Some transport mechanisms MAY require a preparation step (e.g. connection setup or login) before any message can be sent. This step is optional or can be a NOP.
+
+The input to this operation is the transport address of a VID (either local or remote): TSP_TRANSPORT_PREPARE(`VID.RESOLVEADDRESS`). The return value of such a step can be a handle of the access point or a failure code. For bi-directional relationships, this operation is called twice, one for sending (with the remote VID) and another for receiving (with the local VID).
+
+If this call is for the sender and the corresponding `TSP_TRANSPORT_SEND` can do send operation without prior preparation, or if this call is for the receiver and the corresponding `TSP_TRANSPORT_RECEIVE` can do receive operation ithout prior preparation, then this step can be skipped. If a caching mechanism is in use and the necessary access point is being cached, this step can be a NOP.
+
+- `TSP_TRANSPORT_SEND`: called by the TSP layer to send one TSP message
+
+This operation may return success or a failure code. The input to this operation is the handle of the transport and a TSP message.
+
+- `TSP_TRANSPORT_RECEIVE`: called by the transport layer to trigger the TSP layer to process a received message.
+
+The input to this operation is the TSP relationship and a TSP message. 
+
+- `TSP_TRANSPORT_TEARDOWN`: called by the TSP layer to remove what was set up in the `TSP_TRANSPORT_SETUP` step. This is optional and can be a NOP.
+
+- `TSP_TRANSPORT_EVENT`: called by the transport layer to report events to the TSP layer, e.g. errors. The input to this operation is the relationship and respective event information data structure.
+
+For each transport mechanism supported, TSP implementations MUST instantiate these operations in a way that facilitate interoperability.
+
+### Transport Mechanism Examples
+
+::: issue
+Decide what to include as examples. For each, complete a short section.
+:::
+
+#### TCP
+
+#### QUIC
+
+#### TLS
+
+#### HTTPS
+
+#### IPFS
+
+#### Message Queues
+##### MQTT
+##### AMQP
+
+#### Email
+
+#### QR Code
+
+#### Paper Messages
+
+
 
 ## Security and Privacy Considerations
 
+::: issue
+We will be collecting FAQs and then provide relevant information in this section.
+:::
+
 ## References
+
+::: issue
+The `spec` primitives are not yet working for all cases.
+:::
 
 ### Normative References
 [[spec-norm]]
@@ -1245,6 +1310,10 @@ The TSP Signature is encoded as an attachment group in CESR. TSP allows multiple
 [TLS-ECH]: https://datatracker.ietf.org/doc/html/draft-ietf-tls-esni-18
 
 ## Appendix A: Test Vectors
+
+::: issue
+To provide sample test vectors for a few common cases.
+:::
 
 ### Test Vectors for Direct Mode TSP Message
 
