@@ -84,11 +84,6 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 <img src="../images/Reference-Architecture.png" alt="TSP Reference Architecture" style="width:800px;"/>
 Figure 1: TSP Reference Architecture
 
-::: issue #15
-Image not working
-https://github.com/trustoverip/tswg-tsp-specification/issues/15
-:::
-
 The Trust Spanning Protocol is defined within the Reference Architecture (RA) illustrated in Figure 1. The principal components of this reference architecture are:
 
 - Direct Communication: Endpoints communicate with each other using TSP in direct mode, depicted by an arrowed line labeled number `1`. This communication pattern encompasses two directional relationships, with each endpoint evaluating the other independently.
