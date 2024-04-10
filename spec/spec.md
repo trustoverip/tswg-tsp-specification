@@ -115,7 +115,7 @@ In this specification, we utilize text formats for clarity and illustrative purp
 
 ## Verifiable Identifiers
 
-The Trust Spanning Protocol does not mandate that [[ref: endpoints]] utilize only a single type of identifiers and this specification does not define one. However, the efficacy of TSP and the trust assurances in authenticity, confidentiality, and metadata privacy it provides hinge on the methodologies of VIDs. Factors such as the construction and resolution of these identifiers, coupled with the verification of trust information from their support systems, directly influence the degree of trust endpoints can derive from using TSP. In this section, we outline high-level requirements without prescribing how various VID types should fulfill them. All identifiers that meet these standards are termed [[ref: Verifiable Identifiers]] (VID). The aim is to enable endpoints, equipped with their chosen VID type or types, to communicate over TSP with the respective confidence and trust level that those VIDs inherently support.
+The Trust Spanning Protocol does not mandate that [[ref: endpoints]] utilize only a single type of identifier and this specification does not define one. However, the efficacy of TSP and the trust assurance in authenticity, confidentiality, and metadata privacy it provides hinge on the methodologies of specific identifiers. Factors such as the construction and resolution coupled with the verification of trust information from their support systems directly influence the degree of trust endpoints can derive from using TSP. In this section, we outline high-level requirements without prescribing how various VID types should fulfill them. All identifiers that meet these standards are termed [[ref: Verifiable Identifiers]] (VIDs). The aim is to enable endpoints, equipped with their chosen VID type or types, to communicate over TSP with the confidence and trust level that those VIDs inherently support.
 
 A foundational prerequisite for TSP is that endpoints operate within a secure computing environment, possibly facilitated by tools such as Trusted Execution Environments (TEEs),  digital wallets, or digital vaults. This list of tools may extend to non-technical ones such as governance conventions or regulations. While TSP aids in transmitting trust signals between endpoints, it cannot instantiate trust where none exists.
 
@@ -123,18 +123,18 @@ In TSP, pairs of TSP endpoints establish directional [[ref: relationships]]. In 
 
 ### VID Use Scenarios
 
-In the Trust Spanning Protocol, VIDs function as identifiers within protocol envelopes and other control fields (see [Section 3](#messages)). As identifiers in exposed envelopes, VIDs may be visible to third parties with access to the network transports, allowing for potential correlation with other identifying transport mechanism information, such as IP addresses, transport protocol header information, and other metadata like packet size, timing, and approximate location. To mitigate the risk of metadata exploitation, TSP provides Nested Messages ([Section 4](#nested-messages)) and Routed Messages ([Section 5](#routed-messages-through-intermediaries)) for certain metadata privacy protections. Given the varied roles VIDs play in different scenarios, their management requires careful considerations. To clarify and simplify the discussion of these scenarios, we categorize VID uses into three scenarios: public, well-known, and nested.
+In the Trust Spanning Protocol, VIDs function as identifiers within protocol envelopes and other control fields (see [Section 3](#messages)). As identifiers in exposed envelopes, VIDs may be visible to third parties with access to the network transport infrastructure, allowing for potential correlation with other identifying transport mechanism information.  Examples of this information may include things such as IP addresses, transport protocol header information, and other metadata like packet size, timing, and approximate location of sender or reciever. To mitigate the risk of metadata exploitation, TSP provides Nested Messages ([Section 4](#nested-messages)) and Routed Messages ([Section 5](#routed-messages-through-intermediaries)) for certain metadata privacy protections. Given the varied roles VIDs play in different scenarios, their management requires careful consideration. To clarify and simplify the discussion, we categorize VID use into three scenarios: public, well-known, and nested.
 
-We refer to the scenarios where VIDs are exposed to external entities as their *public* use. The address resolution operations of public VIDs may provide visible information to an adversary.
+We refer to scenarios where VIDs are exposed to external entities as their *public* use. The address resolution operations of public VIDs may provide visible information to an adversary.
 
 It's important to note that while additional security measures like TLS or HTTPS can be employed at the transport layer to safeguard VIDs, TSP does not inherently depend on these mechanisms for protection. Consequently, within the context of TSP, even VIDs protected by such transport layer security are treated as if they are '*public*,' assuming they could potentially be accessed or observed by external parties.
 
 Within the category of public VIDs, there is a subclass known as *well-known* VIDs. These are VIDs whose controllers deliberately intend for them to be broadly recognized. The rationale behind making a VID well-known often revolves around streamlining or simplifying the processes of VID discovery, resolution, and verification. However, it's important to recognize that such actions inherently expose additional information to potential adversaries. As a subclass of public VIDs, well-known VIDs must also meet all public VID requirements.
 
-VIDs are considered to be in *nested* use when their usage is protected within another instance of TSP relationship in a nested mode (See [Section 4](#nested-messages)). Nested VIDs are also called *inner VIDs* which bypass the need for address resolution. Their establishment operations are managed by TSP control messages, and all relevant operations are protected by the outer layer of TSP. For detailed descriptions of the nested mode of TSP, please refer to [Section 4](#nested-messages). The specifics regarding control messages are detailed in [Section 7](#control-payload-fields).
+VIDs are considered to be in *nested* use when their usage is protected within another instance of a TSP relationship in a nested mode (See [Section 4](#nested-messages)). Nested VIDs are also called *inner VIDs* which bypass the need for address resolution. Their establishment operations are managed by TSP control messages, and all relevant operations are protected by the outer layer of TSP. For detailed descriptions of the nested mode of TSP, please refer to [Section 4](#nested-messages). The specifics regarding control messages are detailed in [Section 7](#control-payload-fields).
 
 ### VID General Requirements
-This section specifies general expections TSP requires VIDs to meet. TSP uses VID as an abstract data type that must support a set of abstract operations. This section also lists these operations in a format like `VID.OPERATION`.
+This section specifies general expections TSP requires VIDs to meet. TSP uses VID as an abstract data type that must support a set of abstract operations. This section lists these operations in a format like `VID.OPERATION`.
 
 #### Cryptographic Non-Correlation
 
@@ -148,7 +148,7 @@ Each VID type MUST have a unique type code allocated for its exclusive use. The 
 
 #### VID Syntax
 
-TSP tries not to impose any additional syntax requirements beyond any VID type already mandates. But since TSP uses CESR for VID encoding, any VID's syntax MUST have at least one compliant CESR encoding, including VID Type.
+TSP tries not to impose any additional syntax requirements beyond what any VID type already mandates. But since TSP uses CESR for VID encoding, a VID MUST have at least one compliant CESR encoding, including VID Type.
 
 #### Resolution to Transport Address
 
