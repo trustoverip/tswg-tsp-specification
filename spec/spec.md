@@ -79,6 +79,12 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 [[def: TSP Message, TSP Messages, Messages]]
 ~ A TSP Message is a single unit of asynchronous message in TSP with assured authenticity, confidential (if chosen), and optionally metadata privacy.
 
+[[def: Nested Message]]
+~ Encapsulating specific data — for instance, a sequence of messages or data about the communication — within an additional envelope.  See [Section 4 Nested Messages](#nested-messages)
+
+[[def: Out of Band Introduction, OOBI]]
+~ Any method of discovering VIDs and making an initial (insecure) connection to an Endpoint. Referred to as an "OOBI".
+
 ### Reference Architecture
 
 <img src="../images/Reference-Architecture.png" alt="TSP Reference Architecture" style="width:800px;"/>
@@ -241,7 +247,7 @@ VIDs in TSP are encoded with a VID_Type and a VID_String. If the VID type has va
 
 ### TSP Payload
 
-The TSP payload is where application's data goes. It is divided into two parts: Non-Confidential Fields and Confidential Fields. The confidential fields are encrypted and appear in the payload as ciphertext. It is up to the upper layer to choose where their data will go. 
+The TSP payload is where application data goes. It is divided into two parts: Non-Confidential Fields and Confidential Fields. The confidential fields are encrypted and appear in the payload as ciphertext. It is up to the controller to choose where their data will go.
 
 ```text
 TSP_Payload = {Non_Confidential_Fields, Confidential_Fields_Ciphertext}
@@ -249,15 +255,15 @@ TSP_Payload = {Non_Confidential_Fields, Confidential_Fields_Ciphertext}
 
 #### Non-Confidential Fields
 
-The non-confidential fields are optional, and if present, not encrypted. They may contain header and data fields.
+The non-confidential fields are optional and, if present, not encrypted. They may contain header and data fields.
 
-The non-confidential header fields may contain data Type and Subtype codes, and other fields for control use. The non-confidential data fields can be any data fields encoded in CESR, including mixed JSON, CBOR and MsgPack encoded data as supported by CESR.
+The non-confidential header fields may contain data Type and Subtype codes along with other fields for control use. The non-confidential data fields can consist of any data that can be encoded in CESR, including mixed JSON, CBOR and MsgPack as supported by CESR.
 
 #### Confidential Fields
 
 The confidential fields of the payload are encrypted through PKAE. What is encoded in the message is the ciphertext of the corresponding plaintext which may contain both header and data fields in the same way as the non-confidential fields.
 
-And the ciphertext is produced as:
+The ciphertext is produced as:
 
 ```text
 Confidential_Fields_Ciphertext = TSP_SEAL({Confidential_Fields_Plaintext})
@@ -267,37 +273,34 @@ The details of the supported PKAE schemes for the `TSP_SEAL` operation are speci
 
 The confidential header fields may contain an optional list of VIDs, the payload data Type and Subtype codes, and other control fields. We will define these fields when we define individual payload fields for specific messages.
 
-For PKAE schemes *HPKE-Base* [ref:RFC9180] and *Libsodium sealed box* [ref:TOADD], the `VID_sndr` MUST appear in the confidential heade fields following the ESSR scheme from [2]. See [Section 8](#cryptographic-algorithms) for the details.
+For PKAE schemes *HPKE-Base* ([[spec-norm:RFC9180]]) and *Libsodium Sealed Box* ([[ref:Sealed Boxes]]), the `VID_sndr` MUST appear in the confidential header fields following the ESSR scheme. See [Section 8](#cryptographic-algorithms) for the details.
 
 The header fields also contain a list of intermediary hop VIDs for Routed Mode messages. See [Section 5](#routed-messages-through-intermediaries) for the detailed description.
 
-The confidential payload data field can be any data encoded in CESR, including mixed JSON, CBOR and MsgPack encoded data as supported by CESR. Since TSP message itself is encoded in CESR, it can be embedded in the data field, resulting a [[ref:Nested Message]].
+The confidential payload data field can be any data that can be encoded in CESR including, mixed JSON, CBOR and MsgPack encoded data as supported by CESR. Since the TSP message itself is encoded in CESR, it can be embedded in the data field resulting in a [[ref:Nested Message]].
 
 On the receiving side, the corresponding TSP primitive is `TSP_OPEN`.
 
 #### Header Fields
 
-As described above, healder fields may appear in non-confidential or confidential fields. They have the same format and meaning regardless of whether they are encrypted. However, certain header fields are required to be in confidential fields if confidentiality is desired by the application.
+As described above, header fields may appear in non-confidential or confidential fields in the envelope. They have the same format and meaning regardless of whether they are encrypted or not. However, certain header fields are required to be in confidential fields of the envelope if confidentiality is a requirement of the application.
 
-- *Type* and *Subtype*
+##### *Type* and *Subtype*
 
-The `Type` is an allocated code indicating quickly what the payload is intended for. For example, an upper layer application may use type code similar to TCP or UDP port numbers.
-
-The type code `TSP_CTL` is reserved and special. It indicates that the payload data fields that followed are for the control operations of TSP and should be passed on to the TSP rather than an application. When control data is present, a TSP message MAY optionally contain normal application data as well. The control data SHOULD come before the user data when both are in the same payload.
-
-The type code `TSP_GEN` is reserved. It is used by applications where this code is not needed or doesn't care.
+The `Type` is an allocated code indicating what the payload is intended for. For example, an upper layer application may use type code similar to TCP or UDP port numbers.
 
 For each `Type`, a space of `Subtype` is available for use by the application designated by the `Type`. The use of subtype is optional.
 
-For `TSP_CTL`, we will introduce `Subtype` codes in Section [Control Payloads](#control-payloads).
+###### Reserved Type Codes
+- The type code `TSP_CTL` is reserved and special. It indicates that the payload data fields that followed are for the control operations of TSP and should be passed on to the TSP rather than the application. When control data is present, a TSP message MAY optionally include normal application data as well as the control data. The control data SHOULD come before the user data when both are in the same payload.
+  - We will introduce Control `Subtype` codes in the Section [Control Payload Fields](#control-payload-fields).
+- The type code `TSP_GEN` is reserved. It is used by applications where this code is not needed or doesn't care.
 
-- *Thread_ID*
 
-The `Thread_ID` field is generated using TSP_DIGEST over the binary representation of the received message
+##### Miscellaneous Fields
+- *Thread_ID* The `Thread_ID` field is generated using a TSP\_DIGEST over the binary representation of the received message
 
-- *Nonce*
-
-Some TSP message may have deterministic content and is vunerable to message replay attack. For these messages, a Nonce field is added to the header.
+- *Nonce* Some TSP message may have deterministic content and is vulnerable to message replay attacks. For these messages, a `Nonce` field is added to the header.
 
 ::: issue #6
 Discuss if a timestampe is useful.
@@ -307,7 +310,7 @@ https://github.com/trustoverip/tswg-tsp-specification/issues/6
 
 ### TSP Signature
 
-The third part of a TSP message is the signature signed by the sender.
+The third part of a TSP message is the message signature of the sender.
 
 ```text
 TSP_Signature = TSP_SIGN({TSP_Envelope, TSP_Payload})
@@ -317,7 +320,7 @@ On the receiving side, the corresponding primitive is `TSP_SIG_VERIFY`. The deta
 
 ### TSP Message Examples
 
-Applications can use TSP messages, as defined above, in any way they want. In this section, we discuss two common scenarios that may be particularly useful. In the first case, all user data is in the confidential data fields and TSP assures both authenticity and condientiality. In the second case, all user data is in the non-confidential data fields.
+Applications can utilize TSP messages as defined above in any way they choose. In this section, we discuss two common scenarios that may be particularly useful. In the first scenario, all user data is in the confidential data fields in a manner in which TSP can assure both authenticity and condientiality of the message. In the second case, all data is contained in the non-confidential data fields.
 
 #### Authentic and Confidential (AAC) Messages
 
@@ -354,58 +357,58 @@ These messages do not have `VID_rcvr` and the payload is entirely non-confidenti
 
 A [[ref: TSP relationship]] is a pairing `<VID_a, VID_b>` of two VIDs controlled by the respective endpoints `A` and `B` indicating that endpoint `A` has satisfactorily verified `VID_b` of endpoint `B`.
 
-An endpoint is able to obtain (or create) one or more VIDs possibly through the service of their respective [[ref: Support Systems]]. Let us say `VID_a` is one of such VIDs for endpoint `A`. As a convention, we will use lower case letter, such as `a`, to indicate that `VID_a` is controlled by the endpoint named with the corresponding upper case letter, say `A`. Details of VID management for any VID type is out of scope for this specification but an endpoint will need to implement necessary supports for all of its supported VID types.
+An endpoint is able to obtain (or create) one or more VIDs possibly through the service of their respective [[ref: Support Systems]]. Let us say `VID_a` is one such VID for endpoint `A`. As a convention, we will use a lower case letter, such as `a`, to indicate that `VID_a` is controlled by the endpoint named with the corresponding upper case letter, say `A`. Details of VID management for any particular VID type is out of scope for this specification but an endpoint will need to implement necessary support for all of the VID types it supports.
 
-By [Out of Band Introduction](#out-of-band-introductions) or other TSP [relationship formation messages](#control-payloads), endpoint `A` learns a `VID_b` of endpoint `B`. At this point, endpoint `A` chooses `VID_a` and performs necessary verification and appraisal operation on `VID_b` with respect to `VID_a`. If the verification is successful, endpoint `A` may add a relationship `<VID_a, VID_b>` to its relationship table.
+Endpoint `A` learns a `VID_b` of endpoint `B` via either [Out of Band Introduction](#out-of-band-introductions) or other TSP [relationship formation messages](#control-payloads). At this point, endpoint `A` chooses `VID_a` and performs necessary verification and appraisal operations on `VID_b` with respect to `VID_a`. If this verification is successful, endpoint `A` may add a relationship `<VID_a, VID_b>` to its relationship table.
 
-At this point, endpoint `A` may resolve `VID_b` to obtain transport layer address for delivery of a TSP message with `VID_a` as the sender VID and `VID_b` as the receiver VID.
+Afterwards, endpoint `A` may resolve `VID_b` to obtain a transport layer address for delivery of a TSP message with `VID_a` as the sender `VID_sndr` and `VID_b` as the receiver `VID_rcvr`.
 
-When endpoint `B` receives this TSP message, if this is the first TSP message from `VID_a` to `VID_b` and endpoint `B` had not verified `VID_a` before, endpoint `B` will perform necessary verification and assessment to evaluate `VID_a` with respective to `VID_b`. If successful, endpoint `B` may also add relationship `<VID_b, VID_a>` to its relationship table.
+When endpoint `B` receives this TSP message, if this is the first TSP message from `VID_a` to `VID_b` and endpoint `B` has not verified `VID_a` before, endpoint `B` will perform the necessary verification and assessment to evaluate `VID_a` with respect to `VID_b`. If successful, endpoint `B` may also add a relationship `<VID_b, VID_a>` to its relationship table.
 
-In short, one successful TSP message exchange between two endpoints populates one relationship on each endpoint's relationship table. The relationships in their respective tables are the mirror image of each other in the form of `<VID_local, VID_remote>`. We may interprete this relationship as the state that the endpoint has verified `VID_remote` with respect to `VID_local`, or the pair of the VIDs are in a *verified* state. Note that because of the asynchronous nature of TSP messages, such state is also not always synchronized between the two endpoints. Their relationship table is not guaranteed to be always accurate.
+In short, one successful TSP message exchange between two endpoints populates one relationship on each endpoint's relationship table. The relationships in their respective tables are the mirror image of each other in the form of `<VID_local, VID_remote>`. We may interprete this relationship as the state that the endpoint has verified `VID_remote` with respect to `VID_local`. We say the pair of VIDs are in a *verified* state. Note that due to the the asynchronous nature of TSP messages such a state is not always synchronized between the two endpoints. Their relationship tables are not guaranteed to be accurate.
 
-Since endpoints may reuse VIDs, an endpoint may have relationships `<VID_a, VID_b>` and `<VID_a, VID_c>` in its relationship table at the same time. Only a pair together uniquely identifies a relationship.
+Since endpoints may reuse VIDs, an endpoint may have relationships `<VID_a, VID_b>` and `<VID_a, VID_c>` in its relationship table at the same time. Only a pair uniquely identifies a relationship in TSP.
 
-Endpoints may have semantic meaning or application specific allocations associated with VIDs. For this reason, we say an endpoint `A` verifies and assesses a `VID_b` with *respect to* a local `VID_a`. The evaluation process may have dependecy on the chosen `VID_a`.
+Endpoints may have semantic meaning or application specific meanings ssociated with their VIDs. For this reason we say an endpoint `A` verifies and assesses a `VID_b` with *respect to* `VID_a`. This evaluation process may have dependecy based on the chosen `VID_a`.
 
-After endpoint `B` processed the first TSP message from `VID_a` to `VID_b` and accepted a new relationship `<VID_b, VID_a>`, it may decide to reply with its own TSP message in the opposite direction. It is common, although neither required nor always needed, that the two endpoints want to engage in bi-directional communications. At this point, endpoint `B` can update the corresponding relationship into a [[ref: bi-directional relationship]] `(VID_b, VID_a)`. Upon successfully receive the return TSP message by endpoint `A`, it can also update its relationship to bi-directional: `(VID_a, VID_b)`.
+After endpoint `B` processes the first TSP message from `VID_a` to `VID_b` and has accepted a new relationship `<VID_b, VID_a>` it may decide to reply with its own TSP message in the opposite direction. It is common, although neither required nor always needed, that the two endpoints want to engage in bi-directional communication. At this point, endpoint `B` can update the corresponding relationship into a [[ref: bi-directional relationship]] `(VID_b, VID_a)`. Upon successfully receiving the return TSP message by endpoint `A`, it can also update its relationship to bi-directional: `(VID_a, VID_b)`.
 
 ::: note
 The notation `<VID_local, VID_remote>` is used for representing a uni-directional relationship, and `(VID_local, VID_remote)` for a bi-directional relationship.
 :::
 
-For details of relationship forming TSP control messages, please refer to [Section 7](#control-payload-fields). The following Sections [3.7](#sender-procedures) and [3.8](#receiver-procedures) describes in more detail the operations required for sending and receiving TSP messages.
+For details of the relationship forming TSP control messages, please refer to [Section 7](#control-payload-fields). The following Sections [3.6](#sender-procedure) and [3.7](#receiver-procedure) describes in detail the operations required for sending and receiving TSP messages.
 
 ### Sender Procedure
 
-We outline the procedures for TSP message senders for the simple Direct Mode case in two parts: the initial message which establishes the relationship, and the follow-up messages that occur within that established relationship.
+We outline the procedures for TSP message senders for the simple Direct Mode case in two parts: the initial message which establishes the relationship and the follow-up messages that occur within that established relationship.
 
-Endpoint `A`, which controls `VID_a` associated with Support System `A*`, acquires `VID_b` of Endpoint `B` through an [out-of-band introduction (OOBI)](#out-of-band-introductions) method, or a TSP [relationship forming message](#control-payload-fields) of another existing relationship. `VID_b` is tied to Support System `B*`. Note that `A*` could be the same as or different from `B*`. If Endpoint `A` selects to employ `VID_a` to dispatch a TSP message to the Endpoint identified by `VID_b` for the first time, it will be establishing a unidirectional relationship denoted by `<VID_a, VID_b>`.
+Endpoint `A`, which controls `VID_a` associated with Support System `A*`, acquires `VID_b` of Endpoint `B` through an [out-of-band introduction (OOBI)](#out-of-band-introductions), or a TSP [relationship forming message](#control-payload-fields) of another existing relationship. `VID_b` is tied to Support System `B*`. Note that `A*` could be the same as or different than `B*`. If Endpoint `A` selects to employ `VID_a` to dispatch a TSP message to the Endpoint identified by `VID_b` for the first time, it will be establishing a unidirectional relationship denoted by `<VID_a, VID_b>`.
 
-The following is an example procedure that Endpoint `A` may follow when sending its inaugural message to `VID_b` using its own `VID_a`. This example is only illustrative. Implementors will need to pay considerations to the actual VID type's and the chosen transport mechanism's requirements, and the requirements of applications they intend to support.
+The following is an example procedure that Endpoint `A` may follow when sending its inaugural message to `VID_b` using its own `VID_a`. This example is only illustrative. Implementors will need to pay consideration to the actual VID types, the chosen transport mechanism's requirements, and the requirements of applications they intend to support.
 
 - Step 1: Resolve `VID_b` to acquire access to the following mandatory information
     - Public keys bound to the VID for TSP: `VID_b.PK_e`, `VID_b.PK_s`
     - All other VID verification information as required by the VID type ([Section 2](#verifiable-identifiers))
-    - Transport information, if it is not yet known.
+    - Transport information if it is not yet known.
 - Step 2: Verify `VID_b` with `VID_b.VERIFY`.
 - Step 3: Create a TSP message
     - As the first TSP message, it MUST contain the relationship forming payload fields.
-    - It may optionally also contain other user data. In other words, applications do not have to wait for a round trip delay for relationship establishment.
-- Step 4: Use the retrieved transport information in Step 1 to establish a means of transport, if not yet available. Note that this step will be significantly different depending on the details of the transport of choice. [Section 10](#transports) discusses additional transport considerations.
+    - It MAY optionally also contain other user data. In other words, applications do not have to wait for a round trip delay for relationship establishment.
+- Step 4: Use the retrieved transport information in Step 1 to establish a means of transport, if not yet available. Note that this step will be significantly different depending on the details of the transport mechanism of choice. [Section 10](#transports) discusses additional transport considerations.
 - Step 5: Send the TSP message.
 - Step 5: Update relationship table with `<VID_a, VID_b>`.
 
 For subsequent messages, the procedure is simpler:
 
 - Step 1: Create a TSP message
-- Step 2: If the retrieved transport mechanism is ready to use (e.g. if it's cached or kept hot), send the message. If not, refresh operations will be needed first.
+- Step 2: If the retrieved transport mechanism is ready to use (e.g. if it's cached or kept hot), send the message. If not, refresh operations may be needed first.
 
-In the above much simplified example, we have not considered any dynamic changes or error conditions.
+Note, in our simplified example above we have not considered any dynamic changes or error conditions that may arise.
 
 ### Receiver Procedure
 
-Similar to the previous section, the following example is only illustraitve for the receiver of a simple Direct Mode TSP message.
+Similar to the previous section, the following example is only illustrative of the reception of a simple Direct Mode TSP message.
 
 If endpoint `B` receives a TSP message of the generic form `{... VID_sndr, VID_rcvr, ... Confidential_Payload_Ciphertext, TSP_Signature}`, endpoint `B` may follow these steps to process this incoming message:
 
@@ -419,16 +422,16 @@ If endpoint `B` receives a TSP message of the generic form `{... VID_sndr, VID_r
 - Step 5: Verify the `TSP_Signature`.
 - Step 6: Decrypt the `Confidential_Payload_Ciphertext`. 
 - Step 7: If the PKAE variant requires, retrieve the sender VID from the decrypted payload plaintext and verify that it matches `VID_sndr`.
-- Step 8: Process the rest of control fields.
+- Step 8: Process the rest of the control fields.
 - Step 9: Return the payload to the upper layer application.
 
 ### Out of Band Introductions
 
-Before an endpoint `A` can send the first TSP message to another endpoint `B`, it must somehow discover at least one VID that belongs to `B`. If they also wish to utilize the Routed Mode, as specified in [Section 5](#routed-messages-through-intermediaries), then additional VIDs may also be needed before the first TSP routed message can be sent. We call any such method that could help the endpoints discover such prerequisite information an Out of Band Introduction (OOBI). There may be many such OOBI methods. Detailed specifications of OOBI methods are out of scope.
+Before an endpoint `A` can send the first TSP message to another endpoint `B` it must somehow discover at least one VID that belongs to `B`. If A also wishes to utilize Routed Mode, as specified in [Section 5](#routed-messages-through-intermediaries), then additional VIDs may also be needed before the first TSP routed message can be sent. We call any such method that helps the endpoints discover such prerequisite information an [[ref:Out of Band Introduction]]. There may be many such OOBI methods. Detailed specifications of OOBI methods are out of scope for this specification.
 
-For the purpose of TSP, information obtained from OOBI methods must not be assumed authentic, confidential or private, although mechanisms to remedy such vulnerabilities should be adopted whenever possible. TSP implementations must handle all cases where the OOBI information is not what it appears.
+For the purpose of TSP, information obtained from OOBI methods must not be assumed authentic, confidential, or private, although vierification and security mechanisms to remedy such vulnerabilities should be adopted whenever possible. TSP implementations must handle all cases where the OOBI information is not what it appears.
 
-Because TSP relationships can be highly authentic, confidential and potentially more private with respect to metadata, they can be used for the purpose of passing VID information for forming new relationships. Details of such procedures used for introductions are specified in Section [Control Payloads](#control-payload-fields).
+Because TSP relationships can be highly authentic, confidential, and potentially provide more privacy with respect to metadata than OOBIs, they can be used for the purpose of passing VID information for forming new relationships. Details of such procedures that can be used for such introductions are specified in Section [Control Payloads](#control-payload-fields).
 
 ## Nested Messages
 When TSP sender `A` dispatches a TSP Message with confidential payload intended for receiver `B`, the observable data structure for any third party not involved in the message exchange between `A` and `B` appears as:
