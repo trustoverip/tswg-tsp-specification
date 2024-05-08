@@ -1269,7 +1269,7 @@ The TSP Signature is encoded as an attachment group in CESR. TSP allows multiple
 
 
 ## Transports
-The TSP messages are mostly agnostic to transport mechanisms which deliver them from a sender to a receiver endpoint. The authenticity, confidentiality and privacy properties of the TSP messages are designed to be independent of the choice of transport layer. This is one of the main goals of TSP. That being said, it does not mean that the choice and implementation of transport mechanisms are not important to the proper function of TSP. In this section, we describe a generic service interface between TSP and the transport layer, and provide guidances on some aspects of how various transport mechanisms can be used to carry TSP messages.
+The TSP messages are mostly agnostic to transport mechanisms which deliver them from a sender to a receiver endpoint. The authenticity, confidentiality, and privacy properties of the TSP messages are designed to be independent of the choice of transport layer. This is one of the main goals of TSP. That being said, it does not mean that the choice and implementation of transport mechanisms are not important to the proper functioning of TSP. In this section, we describe a generic service interface between TSP and the transport layer, and provide guidance on some aspects of how various transport mechanisms can be used to carry TSP messages.
 
 This section is informative.
 
@@ -1281,9 +1281,9 @@ In this section, we define a generic transport service interface that the TSP la
 
 Some transport mechanisms MAY require a preparation step (e.g. connection setup or login) before any message can be sent. This step is optional or can be a NOP.
 
-The input to this operation is the transport address of a VID (either local or remote): TSP_TRANSPORT_PREPARE(`VID.RESOLVEADDRESS`). The return value of such a step can be a handle of the access point or a failure code. For bi-directional relationships, this operation is called twice, one for sending (with the remote VID) and another for receiving (with the local VID).
+The input to this operation is the transport address of a VID (either local or remote): TSP\_TRANSPORT\_PREPARE(`VID.RESOLVEADDRESS`). The return value of such a step can be a handle of the access point or a failure code. For bi-directional relationships, this operation is called twice, one for sending (with the remote VID) and another for receiving (with the local VID).
 
-If this call is for the sender and the corresponding `TSP_TRANSPORT_SEND` can do send operation without prior preparation, or if this call is for the receiver and the corresponding `TSP_TRANSPORT_RECEIVE` can do receive operation ithout prior preparation, then this step can be skipped. If a caching mechanism is in use and the necessary access point is being cached, this step can be a NOP.
+If this call is for the sender and the corresponding `TSP_TRANSPORT_SEND` can do send operation without prior preparation, or if this call is for the receiver and the corresponding `TSP_TRANSPORT_RECEIVE` can do receive operation without prior preparation, then this step can be skipped. If a caching mechanism is in use and the necessary access point is being cached, this step can be a NOP.
 
 - `TSP_TRANSPORT_SEND`: called by the TSP layer to send one TSP message
 
@@ -1297,7 +1297,7 @@ The input to this operation is the TSP relationship and a TSP message.
 
 - `TSP_TRANSPORT_EVENT`: called by the transport layer to report events to the TSP layer, e.g. errors. The input to this operation is the relationship and respective event information data structure.
 
-For each transport mechanism supported, TSP implementations MUST instantiate these operations in a way that facilitate interoperability.
+For each transport mechanism supported, TSP implementations MUST instantiate these operations in a way that facilitates interoperability.
 
 ### Transport Mechanism Examples
 
