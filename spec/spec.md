@@ -1113,7 +1113,7 @@ All TSP implementations MUST support the following secure hash and digest functi
 
 ## Serialization and Encoding
 
-TSP uses CESR [[spec-norm:CESR]] version 2.0 (master code table for `--AAACAA`) for message serialization and encoding. The TSP payload however may have data encoded in other formats including CBOR, JSON, MsgPak and other compatible formats.
+TSP uses CESR [[spec-norm:CESR]] version 2.0 (master code table for KERI protocol/genus `--AAACAA`) for message serialization and encoding. The TSP payload however may have data encoded in other formats including CBOR, JSON, MsgPak etc.
 
 In this section, we describe the relevant CESR codes used in TSP.
 
@@ -1123,17 +1123,17 @@ https://github.com/trustoverip/tswg-tsp-specification/issues/9
 :::
 
 ### TSP Envelope Encoding
-TSP Envelope consists of four objects: TSP_Tag, TSP_Version, VID_sndr, VID_rcvr. Each VID consists of VID_Type followed by VID_String. The VID_String may be of variable length which may be encoded using CESR count code. The details of VID encoding are VID type depedent.
+The TSP Envelope consists of four objects: TSP\_Tag, TSP\_Version, VID\_sndr, VID\_rcvr. Each VID consists of VID\_Type followed by VID\_String. The VID\_String may be of variable length encoded using variable length CESR count codes or primitives. The details of VID encoding are VID type depedent.
 
-Object | Descryption | Code | Note
+Object | Description | Code | Note
 ----:|----:|--------:|--------:
-TSP_Tag | Indicating the start of a TSP envelope | `-E##` or `-0E#####`| Use `-E##` for signable data up to 4095 quadlets/triplets, `-0E#####` for signable data up to 1,073,741,823 quadlets/triplets. The length does not include signature part.
-TSP_Version | TSP protocol version | `X###` | The first version is `XAAB`
-VID_Type | VID Type | `X###` | Type number may be allocated for exclusive use
-VID_String | VID | *as defined by the VID type* | The string can be fixed length or variable length
+TSP\_Tag | Indicating the start of a TSP envelope | `-E##` or `-0E#####`| Use `-E##` for signable data up to 4095 quadlets/triplets, `-0E#####` for signable data up to 1,073,741,823 quadlets/triplets. The length does not include signature part.
+TSP\_Version | TSP protocol version | `X###` | The first version is `XAAB`
+VID\_Type | VID Type | `X###` | Type number may be allocated for exclusive use
+VID\_String | VID | *as defined by the VID type* | The string can be fixed length or variable length
 
 ::: note
-CESR uses a unit of 4 Base64 letters (Quadlet) to represent an equivalent unit of 3 bytes in binary (Triplet). Therefore, a two letter count code `0E##` in text domain provides a value in range of 0 to 4095 (`64 x 64 - 1`) where each unit is a qualet/triplet. The corresponding value in actual bytes in binary is 12,285 (`4095 x 3`). Similarly, `-0E#####` provides 0 to 1,073,741,823 (`64^5 - 1`) quadlets/triplets which corresponds to 3,221,225,472 bytes in binary.
+CESR uses a unit of 4 Base64 letters (Quadlet) to represent an equivalent unit of 3 bytes in binary (Triplet). Therefore, a two letter count code `0E##` in text domain provides a value in range of 0 to 4095 (`64 x 64 - 1`) where each unit is a quadlet/triplet. The corresponding value in actual bytes in binary is 12,285 (`4095 x 3`). Similarly, `-0E#####` provides 0 to 1,073,741,823 (`64^5 - 1`) quadlets/triplets which corresponds to 3,221,225,472 bytes in binary.
 :::
 
 ::: issue #10
@@ -1147,7 +1147,7 @@ TSP Payload consists of non-confidential fields followed by ciphertext that is g
 #### Non-Confidential Payload Fields
 Non-confidential payload fields are encoded in CESR directly without encryption. The following control fields are currently defined in the specification. Additional control fields may be defined in the future. Higher layer applications may define their own data fields. Application specific data fields are not defined in this specification but they MUST not conflict with TSP defined fields.
 
-Defined payload fields include: Payload Type, Subtype, VID_sndr, VID Hop List, Nonce, Thread-ID. The VID fields are encoded in the same way as defined in [TSP Envelope Encoding](#tsp-envelope-encoding). 
+Defined payload fields include: Payload Type, Subtype, VID\_sndr, VID Hop List, Nonce, Thread-ID. The VID fields are encoded in the same way as defined in [TSP Envelope Encoding](#tsp-envelope-encoding). 
 
 Object | Descryption | Code | Note
 ----:|----:|--------:|--------:
@@ -1160,19 +1160,19 @@ Nonce | TBD if needed | `0A` for a nonce of 128 bits | ~
 The TSP control type codes:
 Object | Descryption | Code | Note
 ----:|----:|--------:|--------:
-TSP_CTL | control type | `-ZAB` | For TSP control payload use, numerical value `1`
-TSP_GEN | general type | `-ZAC` | For undistingsuihed application payload use, numerical value `2`
+TSP\_CTL | control type | `-ZAB` | For TSP control payload use, numerical value `1`
+TSP\_GEN | general type | `-ZAC` | For undistinguished application payload use, numerical value `2`
 
 The TSP control subtype codes:
 Object | Descryption | Code | Note
 ----:|----:|--------:|--------:
-NEW_REL | new relationship forming | `0EAB` | numerical value `1`
-NEW_REL_REPLY | bi-directional relatinship forming | `0EAC` | numerical value `2`
-NEW_REFER_REL | parallel relationship forming by referral | `0EAD` | numerical value `3`
-NEW_REFER_REL_REPLY | parallel relationship forming reply by referral | `0EAE` | numerical value `4`
-NEW_NEST_REL | new nested relationship forming | `0EAF`| numerical value `5`
-NEW_NEST_REL_REPLY | new nested bi-directional relationship forming | `0EAG` | numerical value `6`
-REL_CANCEL | cancel a relationship | `0EAH` | numerical value `7`
+NEW\_REL | new relationship forming | `0EAB` | numerical value `1`
+NEW\_REL\_REPLY | bi-directional relationship forming | `0EAC` | numerical value `2`
+NEW\_REFER\_REL | parallel relationship forming by referral | `0EAD` | numerical value `3`
+NEW\_REFER\_REL\_REPLY | parallel relationship forming reply by referral | `0EAE` | numerical value `4`
+NEW\_NEST\_REL | new nested relationship forming | `0EAF`| numerical value `5`
+NEW\_NEST\_REL\_REPLY | new nested bi-directional relationship forming | `0EAG` | numerical value `6`
+REL\_CANCEL | cancel a relationship | `0EAH` | numerical value `7`
 
 
 A TSP message's payload may include both control fields and application data fields which start with Type = TSP_GEN, or with an application specific type code.
@@ -1221,9 +1221,9 @@ The `enc` is defined by HPKE [[spec-norm:RFC9180]] which contains identifiers fo
 
 Name | Data Type | Value Registry | Description
 ----:|----:|--------:|--------:
-kem_id | uint | HPKE KEM IDs Registry | Identifier for the KEM
-kdf_id | uint | HPKE KDF IDs Registry | Identifier for the KDF ID
-aead_id | uint | HPKE AEAD IDs Registry | Identifier for the AEAD ID
+kem\_id | uint | HPKE KEM IDs Registry | Identifier for the KEM
+kdf\_id | uint | HPKE KDF IDs Registry | Identifier for the KDF ID
+aead\_id | uint | HPKE AEAD IDs Registry | Identifier for the AEAD ID
 enc | bstr | NA | Encapsulated key defined by HPKE
 
 The ID values that MUST be supported by TSP:
