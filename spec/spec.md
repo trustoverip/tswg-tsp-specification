@@ -107,7 +107,7 @@ TSP messages always assure authenticity, optionally confidentiality, and if util
 
 TSP specifies message types that will have varying formats or representations during their lifecycle, both within systems that process or store them and networks that transport them. Additionally, for purposes such as debugging, documentation, or logging, these messages may need to be represented in a text format that is more accessible for human interpretation or better accepted for legal and administrative treatments.
 
-TSP uses [[spec-norm:CESR]] encoding for the envelope, payload structure and signature parts of TSP messages. CESR encoding allows composibility for complex cryptographic objects and easy convertions between text and binary representations while maintaining alignments of data objects. Within TSP's payload, other types of encoding may also be used in a mixed mode. 
+TSP uses [[ref:CESR]] encoding for the envelope, payload structure and signature parts of TSP messages. CESR encoding allows composibility for complex cryptographic objects and easy convertions between text and binary representations while maintaining alignments of data objects. Within TSP's payload, other types of encoding may also be used in a mixed mode. 
 
 We introduce the notation `“{a, b, c}”` is a concatenation of CESR encoded objects. It is also denoted as `CONCAT` in pseudo codes. This does not mean that the data objects have to or always are in a concatenated form, but because CESR encoding is self-framed and composible, the actual concatenation can be performed only whenever is needed. With that caution, we will follow this simple method throughout this specification.
 
@@ -1113,7 +1113,7 @@ All TSP implementations MUST support the following secure hash and digest functi
 
 ## Serialization and Encoding
 
-TSP uses CESR [[spec-norm:CESR]] version 2.0 (master code table for `--AAACAA`) for message serialization and encoding. The TSP payload however may have data encoded in other formats including CBOR, JSON, MsgPak and other compatible formats.
+TSP uses CESR [[ref:CESR]] version 2.0 (master code table for `--AAACAA`) for message serialization and encoding. The TSP payload however may have data encoded in other formats including CBOR, JSON, MsgPak and other compatible formats.
 
 In this section, we describe the relevant CESR codes used in TSP.
 
@@ -1250,7 +1250,7 @@ Todo
 ```
 
 ##### Lipsodium Sealed Box Encoding
-See [[spec-norm:CESR]] on X25519 Sealed Box cipher bytes encoding.
+See [[ref:CESR]] on X25519 Sealed Box cipher bytes encoding.
 
 Example:
 ``` text
@@ -1337,7 +1337,7 @@ https://github.com/trustoverip/tswg-tsp-specification/issues/13
 ### Normative References
 [[spec-norm]]
 
-[CESR]. Composable Event Streaming Representation (CESR), *Samuel Smith*
+**[[def:CESR]]**. *Composable Event Streaming Representation (CESR)*, Samuel Smith
 [CESR]: https://trustoverip.github.io/tswg-cesr-specification/
 
 ### Informational References
