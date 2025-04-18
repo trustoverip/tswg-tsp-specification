@@ -56,28 +56,28 @@ TSP stands as the spanning layer protocol within the Trust over IP technology ar
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14 [[spec-norm:RFC2119]] [[spec-norm:RFC8174]] when, and only when, they appear in all capitals, as shown here.
 
 [[def: Verifiable Identifier, Verifiable Identifiers, VID, VIDs]]
-~ A Veifiable Identifier is a category of digital identifiers that meet requirements set in [Section 2](#verifiable-identifiers) of the Trust Spanning Protocol Specification. The requirements include, among others, cryptographic verification and assessment of governance and associated [[ref: Support Systems]]. It does not itself a defined digital identifier scheme. It is not restricted to a particular type of identifiers, for example, centralized, federated, or decentralized.
+~ A Veifiable Identifier is a category of digital identifier that meets the requirements set forth in [Section 2](#verifiable-identifiers) of the Trust Spanning Protocol Specification. The requirements include cryptographic verification and assessment of governance as well as the associated [[ref: Support Systems]]. It does not itself define a digital identifier scheme. It is not restricted to a particular type of identifier class such as, centralized, federated, or decentralized identifier trust-based ecosystems.
 
 [[def: TSP Relationship, Relationship, Relationships]]
-~ A TSP relationship is a pairing of two [[ref: VIDs]] `<VID_a, VID_b>` where `VID_a` is an VID of the local [[ref: endpoint]] `A`, `VID_b` is a VID of the remote endpoint `B`, and the local endpoint `A` has verified `VID_b` for use in TSP with its `VID_a`. Each [[ref: TSP endpoint]] maintains a [[ref:Relationship Table]] that contains such pairings for all active relationships. This pairing is directional by default, but if the verification has been made mutually in both directions, it is referred to as a [[ref: Bi-directional Relationship]].
+~ A TSP relationship is a pairing of two [[ref: VIDs]] `<VID_a, VID_b>` where `VID_a` is a VID of the local [[ref: TSP Endpoint]] `A`, `VID_b` is a VID of the remote endpoint `B` where the local endpoint `A` has verified `VID_b` for use in TSP with its `VID_a`. Each [[ref: TSP endpoint]] maintains a [[ref:Relationship Table]] that contains such pairings for all active relationships. This pairing is directional by default, but if the verification has been made mutually in both directions it is referred to as a [[ref: Bi-directional Relationship]].
 
 [[def: Bi-directional Relationship, Bi-directional Relationships]]
-~ [[ref A TSP Relationship]] is directional by default, but if the verification has been made mutually in both directions, it is referred to as a Bi-directional Relationship and is represented as `(VID_a, VID_b)` in the [[ref: ndpoint]] `A`'s [[ref: relationship table]] and `(VID_b, VID_a)` in endpoint `B`'s relationship table. A Bi-directional Relationship means that each endpoint has verified the other's VID indepedently.
+~ A [[ref: TSP Relationship]] is directional by default, but if the verification has been made mutually in both directions, it is referred to as a Bi-directional Relationship and is represented as `(VID_a, VID_b)` in the [[ref: Endpoint]] `A`'s [[ref: relationship table]] and `(VID_b, VID_a)` in endpoint `B`'s relationship table. A Bi-directional Relationship means that each endpoint has verified the other's VID indepedently.
 
 [[def: Relationship Table, Relationship Tables]]
 ~ A table of [[ref: Relationships]] of a [[ref: TSP Endpoint]]. Each entry of the table is a [[ref: Relationship]] where a [[ref: VID]] of the endpoint is one of two VIDs in the pairing. 
 
-[[def: TSP Endpoint, Endpoints]]
+[[def: TSP Endpoint, Endpoints, Endpoint]]
 ~ A TSP Endpoint is a secure computational system that runs the Trust Spanning Protocol. An Endpoint is able to obtain or create certain types of [[ref: Verifiable Identifiers]] possibly through the respective [[ref: Support Systems]], and is able to verify and assess another endpoint's VIDs via their corresponding [[ref: Support Systems]].
 
 [[def: TSP Support System, Support System, Support Systems]]
-~ A TSP Support System is a computational system that supports the management of [[ref: VIDs]] and in particular facilitates assessment and verification of VIDs of an [[ref: Endpoint]]. 
+~ A TSP Support System is a computational system that supports the management of [[ref: VIDs]] and in particular, facilitates assessment and verification of VIDs of an [[ref: Endpoint]]. 
 
 [[def: TSP Intermediary System, Intermediary System, Intermediary, Intermediaries]]
-~ A TSP Intermediary System, or just an intermediary, is a computational system that assist [[ref: Endpoints]] in forwarding [[ref: TSP Messages]].
+~ A TSP Intermediary System or just "intermediary", is a computational system that assists [[ref: Endpoints]] in forwarding [[ref: TSP Messages]].
 
 [[def: TSP Message, TSP Messages, Messages]]
-~ A TSP Message is a single unit of asynchronous message in TSP with assured authenticity, confidential (if chosen), and optionally metadata privacy.
+~ A TSP Message is a single asynchronous message in TSP with assured authenticity and optionally, confidentiality and metadata privacy.
 
 ### Reference Architecture
 
