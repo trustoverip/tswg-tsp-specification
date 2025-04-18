@@ -440,7 +440,7 @@ Over time, with a sustained exchange of such messages, an external observer may 
 To mitigate this threat, TSP offers a technique whereby parties encapsulate a specific conversation — for instance, a sequence of messages — within an additional TSP envelope, as described below.
 
 ### Payload Nesting
-Suppose endpoints `A` and `B` have established a prior direct relationship `(VID_a0, VID_b0>)`, they can then embed the messages of a new relationship `(VID_a1, VID_b1)`  in the confidential payload of `(VID_a0, VID_b0)` messages. In such a setup, `VID_a1` and `VID_b1` are protected from third party snooping. We may refer `(VID_a0, VID_b0)` the *outer relatioship* and the messages of `(VID_a0, VID_b0)` as *outer messages*, and `(VID_a1, VID_b1)` the *inner relationship* and the messages of `(VID_a1, VID_b1)` as *inner messages*.
+Suppose endpoints `A` and `B` have established a prior direct relationship `(VID_a0, VID_b0)`.  They can then embed the messages of a new relationship `(VID_a1, VID_b1)`  in the confidential payload of `(VID_a0, VID_b0)` messages. In such a setup, `VID_a1` and `VID_b1` are protected from third party snooping. We may refer `(VID_a0, VID_b0)` the *outer relationship* and the messages of `(VID_a0, VID_b0)` as *outer messages*.  Similarly, `(VID_a1, VID_b1)` the *inner relationship* and the messages of `(VID_a1, VID_b1)` as *inner messages*.
 
 The above description also applies to uni-directional relationships.
 
@@ -453,7 +453,7 @@ Nested_Message = {Envelope_0, {Non_Confidential_Fields_0,
                                 TSP_SEAL_0({Header_Fields_0, Inner_Message})}, Signature0}
 ```
 
-In this scheme, the inner message MUST use the confidential data field of the outer message in order to achieve the protection of the inner message metadata. Other than that, we do not restrict the structures of inner and outer messages. For example, if the endpoints do not find the need for additional encryption of the inner message, they MAY choose to use the non-confidential payload fields for the inner message payload data. Applicatios should be aware that the confidentiality assurances would only be extended to the outer relationship if the inner message is embedded in the non-confidential field of the outer message.
+In this scheme, the inner message MUST use the confidential data field of the outer message in order to achieve the protection of the inner message metadata. Other than that, we do not restrict the structures of inner and outer messages. For example, if the endpoints do not find the need for additional encryption of the inner message, they MAY choose to use the non-confidential payload fields for the inner message payload data. Applications should be aware that the confidentiality assurances would only be extended to the outer relationship if the inner message is embedded in the non-confidential field of the outer message.
 
 ### Nested Relationships
 
