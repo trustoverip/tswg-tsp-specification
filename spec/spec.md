@@ -96,17 +96,17 @@ The Trust Spanning Protocol is defined within the Reference Architecture (RA) il
 
 In TSP, these properties are defined within the context of a directional [[ref: relationship]] formed by a pair of [[ref: verifiable identifiers]] between a source and a destination [[ref: endpoint]]. In this context, the source is also referred to as the *sender* and the destination as the *receiver* of a message. Authenticity is ascertained by the receiver, providing confidence that the received message remains unaltered and that the message genuinely originates from the sender. Confidentiality ensures that only the sender and receiver have access to the protected confidential payload data content. However, some parts of the message's envelope, not shielded by confidentiality protection, can be observed and used to infringe upon privacy through traffic analysis, correlation or other exploitative means. TSP provides optional mechanisms to safeguard against these vulnerabilities. This specific type of protection is termed *metadata privacy*, differentiating it from the narrower understanding of privacy, which concerns the prevention of content exposure to unauthorized parties, synonymous with confidentiality.
 
-TSP messages always assure authenticity, optionally confidentiality, and if utilized, metadata privacy. The authenticity and confidentiality goals are achieved by a scheme combining a public key authenticated encryption (PKAE) and a signature. The metadata privacy protections are achieved by nested TSP messages and routed messages through intermediaries.
+TSP messages always assure authenticity, optionally confidentiality, and if utilized, metadata privacy. The authenticity and confidentiality goals are achieved by a scheme combining public key authenticated encryption (PKAE) and a signature. The metadata privacy protections are achieved by nested TSP messages and routed messages through intermediaries.
 
 ### Use of Formats
 
 TSP specifies message types that will have varying formats or representations during their lifecycle, both within systems that process or store them and networks that transport them. Additionally, for purposes such as debugging, documentation, or logging, these messages may need to be represented in a text format that is more accessible for human interpretation or better accepted for legal and administrative treatments.
 
-TSP uses [[spec-norm:CESR]] encoding for the envelope, payload structure and signature parts of TSP messages. CESR encoding allows composibility for complex cryptographic objects and easy convertions between text and binary representations while maintaining alignments of data objects. Within TSP's payload, other types of encoding may also be used in a mixed mode. 
+TSP uses [[ref:CESR]] encoding for the envelope, payload structure and signature parts of TSP messages. CESR encoding allows composibility for complex cryptographic objects and easy convertions between text and binary representations while maintaining alignments of data objects. Within TSP's payload, other types of encoding may also be used in a mixed mode. 
 
-We introduce the notation `“{a, b, c}”` is a concatenation of CESR encoded objects. It is also denoted as `CONCAT` in pseudo codes. This does not mean that the data objects have to or always are in a concatenated form, but because CESR encoding is self-framed and composible, the actual concatenation can be performed only whenever is needed. With that caution, we will follow this simple method throughout this specification.
+We introduce the notation `“{a, b, c}”` as a concatenation of CESR encoded objects. It is also denoted as `CONCAT` in pseudo code. This does not mean that the data objects have to or are always represented in a concatenated form, but because CESR encoding is self-framed and composible, the actual concatenation can be performed when needed. With that caution, we will follow this method throughout this specification.
 
-In this specification, we utilize text formats for clarity and illustrative purposes. However, it should be understood that such text-based descriptions are solely to illustrate how the messages are structured. Implmentors should be aware of other formats in which cryptographic primitives are operated on or the message is encoded for transport. For more details on serialization and encoding, please refer to [Section 9](#serialization-and-encoding).
+We also utilize text format for clarity and illustrative purposes within this specification. However, it should be understood that such text-based descriptions are solely to illustrate how the messages are structured. Implmentors should be aware of other formats in which cryptographic primitives are operated on or the various ways the message can be encoded for transport. For more details on serialization and encoding, please refer to [Section 9](#serialization-and-encoding).
 
 ## Verifiable Identifiers
 
@@ -1332,8 +1332,9 @@ https://github.com/trustoverip/tswg-tsp-specification/issues/13
 ### Normative References
 [[spec-norm]]
 
-[CESR]. Composable Event Streaming Representation (CESR), *Samuel Smith*
-[CESR]: https://trustoverip.github.io/tswg-cesr-specification/
+[[def:CESR]]
+~ [CESR](https://trustoverip.github.io/tswg-cesr-specification/) Composable Event Streaming Representation (CESR), *Samuel Smith*
+[https://trustoverip.github.io/tswg-cesr-specification/](https://trustoverip.github.io/tswg-cesr-specification/)
 
 ### Informational References
 [[spec-inform]]
