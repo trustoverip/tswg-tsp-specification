@@ -721,7 +721,7 @@ Both the header and data sections of the payload are extendable. While we define
 This structure ensures a standardized approach for the essential components of the message while allowing adaptability for specific use cases or additional requirements at the higher layer. 
 
 ### Relationship Forming
-#### Forming Direct Relationships
+#### Direct Relationship Forming
 When an endpoint `A` learns from another endpoint `B` the VID for `B`, say `VID_b`, through an Out-Of-Band Introduction method, the endpoint `A` may use the following message type to form a direct relationship with `B`. Suppose the source VID that endpoint `A` uses is `VID_a`, then the relationship A and B establishes is `(VID_a, VID_b)`.
 ``` text
 Out-Of-Band Introduction to A: VID_b
