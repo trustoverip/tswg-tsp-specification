@@ -714,11 +714,11 @@ Although these messages are authenticated to a sender's VID, the message between
 
 ## Control Payload Fields
 
-This section specifies control payload fields that are for the proper functioning of TSP. Although messages that carry such control fields may be informally referred to as *control messages*, these fields can be carried in any messages, not just a message *exclusively* for control purposes. All such control messages, with exclusive control data or mixed with user data, will utilize the same formats.
+This section specifies control payload fields that are required for the proper functioning of TSP. Although messages that carry such control fields may be informally referred to as *control messages*, these fields can be carried in any message, not just a message *exclusively* for control purposes. All such control messages, consisting exclusively of control data or control data mixed with user data, will utilize the same format.
 
-For either Direct Mode or Routed Mode endpoint-to-endpoint relationships, Authentic and Confidential (AAC)messages defined in [Section 3.5.1](#authentic-and-confidential-aac-messages) SHOULD be used with control data being carried in the confidential header and payload fields.
+For either Direct Mode or Routed Mode endpoint-to-endpoint relationships, Authentic and Confidential (AAC) messages defined in [Section 3.5.1](#authentic-and-confidential-aac-messages) SHOULD be used with control data being carried in the confidential header and payload fields.
 
-TSP payload is structured as follows: {Payload_Header_Fields, Payload_Data_Fields}. In the header, the `Type` field is always `TSP_CTL` for control fields, and `Subtype` varies depending on each specific control message defined in this section.
+Recall that a TSP payload is structured as follows: `{Payload_Header_Fields, Payload_Data_Fields}`. In the header, the `Type` field is always `TSP_CTL` for control fields, with `Subtype` dependently varying based on each specific control message defined in this section.
 
 Both the header and data sections of the payload are extendable. While we define the necessary TSP control fields here, higher layers have the flexibility to expand upon them. Each upper layer protocol with a designated `Type` also can allocate its own `Subtype` codes.
 
@@ -742,7 +742,7 @@ Message: [VID_b, VID_a, Payload]
 Payload fields:
     - Type = TSP_CTL
     - Subtype = NEW_REL_REPLY
-    - Thread_ID = TSP_DIGEST([VID_b, VID_a, Payload])
+    - Thread_ID = TSP_DIGEST([VID_a, VID_b, Payload])
 ```
 
 The result is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` and `(VID_b, VID_a)` in endpoint `B`. The Thread_ID is recorded by both endpoints and used in all future messages.
@@ -756,10 +756,10 @@ If endpoint `B` is OK with receiving the incoming messages from endpoint `A`, bu
 
 Other actions that endpoint B may take MAY be application specific and are left unspecified.
 
-In all of the above cases, the responding party (endpoint `B`) should be careful about privacy leaks if it chooses to respond to an incoming message. The more private option is to remain silent.
+In all of the above cases, the responding party (endpoint `B`) should be careful about privacy leaks if it chooses to respond to an incoming message. The most private option is to remain silent.
 
 #### Relationship over a Routed Path
-When an endpoint `A` learns from another endpoint `B` through an Out-Of-Band Introduction method the VID for `B`, say `VID_b`, together with a routed path, say `{VID_hop2, …, VID_hopk, VID_exit}`, endpoint `A` may use the following `Type` to form a relationship with `B`. Suppose the source VID that endpoint `A` uses is `VID_a`, and optionally endpoint `A` specifies a return routed path `{VID_rethop2, …,  VID_rethopk, VID_retexit}`, then the relationship `A` and `B` establishes is `(VID_a, VID_b)`.
+Suppose endpoint `A` learns from another endpoint `B` through an Out-Of-Band Introduction method the VID for `B`, say `VID_b`, together with a routed path, `{VID_hop2, …, VID_hopk, VID_exit}`. Endpoint `A` may use the following `Type` to form a relationship with `B`. Suppose the source VID that endpoint `A` uses is `VID_a`, and optionally endpoint `A` specifies a return routed path `{VID_rethop2, …,  VID_rethopk, VID_retexit}`, then the relationship `A` and `B` establishes is `(VID_a, VID_b)`.
 
 ``` text
 Out-Of-Band Introduction: VID_b, VID_hop2, …, VID_hopk, VID_exit
@@ -768,7 +768,7 @@ The relationship forming message = [VID_a, VID_b, VID_hop1, …, VID_hopk, VID_e
 Payload fields:
     - Type = TSP_CTL
     - Subtype = NEW_REL
-    - Nonce, 
+    - Nonce_Field = Nonce, 
     - VID_hop1, …, VID_hopk, VID_exit
 ```
 
@@ -782,13 +782,13 @@ Payload fields:
     - Thread_ID = TSP_DIGEST([VID_a, VID_b, VID_hop1, …, VID_hopk, VID_exit, Payload])
 ```
 
-Note either `A` or `B` may choose to specify a routed path for the relationship forming messages. If one party specifies a routed path while the other party does not (but they both agree to such an arrangement), then the result can be a relationship where it is over a routed path in one direction but direct in the other direction.
+Note, either `A` or `B` may choose to specify a routed path for the relationship forming messages. If one party specifies a routed path while the other party does not (but they both agree to such an arrangement), then the result can be a relationship over a routed path in one direction but via a direct path in the other direction.
 
 The result of the above message exchange is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` over a routed path to `B` and vice versa. The `Thread_ID` is recorded by both endpoints and used in all future messages.
 
 ### Parallel Relationship Forming
 
-If endpoints `A` and `B` have a relationship `(VID_a0, VID_b0)` in `A` and `(VID_b0, VID_a0)` in `B`, they can establish a new parallel relationship using the current relationship as a way of referral.
+If endpoints `A` and `B` have a relationship `(VID_a0, VID_b0)` in `A` and `(VID_b0, VID_a0)` in `B`, they can establish a new parallel relationship using the current relationship as a means of referral.
 
 Endpoint `B` sends to `A` this relationship forming message:
 
@@ -798,16 +798,16 @@ we omitted the optional route path VID list so this can either a Direct or Route
 
 Payload control fields:
     - Type = TSP_CTL
-    - Subtype=NEW_REFER_REL
-    - Thread_ID
-    - Payload fields = {VID_b1, VID_List|NULL}
+    - Subtype = NEW_REFER_REL
+    - Thread_ID = Thread_ID
+    - Payload fields = {VID_b1, [VID_List] | NULL}
 ```
 
 When endpoint `A` receives this message from `B` and it treats it as an introduction, then `A` initiates a normal new relationship forming procedure as specified in Section [7.1](#relationship-forming).
 
 In this procedure, `VID_b1` is the new VID for endpoint `B`. If endpoint `A` picks `VID_a1`, then the new relationship `(VID_a1, VID_b1)` is parallel to `(VID_a0, VID_b0)` in endpoint `A`.
 
-If `VID_List` is present, then `A` uses the specified routed path to send the `NEW_REL` message to endpoint `B`.
+If a list of VIDs, `VID_List` is present, then `A` MUST use the specified routed path specified by VID\_List to send the `NEW_REL` message to endpoint `B`.
 
 ### Nested Relationship Forming
 
@@ -821,8 +821,8 @@ where the optional VID list is omitted so this can be either Direct or Routed Mo
 
 Payload control fields:
     - Type = TSP_CTL
-    - Subtype=NEW_NEST_REL
-    - Nonce
+    - Subtype = NEW_NEST_REL
+    - Nonce_Field = Nonce
     - VID verification data: VID_a1.VeriInfo
 ```
 
@@ -836,7 +836,7 @@ where the optional VID list is omitted so this can be either Direct or Routed Mo
 
 Payload control fields:
     - Type = TSP_CTL
-    - Subtype=NEW_NEST_REL_REPLY
+    - Subtype = NEW_NEST_REL_REPLY
     - Thread_ID = TSP_DIGEST([VID_b1, VID_a1, Payload])
     - VID veridication data: VID_b1.VeriInfo
 ```
@@ -863,7 +863,7 @@ we omitted the optional route path VID list so this can either a Direct or Route
 
 Payload control fields:
     - Type = TSP_CTL
-    - Subtype=3P_REFER_REL
+    - Subtype = 3P_REFER_REL
     - Referred VID: VID_b0
     - Route Hop List: VID_List | NULL
 ```
