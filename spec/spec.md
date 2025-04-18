@@ -919,19 +919,19 @@ If the relationship does not exist or is not recognized: `B` should ignore the c
 
 ## Cryptographic Algorithms
 
-TSP utilizes VIDs that are strongly bound to public-key pairs. The authenticity and confidentiality properties of TSP rely on public-key signature and encryption schemes based on public-key. In this section, we specify supported cryptographic schemes and how they combine together as a TSP crypto suite. The choices we make here reflect our priority to 
-- achieve the strongest notions of security with modern and efficient algorithms,
+TSP utilizes VIDs that are strongly bound to public-key pairs. The authenticity and confidentiality properties of TSP rely on public-key signature and encryption schemes based on public-key cryptography. In this section, we specify the supported cryptographic schemes and how they combine together as a TSP crypto suite. The choices we make here reflect our priorities to:
+- achieve the strongest notions of security with respect to modern and efficient algorithms,
 - have clear specifications in standards for interoperability,
-- and prefer schemes that have good quality open source implementations. 
+- prefer schemes that have high quality open source implementations. 
 
-The overall design and use of self-framed encoding allow TSP easy adaptability for future requirements, including new emerging schemes and post-quantum cryptography.
+The overall design and use of self-framed encoding allows TSP easy adaptability to future requirements, including new cryptographic schemes and the implementation of post-quantum cryptography.
 
-TSP combines public-key authenticated encryption (PKAE) with public-key signature. This combination is necessary for several reasons:
-- In TSP, authenticity (both the identity of the sender and integrity of the message) is required for all messages while confidentiality is optional by choice.
+TSP combines public-key authenticated encryption (PKAE) with public-key signatures. This combination is necessary for several reasons:
+- In TSP, authenticity (both the identity of the sender and integrity of the message) is required for all messages while confidentiality is optional.
 - PKAE schemes have weaknesses, such as Post Compromise Impersonation (PCI) attacks, which TSP aims to guard against in order to support its wider use cases.
 
-### Public-Key Signature
-`Ed25519` is a EdDSA signature algorithm with `Curve-25519` and `SHA2-512` as defined in IETF [[spec-norm:RFC8032]]. 
+### Public-Key Signatures
+`Ed25519` is an EdDSA signature algorithm using `Curve-25519` and `SHA2-512` as defined in IETF [[spec-norm:RFC8032]]. 
 
 Ed25519 supports a stronger sense of unforgeability, namely SUF-CMA (Strong UnForgeability under Chosen Message Attack).
 
@@ -943,7 +943,7 @@ This implementor's draft only specifies one signature scheme at the moment. Futu
 
 ### Public-Key Authenticated Encryption
 
-TSP uses strong public key encryption schemes that supports IND-CCA2 (Indistinguishability under Adaptive Chosen Ciphertext Attack). These schemes are also called Integrated Encryption Schemes (IES), or ECIES if using Elliptic Curves. or Hybrid Public Key Encryption (HPKE) since they combine public key cryptography with the efficiency of symmetric key encryption/decryption operations. These schemes follow similar designs that incorporate a key exchange mechanism (KEM), a key derivation function (KDF), and a symmetric encryption scheme using the ephemeral derived key, or formalized as an Authenticated Encryption with Associated Data (AEAD) function. The use of AEAD also leads to the acrynym PKAE (public-key authenticated encryption). We use the term PKAE as a general term for this class of algorithms.  
+TSP uses strong public key encryption schemes that supports IND-CCA2 (Indistinguishability under Adaptive Chosen Ciphertext Attack). These schemes are also called Integrated Encryption Schemes (IES), ECIES if using Elliptic Curves, or Hybrid Public Key Encryption (HPKE) since they combine public key cryptography with the efficiency of symmetric key encryption/decryption operations. These schemes follow similar designs that incorporate a key exchange mechanism (KEM), a key derivation function (KDF), and a symmetric encryption scheme using the ephemeral derived key, or formalized as an Authenticated Encryption with Associated Data (AEAD) function. The use of AEAD also leads to the acrynym PKAE (public-key authenticated encryption). We use the term PKAE as a general term for this class of algorithms.  
 
 #### TSP Encryption and Decryption Primitives
 
@@ -954,7 +954,7 @@ Ciphertext = TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Data, Plaintext)
 Plaintext = TSP_OPEN(VID_sndr, VID_rcvr, Ciphertext)
 ```
 
-This section specifies all PKAE schemes that TSP impelementations MUST or optionaly SHOULD support.
+This section specifies all PKAE schemes that TSP implementations MUST or optionally SHOULD support.
 
 #### Hybrid Public Key Encryption (HPKE) 
 
@@ -966,7 +966,7 @@ TSP implementations MUST support both HPKE-Auth and HPKE-Base modes.
 
 HPKE configuration(s) supported by TSP:
 
-Primitive | Code | Descryption
+Primitive | Code | Description
 ----:|----:|--------:
 KEM | 0x0020 | DHKEM(X25519, HKDF-SHA256)
 KDF | 0x0001 | HKDF-SHA256
@@ -1007,15 +1007,15 @@ Plaintext = TSP_OPEN(VID_sndr, VID_rcvr,
                 Confidential_Fields_Ciphertext)
 ```
 
-In HPKE-Auth mode, the `VID_sndr` field is not necessary in the Confidential Header Fields (as required by [[spec-inform:ESSR]]).
+In HPKE-Auth mode, the `VID_sndr` field is not necessary in the Confidential Header Fields (as required by [[spec:ESSR]]).
 
 ##### HPKE Base Mode
 
 The HPKE-Base mode works similarly to HPKE-Auth except that it does not include the authentication mechanism allowing the receiver to verify that the sender possessed a given KEM private key `VID_sndr.SK_e`. Leaving this verification out MAY be acceptable because TSP also has `VID_sndr` in the encrypted payload ciphertext and a separate signature for sender authentication. For additional discussions comparing the HPKE-Base mode and HPKE-Auth mode use in TSP, please refer to Section [Security and Privacy Considerations](#security-and-privacy-considerations).
 
-The HPKE-Base mode is also required if in the future TSP supports non-authenticated KEMs.
+The HPKE-Base mode will also be required if, in the future, TSP supports non-authenticated KEMs.
 
-In the HPKE-Base mode, for TSP message that uses confidential payload, the ciphertext MUST generated by HPKE-Base single-shot API defined in [[spec-norm:RFC9180]] as follows:
+In the HPKE-Base mode, for a TSP message that uses a confidential payload, the ciphertext MUST generated by HPKE-Base single-shot API defined in [[spec-norm:RFC9180]] as follows:
 
 ``` text
 def TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Plaintext):
@@ -1050,7 +1050,7 @@ In HPKE-Base mode, the `VID_sndr` field MUST be present in the Confidential Head
 
 #### Lipsodium Sealed Box
 
-Libsodium is a popularly available open source software library that is a fork of [[spec-inform:NaCl]]. Among many modern and easy-to-use cryptographic tools, it implements a crypto_box primitive that is essentially a non-standardized PKAE scheme. We specify a way for TSP to use the lipsodium sealed box API as a PKAE choice here because its popularity. However, since the sealed box API is not standardized and the fact that the Lipsodium community is also implementing HPKE options, implementors SHOULD consider to migrate to one of the HPKE options. We MAY remove this option in the future.
+Libsodium is a popular open source software library that is a fork of [[spec-inform:NaCl]]. Among many modern and easy-to-use cryptographic tools, it provides an implementation of a crypto\_box primitive that is essentially a non-standardized PKAE scheme. We specify a way for TSP to use the lipsodium sealed box API as a PKAE choice here because of its popularity. However, since the sealed box API is not standard alongside the fact that the Lipsodium community is also implementing HPKE options in parallel, implementors SHOULD consider migrating to one of the HPKE options. We MAY remove this option in the future.
 
 ##### Sealed Box
 
