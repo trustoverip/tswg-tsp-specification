@@ -62,7 +62,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 ~ A TSP relationship is a pairing of two [[ref: VIDs]] `<VID_a, VID_b>` where `VID_a` is an VID of the local [[ref: endpoint]] `A`, `VID_b` is a VID of the remote endpoint `B`, and the local endpoint `A` has verified `VID_b` for use in TSP with its `VID_a`. Each [[ref: TSP endpoint]] maintains a [[ref:Relationship Table]] that contains such pairings for all active relationships. This pairing is directional by default, but if the verification has been made mutually in both directions, it is referred to as a [[ref: Bi-directional Relationship]].
 
 [[def: Bi-directional Relationship, Bi-directional Relationships]]
-~ [[ref A TSP Relationship]] is directional by default, but if the verification has been made mutually in both directions, it is referred to as a Bi-directional Relationship and is represented as `(VID_a, VID_b)` in the [[ref: ndpoint]] `A`'s [[ref: relationship table]] and `(VID_b, VID_a)` in endpoint `B`'s relationship table. A Bi-directional Relationship means that each endpoint has verified the other's VID indepedently.
+~ [[ref A TSP Relationship]] is directional by default, but if the verification has been made mutually in both directions, it is referred to as a Bi-directional Relationship and is represented as `(VID_a, VID_b)` in the [[ref: endpoint]] `A`'s [[ref: relationship table]] and `(VID_b, VID_a)` in endpoint `B`'s relationship table. A Bi-directional Relationship means that each endpoint has verified the other's VID indepedently.
 
 [[def: Relationship Table, Relationship Tables]]
 ~ A table of [[ref: Relationships]] of a [[ref: TSP Endpoint]]. Each entry of the table is a [[ref: Relationship]] where a [[ref: VID]] of the endpoint is one of two VIDs in the pairing. 
@@ -81,7 +81,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 ### Reference Architecture
 
-<img src="../images/Reference-Architecture.png" alt="TSP Reference Architecture" style="width:800px;"/>
+![TSP Reference Architecture}(https://github.com/trustoverip/tswg-tsp-specification/blob/main/docs/images/Reference-Architecture.png)
 Figure 1: TSP Reference Architecture
 
 The Trust Spanning Protocol is defined within the Reference Architecture (RA) illustrated in Figure 1. The principal components of this reference architecture are:
@@ -544,9 +544,10 @@ If the confidential payload fields are chosen for the routing fields, then for a
 
 ### Direct Neighbor Relationship and Routing
 
-Endpoint `A` chooses an intermediary, denoted as `P`, and forms a bidirectional neighbor relationship. In Figure 6, the neighbor relationship between `A` and `P` is illustrated as: `(VID_a1, VID_p1)`, which is assumed to be established before message routing takes place. This assumption also applies to neighbor relationships between intermediaries `P` and `Q`, and between endpoint `B` and its intermediary `Q`, as shown in Figure 6. Message routing between endpoint `A` and endpoint `B` takes place within this established network of relationships.
+Endpoint `A` chooses an intermediary, denoted as `P`, and forms a bidirectional neighbor relationship. In Figure 2, the neighbor relationship between `A` and `P` is illustrated as: `(VID_a1, VID_p1)`, which is assumed to be established before message routing takes place. This assumption also applies to neighbor relationships between intermediaries `P` and `Q`, and between endpoint `B` and its intermediary `Q`, as shown in Figure 2. Message routing between endpoint `A` and endpoint `B` takes place within this established network of relationships.
 
-Figure 6: Direct neighbor relationships
+![Direct Neighbor Relationships](https://github.com/trustoverip/tswg-tsp-specification/blob/main/docs/images/Direct-Neighbor-Relationships.png)
+Figure 2: Direct neighbor relationships
 
 These direct neighbor relationships allow normal TSP messages listed below:
 
@@ -596,9 +597,10 @@ Unlike direct mode messages, this message’s sender `VID_q1` is of the intermed
 
 ### Endpoint-to-Endpoint Messages
 
-In [Section 5.3](#direct-neighbor-relationship-and-routing), we defined a routed operation method that enables a source endpoint to send a TSP message to a destination endpoint via a series of intermediaries, using a hop-by-hop approach. However, while this approach provides a way of message delivery from the source to the destination, it doesn't uphold the core trust properties TSP aims to provide — specifically, authenticity, confidentiality, and metadata privacy — with respect to third parties or intermediaries. In this section, we define endpoint-to-endpoint messages carried within the payload of routed messages and the corresponding endpoint-to-endpoint relationship which does ensure authenticity, confidentiality, and a degree of metadata privacy. This operation is illustrated in Figure 7 below.
+In [Section 5.3](#direct-neighbor-relationship-and-routing), we defined a routed operation method that enables a source endpoint to send a TSP message to a destination endpoint via a series of intermediaries, using a hop-by-hop approach. However, while this approach provides a way of message delivery from the source to the destination, it doesn't uphold the core trust properties TSP aims to provide — specifically, authenticity, confidentiality, and metadata privacy — with respect to third parties or intermediaries. In this section, we define endpoint-to-endpoint messages carried within the payload of routed messages and the corresponding endpoint-to-endpoint relationship which does ensure authenticity, confidentiality, and a degree of metadata privacy. This operation is illustrated in Figure 3 below.
 
-Figure 7: Endpoint-to-Endpoint relationship between endpoints A and B through a routed path
+![Endpoint-to-Endpoint Relationship Through a Routed Path](https://github.com/trustoverip/tswg-tsp-specification/blob/main/docs/images/Endpoint-to-Endpoint-Relationship-Through-A-Routed-Path.png)
+Figure 3: Endpoint-to-Endpoint relationship between endpoints A and B through a routed path
 
 #### The Source Endpoint
 
@@ -637,7 +639,10 @@ As described in [Section 4](#nested-messages), endpoints may use nested messages
 
 In this section, we specify an operation using nested messages over the endpoint-to-endpoint messages described in the previous section. The purpose of this nested mode is to hide the private contextual VIDs from being visible by the intermediaries. Use of such a method is optional.
 
-The nested private endpoint-to-endpoint pattern is illustrated in Figure 5.
+The nested private endpoint-to-endpoint pattern is illustrated in Figure 4.
+
+![Nested Endpoint-to-Endpoint Relationship Through a Routed Path](https://github.com/trustoverip/tswg-tsp-specification/blob/main/docs/images/Nested-Endpoint-to-Endpoint-Relationship-Through-A-Routed-Path.png)
+Figure 4: Nested endpoint-toendpoint relationship between endpoints A and B through a routed path
 
 #### The Source Endpoint
 Using procedures defined in Sections [4](#nested-messages) and [5](#routed-messages-through-intermediaries), endpoints `A` and `B` choose `VID_a3` and `VID_b3` respectively for the private contextual relationships. The source `A` then sends its message to `B` using a message described in the previous section as follows:
