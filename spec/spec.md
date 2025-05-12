@@ -529,9 +529,9 @@ For the common case of `k = 1 or k = 2`, the route hop list MAY be acquired via 
 TSP routed messages have the same TSP Envelope as TSP messages sent in direct mode but extend the header field of the payload with the following structure:
 
 ``` text
-Payload_Header_Fields = {VID_sndr|NULL, VID_rcvr, VID_hop2, ..., VID_hopk, VID_exit}
+Payload_Header_Fields = {VID_sndr|NULL, VID_hop2, ..., VID_hopk, VID_exit}
 ```
-The first VID in the heade fields `VID_sndr` is the VID required by ESSR PKAE schemes. If a PKAE scheme does not require this field, for example `HPKE_Auth`, then this MAY be empty.
+The first VID in the header fields `VID_sndr` is the VID required by ESSR PKAE schemes. If a PKAE scheme does not require this field, for example `HPKE_Auth`, then this MAY be empty.
 
 The VIDs following the first `VID_sndr` is an ordered list of next hop VIDs of intermediary systems and the last VID represents the destination endpoint. The list can vary in length from 1, 2, to k > 2, and should be interpreted as an ordered routing path with the `VID_hop2` coming first, followed by `VID_hop3`, `VID_hop4` etc... Note that the first hop is already identified as the `VID_rcvr`.
 
