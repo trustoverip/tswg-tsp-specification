@@ -511,7 +511,7 @@ TSP routing is accomplished by combining a list of designating intermediaries in
 - `VID_hop2, ..., VID_hopk`: are VIDs of the intermediaries in the chosen route path. `VID_hopk` must be the last intermediary that is in direct relationship with the destination endpoint.
 - `VID_exit`: This is the VID used by `hopk` intermediary for its direct relationship with the destination.
 
-The exact nature of how the intermediaries exchange necessary information in order to perform the routing of TSP messages need not be fixed or routed in a pre-determined way. We describe some ways in which this may be accompalished but implementors are free to use other ways to achieve the same goal.
+The exact nature of how the intermediaries exchange necessary information in order to perform the routing of TSP messages needs not be fixed or follows a pre-determined way. We describe some ways in which this may be accompalished but implementors are free to use other ways to achieve the same goal.
 
 ### Routed Messages
 
