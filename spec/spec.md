@@ -688,15 +688,15 @@ The source endpoint MAY learn and compose the route path by a combination of the
 
 This section is informative.
 
-TSP messages are between two endpoints identified by `VID_sndr` and `VID_rcvr`. This is a typical point-to-point messaging pattern. Upper lay applications that use TSP, however, may implement some ways of sending messages to multiple recipients using the TSP messages defined in this specification. This section describes two such simple methods. 
+TSP messages are between two endpoints identified by `VID_sndr` and `VID_rcvr`. This is a typical point-to-point messaging pattern. Upper layer applications that use TSP, however, may implement some methods of sending messages to multiple recipients using the TSP messages defined in this specification. This section describes two simple methods. 
 
 Native TSP multicast messages are out of scope for this specification.
 
 ### Multi-Recipent List
 
-In this simple scheme, an endpoint maintains a list of relationships `(VID_0, VID_remote_i)` where `VID_0` is a local VID, and `i = 1..K-1`. For each message payload, one copy of a TSP message is sent over each relationship: `[VID_0, VID_remote_i, Payload], i = 1..K-1`.
+In this scheme, an endpoint maintains a list of relationships `(VID_0, VID_remote_i)` where `VID_0` is a local VID, and `i = 1..K-1`. For each message payload, one copy of a TSP message is sent over each relationship: `[VID_0, VID_remote_i, Payload], i = 1..K-1`.
 
-For a group of `K` member endpoints, there will be `K-1` bi-directional relationships in each endpoint. The total mesh in the group consists of `K(K-1)` relationships. If these are all simple Direct Mode relationship, each endpoint uses one VID for the group.
+For a group of `K` member endpoints, there will be `K-1` bi-directional relationships at each endpoint. The total mesh group consists of `K(K-1)` relationships. If these are all simple Direct Mode relationships, each endpoint will use one VID for the group.
 
 Endpoints in such a group MAY also use Nested Mode and Routed Mode as they wish for each or all of these relationships.
 
@@ -708,11 +708,11 @@ Please refer to [Section 7](#control-payload-fields) for details of relationship
 
 ### Anycast Intermediary
 
-A common use case of sending TSP messages to multiple recipents is to anycast authenticated but not individually encrypted message to anyone who is interested to receive, e.g. by subscribing to a messaging service or by social media recommendation algorithms.
+A common use case of sending TSP messages to multiple recipents is to anycast authenticated but not encrypted messages to anyone who is interested in receiving them, e.g. by subscribing to a messaging service or by social media recommendation algorithms.
 
 Since these messages are not confidential, the distribution of these messages can be performed by an intermediary. For details of such TSP messages, see Section [3.5.2](#authentic-non-confidential-anc-messages).
 
-Although these messages are authenticated to a sender's VID, the message between the sender and its intermediary can still be confidential. In fact, they can be communicated from the source to its intermediary over a Nested Mode relationship which is specific to the anycast group (or similar notions supported by the intermediary). The details of such mechanisms are out of scope of this specification.
+Although these messages are authenticated to a sender's VID, the messages between the sender and its intermediary can still be confidential. In fact, they can be communicated from the source to its intermediary over a Nested Mode relationship specific to the anycast group (or similar notions supported by the intermediary). The details of such mechanisms are out of scope for this specification.
 
 ## Control Payload Fields
 
