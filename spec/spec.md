@@ -572,7 +572,7 @@ Again, the VIDs (`VID_q0` and `VID_q1`) may become known to endpoint `A` prior t
 
 #### The Source Endpoint's Intermediary
 
-The source’s intermediary `P` MUST support routed messages. As previously specified, the intermediary MUST decrypt the payload, if they payload is confidential and process its header field to retrieve the route VID(s). The next VID in the list, `VID_q0` in this case, is the next hop’s VID. `P` MUST attempt to route the carried message to the next hop if not barred by administrative or operational conditions from doing so.
+The source’s intermediary `P` MUST support routed messages. As previously specified, the intermediary MUST decrypt the payload, if the payload is confidential then process its header field to retrieve the route VID(s). The next VID in the list, `VID_q0` in this case, is the next hop’s VID. `P` MUST attempt to route the carried message to the next hop if not barred by administrative or operational conditions from doing so.
 
 If the `(VID_p0, VID_q0)` relationship is pre-existing, `P` will already know how to forward the message. If it is not pre-existing but `VID_q0` is public, `P` can resolve it and establish a new `<VID_p0, VID_q0>` or `(VID_p0, VID_q0)` relationship using normal procedures specified in [Section 3](#messages). `P` then routes the message to `Q` using the following message:
 
