@@ -1119,7 +1119,7 @@ All TSP implementations MUST support the following secure hash and digest functi
 
 ## Serialization and Encoding
 
-TSP uses CESR [[spec-norm:CESR]] version 2.0 (master code table for KERI protocol/genus `--AAACAA`) for message serialization and encoding. The TSP payload however may have data encoded in other formats including CBOR, JSON, MsgPak etc.
+TSP uses CESR [[ref:CESR]] version 2.0 (master code table for `--AAACAA`) for message serialization and encoding. The TSP payload however may have data encoded in other formats including CBOR, JSON, MsgPak and other compatible formats.
 
 In this section, we describe the relevant CESR codes used in TSP.
 
@@ -1256,7 +1256,7 @@ Todo
 ```
 
 ##### Lipsodium Sealed Box Encoding
-See [[spec-norm:CESR]] on X25519 Sealed Box cipher bytes encoding.
+See [[ref:CESR]] on X25519 Sealed Box cipher bytes encoding.
 
 Example:
 ``` text
@@ -1343,9 +1343,8 @@ https://github.com/trustoverip/tswg-tsp-specification/issues/13
 ### Normative References
 [[spec-norm]]
 
-[[def:CESR]]
-~ [CESR](https://trustoverip.github.io/tswg-cesr-specification/) Composable Event Streaming Representation (CESR), *Samuel Smith*
-[https://trustoverip.github.io/tswg-cesr-specification/](https://trustoverip.github.io/tswg-cesr-specification/)
+**[[def:CESR]]**. *Composable Event Streaming Representation (CESR)*, Samuel Smith
+[CESR]: https://trustoverip.github.io/tswg-cesr-specification/
 
 ### Informational References
 [[spec-inform]]
