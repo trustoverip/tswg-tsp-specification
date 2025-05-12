@@ -702,7 +702,7 @@ Please refer to [Section 7](#control-payload-fields) for details of relationship
 
 ### Anycast Intermediary
 
-A common use case of sending TSP messages to multiple recipents is to anycast authenticated but not necessarily encrypted messages to anyone who is interested in receiving them, e.g. by subscribing to a messaging service or by social media recommendation algorithms.
+A common use case of sending TSP messages to multiple recipents is to anycast authenticated but not encrypted messages to anyone who is interested in receiving them, e.g. by subscribing to a messaging service or by social media recommendation algorithms.
 
 Since these messages are not confidential, the distribution of these messages can be performed by an intermediary. For details of such TSP messages, see Section [3.5.2](#authentic-non-confidential-anc-messages).
 
