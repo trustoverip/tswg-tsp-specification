@@ -232,15 +232,15 @@ TSP_Envelope = {TSP_Tag, TSP_Version, VID_sndr, VID_rcvr | NULL}
 ```
 
 - TSP_Tag: A unique code that unambigously flags the start of a TSP envelope.
-- TSP_Version: The version of Trust Spanning Protocol with 3 Base64 characters.
+- TSP_Version: The version of Trust Spanning Protocol.
 
-VIDs in TSP are encoded with a VID_Type and a VID_String. If the VID type has variable length, then the VID string consists of length followed by a bytestring of that length.
+VIDs in TSP are encoded with a variable length VID_String that consists of length followed by a bytestring of that length. Two types of identifier syntaxes, DID [[ref:DID]] and URN [[spec-norm:RFC8141]], MUST be supported. Implementations MAY support additional syntaxes beyond these two types.
 
-- VID_Type: An assigned code number specific to each VID type that is from a number space of 3 Base64 characters. Please see Section [VID Type](#vid-type) for further information about VID types. 
+The DID specification allows various DID Methods. The URN specification allows various URN namespaces. This specification does not mandate any particular DID Methods or URN namespaces but would benefit from such standardizations elsewhere. In all variations, if a TSP implementation does not support any type of VIDs, it SHOULD discard the TSP message.
 
-- VID_String: Its format is determined by each VID type. 
+Please see Section [TSP Envelope Encoding](#tsp-envelope-encoding) for further information about VID encoding. 
 
-`VID_sndr` and `VID_rcvr` (if present) may have different VID types.
+`VID_sndr` and `VID_rcvr` (if present) may be different types of VIDs.
 
 ### TSP Payload
 
@@ -1133,14 +1133,18 @@ https://github.com/trustoverip/tswg-tsp-specification/issues/9
 :::
 
 ### TSP Envelope Encoding
-The TSP Envelope consists of four objects: TSP\_Tag, TSP\_Version, VID\_sndr, VID\_rcvr. Each VID consists of VID\_Type followed by VID\_String. The VID\_String may be of variable length encoded using variable length CESR count codes or primitives. The details of VID encoding are VID type depedent.
+The TSP Envelope consists of four objects: TSP\_Tag, TSP\_Version, VID\_sndr, VID\_rcvr. Each VID is a VID\_String. The CESR encoding of these are as follows.
 
 Object | Description | Code | Note
 ----:|----:|--------:|--------:
 TSP\_Tag | Indicating the start of a TSP envelope | `-E##` or `-0E#####`| Use `-E##` for signable data up to 4095 quadlets/triplets, `-0E#####` for signable data up to 1,073,741,823 quadlets/triplets. The length does not include signature part.
-TSP\_Version | TSP protocol version | `X###` | The first version is `XAAB`
-VID\_Type | VID Type | `X###` | Type number may be allocated for exclusive use
-VID\_String | VID | *as defined by the VID type* | The string can be fixed length or variable length
+TSP\_Version | TSP protocol version | `YTSP-###` | The first version is `YTSP-AAB`
+VID\_String | short VID with lead pad size 0 | `4B##` | The VID string is in a variable length of either 2 Base64 size characters limited to 4095 quadlets/triplets (short VID) or 4 Base64 characters limited to 16,777,215 quadlets/triplets (long VID). In each case, there are 3 variations depending on the lead pad size of 0, 1, or 2.
+^ | short VID with lead pad size 1 | `5B##` | ^
+^ | short VID with lead pad size 2 | `6B##` | ^
+^ | long VID with lead pad size 0 | `7AAB####` | ^
+^ | long VID with lead pad size 1 | `8AAB####` | ^
+^ | long VID with lead pad size 2 | `9AAB####` | ^
 
 ::: note
 CESR uses a unit of 4 Base64 letters (Quadlet) to represent an equivalent unit of 3 bytes in binary (Triplet). Therefore, a two letter count code `0E##` in text domain provides a value in range of 0 to 4095 (`64 x 64 - 1`) where each unit is a quadlet/triplet. The corresponding value in actual bytes in binary is 12,285 (`4095 x 3`). Similarly, `-0E#####` provides 0 to 1,073,741,823 (`64^5 - 1`) quadlets/triplets which corresponds to 3,221,225,472 bytes in binary.
@@ -1349,6 +1353,8 @@ https://github.com/trustoverip/tswg-tsp-specification/issues/13
 
 **[[def:CESR]]**. *Composable Event Streaming Representation (CESR)*, Samuel Smith
 [CESR]: https://trustoverip.github.io/tswg-cesr-specification/
+
+[DID]. Decentralized Identifiers (DIDs) v1.0, https://www.w3.org/TR/did-1.0/
 
 ### Informational References
 [[spec-inform]]
