@@ -1275,7 +1275,7 @@ Because this is a message between direct neighbors, the VID hop list field is em
 Routed payload is encoded as a nested payload with a non-empty routing hop list.
 
 ``` text
--Z## | -0Z####, XHOP, VID\_sndr, -J##, VID_1, ..., Padding\_field, Encoded\_TSP\_Message
+-Z## | -0Z####, XHOP, VID\_sndr, -J## | -0J####, VID_1, ..., Padding\_field, Encoded\_TSP\_Message
 ```
 The hop list field encoding is specified in [VID Hop List Field](#vid-hop-list-field). The rest is identifical to nested payload.
 
@@ -1328,7 +1328,7 @@ The `Signature_new` field is a signature signed by the VID_new's key over the fi
 The NEW\_NEST\_REL message can be constructed by composing a NEW_REL inside a nested outer message:
 
 ``` text
--Z## | -0Z####, XHOP, VID\_sndr, -J##, VID_HOP_1, ..., Padding\_field, Encoded\_TSP\_Message
+-Z## | -0Z####, XHOP, VID\_sndr, -J## | -0J####, VID_HOP_1, ..., Padding\_field, Encoded\_TSP\_Message
 ```
 The `Encoded\_TSP\_Message` is in fact the `NEW\_REL` message as follows:
 
@@ -1342,7 +1342,7 @@ Note that the hop list will be encoded as `-JAA` if this message is nested over 
 The NEW\_NEST\_REL\_REPLY message can be constructed by composing a NEW\_REL\_REPLY inside a nested outer message:
 
 ``` text
--Z## | -0Z####, XHOP, VID\_sndr, -J##, VID_HOP_1, ..., Padding\_field, Encoded\_TSP\_Message
+-Z## | -0Z####, XHOP, VID\_sndr, -J## | -0J####, VID_HOP_1, ..., Padding\_field, Encoded\_TSP\_Message
 ```
 The `Encoded\_TSP\_Message` is in fact the `NEW\_REL\_REPLY` message as follows:
 
