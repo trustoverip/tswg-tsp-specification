@@ -1088,25 +1088,25 @@ TSP uses CESR [[ref:CESR]] version 2.0 (master code table for `--AAACAA`) for me
 In this section, we describe the relevant CESR codes used in TSP.
 
 ### TSP Envelope Encoding
-The TSP Envelope consists of four objects: TSP\_Tag, TSP\_Version, VID\_sndr, VID\_rcvr. Each VID is a VID\_String. The CESR encoding of these are as follows.
+The TSP Envelope consists of four objects: TSP_Tag, TSP_Version, VID_sndr, VID_rcvr. Each VID is a VID_String. The CESR encoding of these are as follows.
 
 Object | Description | Code | Note
 ----:|----:|--------:|--------:
-TSP\_Tag | Indicating the start of a TSP envelope | `-E##` or `-0E#####`| Use `-E##` for signable data up to 4095 quadlets/triplets, `-0E#####` for signable data up to 1,073,741,823 quadlets/triplets. The length does not include signature part.
-TSP\_Version | TSP protocol version | `YTSP-###` | The first version is `YTSP-AAB`
-VID\_String | short VID with lead pad size 0 | `4B##` | The VID string is in a variable length of either 2 Base64 size characters limited to 4095 quadlets/triplets (short VID) or 4 Base64 characters limited to 16,777,215 quadlets/triplets (long VID). In each case, there are 3 variations depending on the lead pad size of 0, 1, or 2.
-^ | short VID with lead pad size 1 | `5B##` | ^
-^ | short VID with lead pad size 2 | `6B##` | ^
-^ | long VID with lead pad size 0 | `7AAB####` | ^
-^ | long VID with lead pad size 1 | `8AAB####` | ^
-^ | long VID with lead pad size 2 | `9AAB####` | ^
+TSP_Tag | Indicating the start of a TSP envelope | `-E##` or `-0E#####`| Use `-E##` for signable data up to 4095 quadlets/triplets, `-0E#####` for signable data up to 1,073,741,823 quadlets/triplets. The length does not include signature part.
+TSP_Version | TSP protocol version | `YTSP-###` | The first version is `YTSP-AAB`
+VID_String | short VID with lead pad size 0 | `4B##` | The VID string is in a variable length of either 2 Base64 size characters limited to 4095 quadlets/triplets (short VID) or 4 Base64 characters limited to 16,777,215 quadlets/triplets (long VID). In each case, there are 3 variations depending on the lead pad size of 0, 1, or 2.
+ ^ | short VID with lead pad size 1 | `5B##` | ^ 
+ ^ | short VID with lead pad size 2 | `6B##` | ^ 
+ ^ | long VID with lead pad size 0 | `7AAB####` | ^ 
+ ^ | long VID with lead pad size 1 | `8AAB####` | ^ 
+ ^ | long VID with lead pad size 2 | `9AAB####` | ^ 
 
 ::: note
 CESR uses a unit of 4 Base64 letters (Quadlet) to represent an equivalent unit of 3 bytes in binary (Triplet). Therefore, a two letter count code `0E##` in text domain provides a value in range of 0 to 4095 (`64 x 64 - 1`) where each unit is a quadlet/triplet. The corresponding value in actual bytes in binary is 12,285 (`4095 x 3`). Similarly, `-0E#####` provides 0 to 1,073,741,823 (`64^5 - 1`) quadlets/triplets which corresponds to 3,221,225,472 bytes in binary.
 :::
 
 ### TSP Payload Encoding
-TSP payload consists of a `TSP\_Payload\_Tag`, a number of `Payload\_Field`, followed by `Confidential\_Payload\_Ciphertext` as specified in [TSP Payload](#tsp-payload). We first describe the encoding of this simple structure then the encodings of [Nested Messages](#nested-messages) and [Routed Messages](#routed-messages).
+TSP payload consists of a `TSP_Payload_Tag`, a number of `Payload_Field`, followed by `Confidential_Payload_Ciphertext` as specified in [TSP Payload](#tsp-payload). We first describe the encoding of this simple structure then the encodings of [Nested Messages](#nested-messages) and [Routed Messages](#routed-messages).
 
 The payload fields include *control fields* that are required for the correct operations of TSP. Encodings of all required control fields are defined below. Higher layer application *data fields* may use broader CESR encoding mechanisms including interleaving JSON, CBOR or MsgPak encodings.
 
@@ -1137,7 +1137,7 @@ The generic CESR stream MUST use the CESR count code `-A##` (for shorter length)
 The overall higher layer payload is as follows:
 
 ``` text
--Z## | -0Z####, XSCS, VID\_sndr, Padding\_field, -A## | -0A####, higher-layer-interleaved-payload-stream
+-Z## | -0Z####, XSCS, VID_sndr, Padding_field, -A## | -0A####, higher-layer-interleaved-payload-stream
 ```
 where, ## or #### stands for a 2 or 4, respectively, character code of the length of the payload. All counts start immediately after the count code, not including the count code itself. The encoding of `VID_sndr` is specified in [VID Envelope Encoding](#vid-envelope-encoding). The encoding of the padding field is specified in [Padding Field](#padding-field).
 
@@ -1165,7 +1165,7 @@ To avoid confusion, the teram padding or padding field means the payload field i
 The VID hop list field can appear in various messages. It is encoded as follows:
 
 ``` text
--J## | -0J####, VID\_0, VID\_1, ... 
+-J## | -0J####, VID_0, VID_1, ... 
 ```
 Here both ## and #### still represent counts of length of the string that follows which is the concatenation of VIDs, not the number of VIDs. The encoding of each VID is specified in [TSP Envelope Encoding](#tsp-envelope-encoding).
 
@@ -1267,7 +1267,7 @@ In TSP Nested Mode, the inner TSP message is carried inside a payload field of t
 The outer message MUST be encoded with payload type `XHOP`. If this is a direct relationship nested message, the overall message payload is as follows:
 
 ``` text
--Z## | -0Z####, XHOP, VID\_sndr, -JAA, Padding\_field, Encoded\_TSP\_Message
+-Z## | -0Z####, XHOP, VID_sndr, -JAA, Padding_field, Encoded_TSP_Message
 ```
 Because this is a message between direct neighbors, the VID hop list field is empty which is encoded as `-JAA`. The inner message can be any correctly encoded TSP message including its envelope, payload and signature. The starting payload length must count the nested message. 
 
@@ -1275,14 +1275,14 @@ Because this is a message between direct neighbors, the VID hop list field is em
 Routed payload is encoded as a nested payload with a non-empty routing hop list.
 
 ``` text
--Z## | -0Z####, XHOP, VID\_sndr, -J## | -0J####, VID_1, ..., Padding\_field, Encoded\_TSP\_Message
+-Z## | -0Z####, XHOP, VID_sndr, -J## | -0J####, VID_1, ..., Padding_field, Encoded_TSP_Message
 ```
 The hop list field encoding is specified in [VID Hop List Field](#vid-hop-list-field). The rest is identifical to nested payload.
 
 #### Control Message Encoding
 Control messages are composition of payload fields that are used for TSP's own control mechanisms. The following sections define these payload fields in its plaintext text mode. The actual final encoding will be in ciphertext format as described in [Confidential Payload Ciphertext](#confidential-payload-ciphertext).
 
-##### NEW\_REL
+##### NEW_REL
 
 The NEW_REL payload is specified in [Direct Relationship Forming](#direct-relationship-forming).
 
@@ -1290,73 +1290,73 @@ The NEW_REL payload is specified in [Direct Relationship Forming](#direct-relati
 To choose between these two alternative encodings
 :::
 ```text
--Z## | -0Z####, XCTL, VID\_sndr, XRFI, Nonce, Padding\_field
+-Z## | -0Z####, XCTL, VID_sndr, XRFI, Nonce, Padding_field
 ```
 Or,
 
 ```text
--Z## | -0Z####, XRFI, VID\_sndr, Nonce, `4BAA`, Padding\_field
+-Z## | -0Z####, XRFI, VID_sndr, Nonce, `4BAA`, Padding_field
 ```
 where `4BAA` is an empty VID. This VID is `4BAA` to indicate that we are *not* signaling a *new* VID from an existing relationship.
 
 (Note: the following sections assume that we take the first approach. If we do choose the latter however, they will be revised accordingly. DELETE this line when it's resolved.)
 
-##### NEW\_REL\_REPLY
+##### NEW_REL_REPLY
 
 The NEW_REL_REPLY payload is specified in [Direct Relationship Forming](#direct-relationship-forming).
 
 ```text
--Z## | -0Z####, XCTL, VID_sndr, XRFA, Digest, Nonce, Padding\_field
+-Z## | -0Z####, XCTL, VID_sndr, XRFA, Digest, Nonce, Padding_field
 ```
 Note: To discuss - the NEW_REL and NEW_REL_REPLY messages may not be needed if we simply treat the first messages as implied invitation and reply.
 
-##### NEW\_REFER\_REL
+##### NEW_REFER_REL
 
 ```text
--Z## | -0Z####, XCTL, VID_sndr, XRFI, Nonce, VID_new, Signature_new, Padding\_field
+-Z## | -0Z####, XCTL, VID_sndr, XRFI, Nonce, VID_new, Signature_new, Padding_field
 ```
 The `Signature_new` field is a signature signed by the VID_new's key over the fields that preceeds it: {XCTL,  VID_sndr, XRFI, Nonce, VID_new}. It is then encoded in the same way as specified in [TSP Signature Encoding](#tsp-signature-encoding).
 
-##### NEW\_REFER\_REL\_REPLY
+##### NEW_REFER_REL_REPLY
 
 ```text
--Z## | -0Z####, XCTL, VID_sndr, XRFA, Digest, Nonce, VID_new, Signature_new, Padding\_field
+-Z## | -0Z####, XCTL, VID_sndr, XRFA, Digest, Nonce, VID_new, Signature_new, Padding_field
 ```
 The `Signature_new` field is a signature signed by the VID_new's key over the fields that preceeds it: {XCTL,  VID_sndr, XRFI, Nonce, VID_new}. It is then encoded in the same way as specified in [TSP Signature Encoding](#tsp-signature-encoding).
 
-##### NEW\_NEST\_REL
-The NEW\_NEST\_REL message can be constructed by composing a NEW_REL inside a nested outer message:
+##### NEW_NEST_REL
+The NEW_NES\_REL message can be constructed by composing a NEW_REL inside a nested outer message:
 
 ``` text
--Z## | -0Z####, XHOP, VID\_sndr, -J## | -0J####, VID_HOP_1, ..., Padding\_field, Encoded\_TSP\_Message
+-Z## | -0Z####, XHOP, VID_sndr, -J## | -0J####, VID_HOP_1, ..., Padding_field, Encoded_TSP_Message
 ```
 The `Encoded\_TSP\_Message` is in fact the `NEW\_REL` message as follows:
 
 ```text
-TSP\_Tag, TSP\_Version, VID\_sndr\_new, `4BAA`, -Z## | -0Z####, XCTL, VID\_sndr\_new, XRFI, Nonce, Padding\_field, Signature\_new
+TSP_Tag, TSP_Version, VID_sndr_new, `4BAA`, -Z## | -0Z####, XCTL, VID_sndr_new, XRFI, Nonce, Padding_field, Signature_new
 ```
 Note that the hop list will be encoded as `-JAA` if this message is nested over a direct relationship without intermediary.
 
-##### NEW\_NEST\_REL\_REPLY
+##### NEW_NEST_REL_REPLY
 
-The NEW\_NEST\_REL\_REPLY message can be constructed by composing a NEW\_REL\_REPLY inside a nested outer message:
+The NEW_NEST_REL_REPLY message can be constructed by composing a NEW_REL_REPLY inside a nested outer message:
 
 ``` text
--Z## | -0Z####, XHOP, VID\_sndr, -J## | -0J####, VID_HOP_1, ..., Padding\_field, Encoded\_TSP\_Message
+-Z## | -0Z####, XHOP, VID_sndr, -J## | -0J####, VID_HOP_1, ..., Padding_field, Encoded_TSP_Message
 ```
-The `Encoded\_TSP\_Message` is in fact the `NEW\_REL\_REPLY` message as follows:
+The `Encoded_TSP_Message` is in fact the `NEW_REL_REPLY` message as follows:
 
 ```text
-TSP\_Tag, TSP\_Version, VID\_sndr\_new, VID\_rcvr\_new, -Z## | -0Z####, XCTL, VID\_sndr\_new, XRFA, VID\_new, Digest, Nonce, Padding\_field, Signature\_new
+TSP_Tag, TSP_Version, VID_sndr_new, VID_rcvr_new, -Z## | -0Z####, XCTL, VID_sndr_new, XRFA, VID_new, Digest, Nonce, Padding_field, Signature_new
 ```
 Note that the hop list will be encoded as `-JAA` if this message is nested over a direct relationship without intermediary.
 
-##### REL\_CANCEL
+##### REL_CANCEL
 
-The `REL\_CANCEL` message can be constructed as follows in a direct relationship,
+The `REL_CANCEL` message can be constructed as follows in a direct relationship,
 
 ```text
--Z## | -0Z####, XCTL, VID_sndr, XRFD, Nonce, Digest, Padding\_field
+-Z## | -0Z####, XCTL, VID_sndr, XRFD, Nonce, Digest, Padding_field
 ```
 For nested or routed relationships, the same message is encoded as an inner message in the nested or routed outer message. The `Digest` field MUST reference the corresponding relationship formation `XRFI` message's digest.
 
