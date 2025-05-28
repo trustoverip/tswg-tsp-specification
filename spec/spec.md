@@ -714,7 +714,7 @@ Endpoint `B` retrieves and verifies `VID_a`, and if agrees, replies with the fol
 Message: [VID_b, VID_a, Payload]
 Control payload fields:
     - Type = NEW_REL_REPLY
-    - Thread_ID = TSP_([VID_a, VID_b, Payload])
+    - Thread_ID = TSP_DIGEST([VID_a, VID_b, Payload])
 ```
 
 The result is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` and `(VID_b, VID_a)` in endpoint `B`. The Thread_ID is recorded by both endpoints and used in all future messages.
@@ -749,7 +749,7 @@ Endpoint `B` retrieves and verifies `VID_a`, and if agrees, replies with the fol
 Return message: [VID_b, VID_a, VID_rethop1, …, VID_rethopk, VID_retexit, Msg]
 Control payload fields:
     - Type = NEW_REL_REPLY
-    - Thread_ID = TSP_([VID_a, VID_b, VID_hop1, …, VID_hopk, VID_exit, Payload])
+    - Thread_ID = TSP_DIGEST([VID_a, VID_b, VID_hop1, …, VID_hopk, VID_exit, Payload])
 ```
 
 Note, either `A` or `B` may choose to specify a routed path for the relationship forming messages. If one party specifies a routed path while the other party does not (but they both agree to such an arrangement), then the result can be a relationship over a routed path in one direction but via a direct path in the other direction.
@@ -804,7 +804,7 @@ where the optional VID list is omitted so this can be either Direct or Routed Mo
 
 Control payload control fields:
     - Type = NEW_NEST_REL_REPLY
-    - Thread_ID = TSP_([VID_b1, VID_a1, Payload])
+    - Thread_ID = TSP_DIGEST([VID_b1, VID_a1, Payload])
     - VID veridication data: VID_b1.VeriInfo
 ```
 
