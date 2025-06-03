@@ -145,13 +145,9 @@ An endpoint can control multiple VIDs simultaneously and over extended periods. 
 
 For example, if an adversary observes VIDs `VID_a0` of endpoint `A` and `VID_b0` of endpoint `B` in a relationship `(VID_a0, VID_b0)`, where `VID_a0` is categorized as public and could be linked to a specific endpoint using additional metadata. However, if the same adversary also happens to observe `VID_a1`, it should be impossible by the identifiers alone for the adversary to establish a correlation between `VID_a1` and `VID_a0`, and consequently, to associate `VID_a1` with endpoint `A`.
 
-#### VID Type
-
-Each VID type MUST have a unique type code allocated for its exclusive use. The type code is out of an integer number space of 3 Base64 characters.
-
 #### VID Syntax
 
-TSP tries not to impose any additional syntax requirements beyond what any VID type already mandates. But since TSP uses CESR for VID encoding, a VID MUST have at least one compliant CESR encoding, including VID Type.
+TSP tries not to impose any additional syntax requirements beyond what any VID type already mandates. But easier interoperability, we require that the VID format be either compliant DID format [[ref:DID]] or compliant URN format [[spec-norm:RFC8141]].
 
 #### Resolution to Transport Address
 
