@@ -945,7 +945,7 @@ def TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Pl
     info = NULL
     pt = Plaintext
     enc, ct = SealAuth(pkR, info, aad, ct, skS)
-    return CONCAT(end, ct)
+    return CONCAT(enc, ct)
 
 Ciphertext = TSP_SEAL(VID_sndr, VID_rcvr,
                 Non_Confidential_Fields, 
@@ -985,7 +985,7 @@ def TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Pl
     info = NULL
     pt = Confidential_Fields_Plaintext
     enc, ct = SealBase(pkR, info, aad, pt)
-    return CONCAT(end, ct)
+    return CONCAT(enc, ct)
 
 Ciphertext = TSP_SEAL(VID_sndr, VID_rcvr,
                 Non_Confidential_Fields, 
@@ -1209,12 +1209,12 @@ The HPKE ciphertext consists of the concatenation of the Encapuslated Key struct
 HPKE-Auth:
 ...
 enc, ct = SealAuth(pkR, info, aad, ct, skS)
-return CONCAT(end, ct)
+return CONCAT(enc, ct)
 
 HPKE-Base:
 ...
 enc, ct = SealBase(pkR, info, aad, pt)
-return CONCAT(end, ct)
+return CONCAT(enc, ct)
 ```
 
 The `enc` is defined by HPKE [[spec-norm:RFC9180]] which contains identifiers for KEM, KDF and AEAD functions and a bytestring for the encapsulated key.
@@ -1240,9 +1240,6 @@ AEAD | 0x0003 | ChaCha20Poly1305
 ::: note
 This implementor's draft only specify a single configuration as above. Additional configurations will be added in the future.
 :::
-
-The following table summarizes CESR encoding for the Ciphertext field:
-Todo
 
 Example:
 ``` text
