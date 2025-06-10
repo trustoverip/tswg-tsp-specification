@@ -1254,6 +1254,14 @@ Example:
 ``` text
 Todo
 ```
+#### Interleaved JSON, CBOR or MsgPak Payload
+Comformant TSP implementations MUST support the interleaving scheme in [[ref:CESR]] which allows interleaved payloads encoded in JSON, CBOR or MsgPak in addition to native CESR.
+Because TSP supports nesting, this interleaving of different encoding methods may occur in the payload field of any nesting level.
+
+Example:
+``` text
+Todo
+```
 
 #### Nested Payload
 In TSP Nested Mode, the inner TSP message is carried inside a payload field of the outer TSP message. When the outer message is being parsed, the message may carry a simple application payload or a nested TSP message which will require additional processing.
