@@ -1071,7 +1071,7 @@ Per [[spec-norm:libsodium]] documentation, the sealed box API leverages the `cry
 
 ### Secure Hash and  Functions
 
-All TSP implementations MUST support the following secure hash and  functions. They can be used for nonce and Thread_ID constructions as the operator TSP_.
+All TSP implementations MUST support the following secure hash and digest functions. They can be used for nonce and Thread_ID constructions as the operator TSP_DIGEST.
 
 - SHA2-256 [[spec-norm:RFC6234]]
 
@@ -1167,11 +1167,12 @@ Here both ## and #### still represent counts of length of the string that follow
 
 #### Nonce
 
-Nonce is encoded with a code `0A` followed by 42 (? to check)characters (in text domain).
+Nonce is encoded with a two character code `0A` followed by 24 characters which represents the 128 bit nonce value.
 
-#### 
+#### Digest
 
-Use SAID
+- For SHA2-256, it is encoded with a one character code `I` followed by 44 characters which presents the 256 bit digest.
+- For Blake2b-256, it is encoded with a one character code `F` followed by 44 characters which presents the 256 bit digest.
 
 #### Confidential Payload Ciphertext
 
