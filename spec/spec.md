@@ -1288,43 +1288,32 @@ Control messages are composition of payload fields that are used for TSP's own c
 
 The NEW_REL payload is specified in [Direct Relationship Forming](#direct-relationship-forming).
 
-:::note
-To choose between these two alternative encodings
-:::
 ```text
--Z## | -0Z####, XCTL, VID_sndr, XRFI, Nonce, Padding_field
+-Z## | -0Z####, XRFI, VID_sndr, Digest, Nonce, `4BAA`, Padding_field
 ```
-Or,
-
-```text
--Z## | -0Z####, XRFI, VID_sndr, Nonce, `4BAA`, Padding_field
-```
-where `4BAA` is an empty VID. This VID is `4BAA` to indicate that we are *not* signaling a *new* VID from an existing relationship.
-
-(Note: the following sections assume that we take the first approach. If we do choose the latter however, they will be revised accordingly. DELETE this line when it's resolved.)
+where `4BAA` is an empty VID. This VID is `4BAA` to indicate that we are *not* signaling a *new* VID from an existing relationship. For the latter case, please see [NEW_REFER_REL](#new_refer_rel).
 
 ##### NEW_REL_REPLY
 
 The NEW_REL_REPLY payload is specified in [Direct Relationship Forming](#direct-relationship-forming).
 
 ```text
--Z## | -0Z####, XCTL, VID_sndr, XRFA, Digest, Nonce, Padding_field
+-Z## | -0Z####, XRFA, VID_sndr, Digest, Reply_Digest, Padding_field
 ```
-Note: To discuss - the NEW_REL and NEW_REL_REPLY messages may not be needed if we simply treat the first messages as implied invitation and reply.
 
 ##### NEW_REFER_REL
 
 ```text
--Z## | -0Z####, XCTL, VID_sndr, XRFI, Nonce, VID_new, Signature_new, Padding_field
+-Z## | -0Z####, XRFI, VID_sndr, Digest, Nonce, VID_new, Signature_new, Padding_field
 ```
-The `Signature_new` field is a signature signed by the VID_new's key over the fields that preceeds it: {XCTL,  VID_sndr, XRFI, Nonce, VID_new}. It is then encoded in the same way as specified in [TSP Signature Encoding](#tsp-signature-encoding).
+The `Signature_new` field is a signature signed by the VID_new's key over the fields that preceeds it: {XRFI,  VID_sndr, Digest, Nonce, VID_new}. It is then encoded in the same way as specified in [TSP Signature Encoding](#tsp-signature-encoding).
 
 ##### NEW_REFER_REL_REPLY
 
 ```text
--Z## | -0Z####, XCTL, VID_sndr, XRFA, Digest, Nonce, VID_new, Signature_new, Padding_field
+-Z## | -0Z####, XRFA, VID_sndr, Digest, Reply_Digest, VID_new, Signature_new, Padding_field
 ```
-The `Signature_new` field is a signature signed by the VID_new's key over the fields that preceeds it: {XCTL,  VID_sndr, XRFI, Nonce, VID_new}. It is then encoded in the same way as specified in [TSP Signature Encoding](#tsp-signature-encoding).
+The `Signature_new` field is a signature signed by the VID_new's key over the fields that preceeds it: {XRFA,  VID_sndr, Digest, Reply_Digest, VID_new}. It is then encoded in the same way as specified in [TSP Signature Encoding](#tsp-signature-encoding).
 
 ##### NEW_NEST_REL
 The NEW_NES\_REL message can be constructed by composing a NEW_REL inside a nested outer message:
@@ -1332,11 +1321,13 @@ The NEW_NES\_REL message can be constructed by composing a NEW_REL inside a nest
 ``` text
 -Z## | -0Z####, XHOP, VID_sndr, -J## | -0J####, VID_HOP_1, ..., Padding_field, Encoded_TSP_Message
 ```
-The `Encoded\_TSP\_Message` is in fact the `NEW\_REL` message as follows:
+The `Encoded_TSP_Message` is in fact the `NEW_REL` message as follows:
 
 ```text
-TSP_Tag, TSP_Version, VID_sndr_new, `4BAA`, -Z## | -0Z####, XCTL, VID_sndr_new, XRFI, Nonce, Padding_field, Signature_new
+TSP_Tag, TSP_Version, VID_sndr_new, `4BAA`, -Z## | -0Z####, XRFI, VID_sndr_new, Digest, Nonce, Padding_field, Signature_new
 ```
+In the nested `NEW_REL` message, the Signature_new is the signature of the new `VID_sndr_new`.
+
 Note that the hop list will be encoded as `-JAA` if this message is nested over a direct relationship without intermediary.
 
 ##### NEW_NEST_REL_REPLY
@@ -1349,7 +1340,7 @@ The NEW_NEST_REL_REPLY message can be constructed by composing a NEW_REL_REPLY i
 The `Encoded_TSP_Message` is in fact the `NEW_REL_REPLY` message as follows:
 
 ```text
-TSP_Tag, TSP_Version, VID_sndr_new, VID_rcvr_new, -Z## | -0Z####, XCTL, VID_sndr_new, XRFA, VID_new, Digest, Nonce, Padding_field, Signature_new
+TSP_Tag, TSP_Version, VID_sndr_new, VID_rcvr_new, -Z## | -0Z####, XRFA, VID_sndr_new, VID_new, Digest, Reply_Digest, Padding_field, Signature_new
 ```
 Note that the hop list will be encoded as `-JAA` if this message is nested over a direct relationship without intermediary.
 
@@ -1358,9 +1349,24 @@ Note that the hop list will be encoded as `-JAA` if this message is nested over 
 The `REL_CANCEL` message can be constructed as follows in a direct relationship,
 
 ```text
--Z## | -0Z####, XCTL, VID_sndr, XRFD, Nonce, Digest, Padding_field
+-Z## | -0Z####, XRFD, VID_sndr, Nonce, Digest, Padding_field
 ```
-For nested or routed relationships, the same message is encoded as an inner message in the nested or routed outer message. The `Digest` field MUST reference the corresponding relationship formation `XRFI` message's digest.
+For nested or routed relationships, the same message is encoded as an inner message in the nested or routed outer message. The `Digest` field MUST reference the corresponding relationship formation `XRFI` or `XRFA` message's digest, respectively.
+
+##### Generic Control Message
+
+A TSP generic control message uses the `XCTL` code in the CESR code table and its payload can be any comformant stream, including interleaving JSON, CBOR, or MsgPak encodings.
+
+```text
+-Z## | -0Z####, XCTL, VID_sndr, Padding_field, any_payload_stream
+```
+##### Padding Message
+
+A TSP padding message uses the `XPAD` code in the CESR code table. 
+
+```text
+-Z## | -0Z####, XPAD, VID_sndr, Nonce, Padding_field
+```
 
 ### TSP Signature Encoding
 The TSP Signature is encoded as an attachment group in CESR. TSP allows multiple signatures. The general structure is the attachment group code, followed by the indexed signature group code, then 1 or more signatures of supported types.
