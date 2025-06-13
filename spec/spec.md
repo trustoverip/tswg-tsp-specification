@@ -1140,7 +1140,7 @@ Per [[spec-norm:libsodium]] documentation, the sealed box API leverages the `cry
 
 ### Secure Hash and Digest Functions
 
-All TSP implementations MUST support the following secure hash and digest functions. They can be used for nonce and Thread_ID constructions as the operator TSP_DIGEST.
+All TSP implementations MUST support the following secure hash and digest functions. They can be used for nonce and digest constructions as the operator TSP_DIGEST.
 
 - SHA2-256 [[spec-norm:RFC6234]]
 
