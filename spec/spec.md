@@ -228,7 +228,9 @@ TSP_Envelope = {TSP_Tag, TSP_Version, VID_sndr, VID_rcvr | NULL}
 ```
 
 - TSP_Tag: A unique code that unambigously flags the start of a TSP envelope.
-- TSP_Version: The version of Trust Spanning Protocol.
+- TSP_Version: The version of Trust Spanning Protocol. The TSP version should follow semantic versioning practices with three numbers representing MAJOR, MINOR, PATH. MAJOR version signals backward compatibility MAY not be maintained with previous versions.
+
+The current experimental draft's version is `0.0.1`. When this specification is officially released, the first version is to be `1.0.0`.
 
 VIDs in TSP are encoded with a variable length VID_String that consists of length followed by a bytestring of that length. Two types of identifier syntaxes, DID [[ref:DID]] and URN [[spec-norm:RFC8141]], MUST be supported. Implementations MAY support additional syntaxes beyond these two types.
 
@@ -240,31 +242,30 @@ Please see Section [TSP Envelope Encoding](#tsp-envelope-encoding) for further i
 
 ### TSP Payload
 
-The TSP payload is where application data goes. It is structured in two parts: a series of non-confidential payload fields followed by a ciphertext field. The ciphertext contains the encrypted confidential payload fields. Both the non-confidential payload field list and the ciphertext field may be NULL. It is up to the higher level tasks that utiluze the TSP payload to decide whether their payload fields should be confidential (encrypted) or non-confidential.
+The TSP payload is where application data goes. It is either control message payload used by TSP itself or application message payload used by the higher layer. It is structured uniformly with a payload type followed by a series of data fields that is dictated by the type. The payload may be encrypted and encoded as a single ciphertext. The payload field definitions are all described in plaintext in this specification. When it is helpful, we may use affix `_ciphertext` or the adjetive confidential to indicate that the data therein is actually encrypted ciphertext of what is being presented.
 
 The TSP payload may be recursively nested where a payload field may itself be a TSP message. See [Nested Messages](#nested-messages). The terms of payload and payload field therefore must only be understood as relative within the current level of payload structure being referenced.
 
 ```text
-TSP_Payload = {TSP_Payload_Tag, NULL|{Payload_Field, ...}, Confidential_Payload_Ciphertext}
+TSP_Payload = {TSP_Payload_Tag, TSP_Payload_Type, TSP_Payload_Field1, ...}
 ```
-The TSP defines a set of payload fields that are used for TSP's own operations, including [Nested Messages](#nested-messages), [Routed Messages](#routed-messages-through-intermediaries), and the higher level management of TSP operations. Payload fields used in [Nested Messages](#nested-messages) and [Routed Messages](#routed-messages-through-intermediaries) are defined in the respective sections. The definitions of payload fields used for TSP management can be found in section [Control Messages](#control-messages).
 
-Higher layer applications define their own payload fields using a general payload field type for upper layer messages.
+The TSP defines payload types that are used for [Nested Messages](#nested-messages), [Routed Messages](#routed-messages-through-intermediaries), and the higher level management of TSP operations [Control Messages](#control-messages).
+
+Higher layer application messages use the general payload type `TSP_GEN`.
 
 #### Payload Fields
 
-Each payload field consists of a Type and a number of data objects determined by the type. The data objects may be any data that can be encoded in CESR, including mixed JSON, CBOR and MsgPack as supported by CESR. 
+Each payload consists of a type and a number of fields determined by the type. They will be defined in the corresponding sections when their functions are defined.
 
-Any payload field, regardless of being used for control purposes by TSP or by a higher layer task, confidential (encrypted) or non-confidential, follows the same general format. The type and data objects of each payload field will be defined in the corresponding sections when their functions are defined.
+Some payload fields are required by TSP, including the sender VID `VID_sndr` used for ESSR operations and VID list used in routing mode. When it is necessary to differentiate these fields, we will refer them as Control Fields or Control Payload Fields. These control fields are used for all messages, not just control messages.
 
-#### Ciphertext of the Confidential Payload Fields
+#### Ciphertext of the Confidential Payloads
 
-Encoded in the `Confidential_Payload_Ciphertext` is the ciphertext of the corresponding plaintext payload fields.
-
-The ciphertext is produced as:
+If TSP_Payload is confidential, the corresponding ciphertext is produced as:
 
 ```text
-Confidential_Payload_Ciphertext = TSP_SEAL({Payload_Field, ...})
+TSP_Payload_Ciphertext = TSP_SEAL(TSP_Payload)
 ```
 
 The details of the supported PKAE schemes for the `TSP_SEAL` operation are specified in Section [Cryptographic Algorithms](#cryptographic-algorithms).
@@ -280,41 +281,7 @@ The third part of a TSP message is the message signature of the sender.
 ```text
 TSP_Signature = TSP_SIGN({TSP_Envelope, TSP_Payload})
 ```
-On the receiving side, the corresponding primitive is `TSP_SIG_VERIFY`. The details of the `TSP_SIGN` and `TSP_SIG_VERIFY` are specified in Section [Cryptographic Algorithms](#cryptographic-algorithms).
-
-### TSP Message Examples
-
-Applications can utilize TSP messages as defined above in any way they choose. In this section, we discuss two common scenarios that may be particularly useful. In the first scenario, all user data is in the confidential data fields in a manner in which TSP can assure both authenticity and condientiality of the message. In the second case, all data is contained in the non-confidential data fields.
-
-#### Authentic and Confidential (AAC) Messages
-
-```text
-Authentic_Confidential_Message  = {TSP_Envelope, Confidential_Payload_Ciphertext, TSP_Signature}
-                                = {TSP_Tag, TSP_Version, VID_sndr, VID_rcvr, 
-                                    Confidential_Payload_Ciphertext, TSP_Signature},
-where,
-
-Confidential_Payload_Ciphertext = TSP_SEAL ({Control_Payload_Fields, Data_Payload_Fields}),
-
-and
-
-TSP_Signature = TSP_SIGN({TSP_Envelope, Confidential_Payload_Ciphertext}).
-```
-
-These messages use the `VID_sndr` and `VID_rcvr` pair and has no non-confidential fields, i.e. all payload is encrypted.
-
-#### Authentic Non-Confidential (ANC) Messages
-
-```text
-Authentic_Non_Confidential_Message  = {TSP_Envelope, Non_Confidential_Payload, TSP_Signature}
-                                    = {TSP_Tag, TSP_Version, VID_sndr, 
-                                        Non_Confidential_Payload, TSP_Signature},
-where,
-
-TSP_Signature = TSP_SIGN ({TSP_Envelope, Non_Confidential_Payload}).
-```
-
-These messages do not have `VID_rcvr` and the payload is entirely non-confidential. 
+On the receiving side, the corresponding primitive is `TSP_SIGN_VERIFY`. The details of the `TSP_SIGN` and `TSP_SIGN_VERIFY` are specified in Section [Cryptographic Algorithms](#cryptographic-algorithms).
 
 ### Relationships
 
@@ -373,7 +340,7 @@ Note, in our simplified example above we have not considered any dynamic changes
 
 Similar to the previous section, the following example is only illustrative of the reception of a simple Direct Mode TSP message.
 
-If endpoint `B` receives a TSP message of the generic form `{... VID_sndr, VID_rcvr, ... Confidential_Payload_Ciphertext, TSP_Signature}`, endpoint `B` may follow these steps to process this incoming message:
+If endpoint `B` receives a TSP message of the generic form `{... VID_sndr, VID_rcvr, ... TSP_Payload_Ciphertext, TSP_Signature}`, endpoint `B` may follow these steps to process this incoming message:
 
 - Step 1: Check if the `VID_sndr` and `VID_rcvr` pair matches an existing valid relationship in its relationship table. If yes, jump to Step 5; otherwise this is the first message of this relationship.
 - Step 2: Check if `VID_rcvr` is a valid local VID and local rules permit to proceed.
@@ -383,7 +350,7 @@ If endpoint `B` receives a TSP message of the generic form `{... VID_sndr, VID_r
     - Transport information, if it is not yet known.
 - Step 4: Verify, and appraise `VID_sndr` using additional information and processes specific to the VID.
 - Step 5: Verify the `TSP_Signature`.
-- Step 6: Decrypt the `Confidential_Payload_Ciphertext`. 
+- Step 6: Decrypt the `TSP_Payload_Ciphertext`. 
 - Step 7: If the PKAE variant requires, retrieve the sender VID from the decrypted payload plaintext and verify that it matches `VID_sndr`.
 - Step 8: Process the rest of the control fields.
 - Step 9: Return the payload to the upper layer application.
@@ -417,11 +384,11 @@ This nesting scheme can be illustrated as follows using the confidential data fi
 ```text
 Outer_Message = {Envelope_0, Payload_0, Signature_0},
 Inner_Message = {Envelope_1, Payload_1, Signature_1}, 
-Nested_Message = {Envelope_0, {Non_Confidential_Fields_0,
-                                TSP_SEAL_0({Control_Fields_0, Inner_Message})}, Signature0}
+Nested_Message = {Envelope_0, Control_Fields_0, TSP_SEAL_0(Inner_Message), Signature0}
 ```
+`TSP_SEAL_0` indicates that the `TSP_SEAL` operation uses the outer message sender's keys. `Control_Fields_0` indicates the control fields of the outer message payload.
 
-In this scheme, the inner message MUST use the confidential payload of the outer message in order to achieve the protection of the inner message metadata. Other than that, we do not restrict the structures of inner and outer messages. For example, if the endpoints do not find the need for additional encryption of the inner message, they MAY choose to use the non-confidential payload fields for the inner message payload data. Applications should be aware that the confidentiality assurances would only be extended to the outer relationship if the inner message is embedded in the non-confidential field of the outer message.
+In this scheme, the inner message MUST use the confidential payload of the outer message in order to achieve the protection of the inner message metadata. Other than that, we do not restrict the structures of inner and outer messages. For example, if the endpoints do not find the need for additional encryption of the inner message, they MAY choose to use the non-confidential payload for the inner message payload data. Applications should be aware that the confidentiality assurances would only be extended to the outer relationship if the inner message is embedded in the non-confidential field of the outer message.
 
 ### Nested Relationships
 
@@ -430,17 +397,16 @@ When TSP messages utilize this nesting approach, a new relationship, for example
 The process for establishing such relationships with nested messages is detailed in [Section 7](#control-messages). It's important to note that this nesting can be recursively applied, adding additional layers as required. Inner relationships are situated within an outer relationship that has been verified and deemed suitable for the intended purpose by both participating endpoints. The VIDs engaged in these inner relationships may therefore be considered as *private*, do not require same level of verification as *public* VIDs, and do not require transport layer address resolution of their own.
 
 ### A Shorthand Notation
-For brevity and ease of presentation, we introduct a shorthand notation for nested messages, and indirectly the relationship in which these messages are communicated, as follows.
+For brevity and ease of presentation, we introduce a shorthand notation for nested messages, and indirectly the relationship in which these messages are communicated, as follows.
 
 ``` text
-[VID_sndr, VID_rcvr, Payload] = {TSP_Tag, TSP_Version, VID_sndr, VID_rcvr, Payload, Signature}
+[VID_sndr, VID_rcvr, Payload] = {TSP_Tag, TSP_Version, VID_sndr, VID_rcvr, TSP_Payload, TSP_Signature}
 ```
-This is only a simplication in notation. All message fields remain the same as defined in the previous sections, including the generation of ciphertext and signature fields.
+This is only a simplication in notation. All message fields remain the same as defined in the previous sections, including the control fields and the generation of ciphertext and signature fields.
 
 ``` text
 [VID_sndr_out, VID_rcvr_out, [VID_sndr_in, VID_rcvr_in, Payload_in]] = {
-    Envelope_out, {Non_Confidential_Fields_out, TSP_SEAL_out(Control_Fields_out, Inner_Message)},
-    Signature_out }
+    Envelope_out, TSP_SEAL_out(Inner_Message), Signature_out }
 
 where,
 Inner_Message = [VID_sndr_in, VID_rcvr_in, Payload_in, Signature_in]
@@ -451,6 +417,8 @@ Such a notation does not imply any extra requirements or restrictions for the me
 For example, we may use the following shorter notation to represent the example nested message shown above:
 
 `[VID_a0, VID_b0, [VID_a1, VID_b1, Payload]]`
+
+In this notation, the term `Payload` should be interpreted as the rest of the payload that we are not paying attention at the moment since we often are focused on the control fields to describe TSP's operations without burdening ourselves with other parts of the payload. When in doubt, please refer to the corresponding message definition sections and the encoding sections for clarity.
 
 ## Routed Messages Through Intermediaries
 
@@ -497,7 +465,7 @@ TSP routed messages have the same TSP Envelope as TSP messages sent in direct mo
 ``` text
 Control_Payload_Fields = {VID_sndr|NULL, VID_hop2, ..., VID_hopk, VID_exit}
 ```
-The first VID in the control fields `VID_sndr` is the VID required by ESSR PKAE schemes. If a PKAE scheme does not require this field, for example `HPKE_Auth`, then this MAY be empty.
+The first VID in the control fields `VID_sndr` is the VID required by ESSR PKAE schemes. If a PKAE scheme does not require this field, for example `HPKE_Auth`, then this MAY be NULL.
 
 The VIDs following the first `VID_sndr` is an ordered list of next hop VIDs of intermediary systems and the last VID represents the destination endpoint. The list can vary in length from 1, 2, to k > 2, and should be interpreted as an ordered routing path with the `VID_hop2` coming first, followed by `VID_hop3`, `VID_hop4` etc... Note that the first hop is already identified as the `VID_rcvr`.
 
@@ -889,25 +857,8 @@ When endpoint `C` receives this message from `A`, it treats it as an introductio
 
 If `VID_List` is present, then `C` uses the specified routed path, in part, to send the `NEW_REL` message to endpoint `B`.
 
-### Relationship Events
 
-#### Key Update
-
-::: issue #7
-Key rotation is TBD - define out-of-band only.
-https://github.com/trustoverip/tswg-tsp-specification/issues/7
-:::
-
-#### Route Info
-
-An Intermediary MAY send a TSP message to either another Intermediary or an endpoint to report route related information that MAY be useful for diagnoses or other legitimate purposes.
-
-::: issue #8
-TODO
-https://github.com/trustoverip/tswg-tsp-specification/issues/8
-:::
-
-#### Relationship Cancellation
+### Relationship Cancellation and Decline
 Bidirectional relationships in TSP are essentially a combination of two unidirectional relationships that involve the same pair of VIDs. Due to the asymmetric nature of TSP messages, it's possible for a relationship to exist unidirectionally for a time — where messages flow in one direction but not yet in the reverse. This scenario can occur both when a relationship is being established and when it's being terminated. It is also permissible that endpoints simply want to keep a unidirectional relationship if they choose to.
 
 While sending explicit messages to cancel a relationship is not strictly necessary in TSP, such messages MAY be beneficial for upper-layer protocols that require a clear and definite termination of relationships. For this purpose, endpoints utilize `REL_CANCEL` control messages.
@@ -946,6 +897,23 @@ Payload fields:
     - Digest = Digest from the corresponding `NEW_REL`
     - Nonce_field = Nonce
 ```
+### Relationship Events
+
+#### Key Update
+
+::: issue #7
+Key rotation is TBD - define out-of-band only.
+https://github.com/trustoverip/tswg-tsp-specification/issues/7
+:::
+
+#### Route Info
+
+An Intermediary MAY send a TSP message to either another Intermediary or an endpoint to report route related information that MAY be useful for diagnoses or other legitimate purposes.
+
+::: issue #8
+TODO
+https://github.com/trustoverip/tswg-tsp-specification/issues/8
+:::
 
 ## Cryptographic Algorithms
 
