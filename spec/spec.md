@@ -692,28 +692,38 @@ For either Direct Mode or Routed Mode endpoint-to-endpoint relationships, Authen
 Both the control and data sections of the payload are extendable. While we define the necessary TSP control fields here, higher layers have the flexibility to expand upon them. This structure ensures a standardized approach for the essential components of the message while allowing adaptability for specific use cases or additional requirements at the higher layer. 
 
 ### Relationship Forming Protocol
+#### TSP Digest
+
+TSP uses a *self referencing* or *self addressing* digest in its relationship forming protocol messages defined below. It is calculated according to the *SAID* (Self Addressing Identifier) convention as described in the [[ref:CESR]] specification. The supported hash or digest functions are listed in section [Secure Hash and Digest Functions](#secure-hash-and-digest-functions). 
+
+TSP Digest is calculated and contained in the message that it is based on. In a bi-directional relationship formation exchange, the request message contains its own TSP Digest field which identifies the request message, and the reply message contains both the Digest it received from the requester and its Reply_Digest. Conceptually, this exchange creates two uni-directional relationships, one (from the requester) can be identified by the Digest, and the other (From the replier) can be identified by the Reply_Digest.
+
+In describing this digest field, we will use TSP_DIGEST in the content of the payload which should be interpreted as the result of the above self referential calculations over the payload (excluding any padding that may be introduced).
+
+The sender and receiver of these TSP digests SHOULD save them as part of the relationship state if they wish to use them as a thread identifier or to validate the relationship formation process in the future.
+
 #### Direct Relationship Forming
-When an endpoint `A` learns  the VID for another endpoint `B`, say `VID_b`, through an Out-Of-Band Introduction method, the endpoint `A` may use the following message type to form a direct relationship with `B`. Suppose the source VID that endpoint `A` uses is `VID_a`, then the relationship A and B establishes is `(VID_a, VID_b)`.
+When an endpoint `A` learns  the VID for another endpoint `B`, say `VID_b`, through an Out-Of-Band Introduction method, the endpoint `A` MAY use the following message type to form a direct relationship with `B`. Suppose the source VID that endpoint `A` uses is `VID_a`, then the relationship A and B establishes is `(VID_a, VID_b)`.
 ``` text
 Out-Of-Band Introduction to A: VID_b
 The relationship forming message from A to B: [VID_a, VID_b, Payload]
-Control payload fields:
+Payload fields:
     - Type = NEW_REL
+    - Digest = TSP_DIGEST
     - Nonce_Field = Nonce
 ```
-::: note
-TBD. This message may be unnecessary. Considering to remove it.
-:::
+This `NEW_REL` is not strictly required for forming a relationship between two *direct* endpoints. It is permissible that one endpoint which has learned a VID of the other simply starts with an application level message without first having an exchange of TSP control messages. In such cases, it is up to the application or the Out-of-Band Introduction mechanism or other means that they make acceptance decisions. Similarly, they will not have the digests embedded in the `NEW_REL` (or `NEW_REL_REPLY`) and again, it is up to the application to create another form of identifier or their own digest.
 
 Endpoint `B` retrieves and verifies `VID_a`, and if agrees, replies with the following:
 ``` text
 Message: [VID_b, VID_a, Payload]
-Control payload fields:
+Payload fields:
     - Type = NEW_REL_REPLY
-    - Thread_ID = TSP_DIGEST([VID_a, VID_b, Payload])
+    - Digest = Digest of the corresponding `NEW_REL`
+    - Reply_Digest = TSP_DIGEST
 ```
 
-The result is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` and `(VID_b, VID_a)` in endpoint `B`. The Thread_ID is recorded by both endpoints and used in all future messages.
+The result is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` and `(VID_b, VID_a)` in endpoint `B`. The Digest is recorded by both endpoints and can be used in future messages in `<VID_a, VID_b>`, and similarly Reply_Digest for `<VID_b, VID_a>`.
 
 If endpoint `B` fails to verify `VID_a`, it SHOULD silently drop the message and MAY direct the transport layer to disconnect or otherwise block or filter out further incoming messages from `VID_a` for a period of time..
 
@@ -727,52 +737,66 @@ Other actions that endpoint B may take MAY be application specific and are left 
 In all of the above cases, the responding party (endpoint `B`) should be careful about privacy leaks if it chooses to respond to an incoming message. The most private option is to remain silent.
 
 #### Relationship over a Routed Path
-Suppose endpoint `A` learns from another endpoint `B` through an Out-Of-Band Introduction method the VID for `B`, say `VID_b`, together with a routed path, `{VID_hop2, …, VID_hopk, VID_exit}`. Endpoint `A` may use the following `Type` to form a relationship with `B`. Suppose the source VID that endpoint `A` uses is `VID_a`, and optionally endpoint `A` specifies a return routed path `{VID_rethop2, …,  VID_rethopk, VID_retexit}`, then the relationship `A` and `B` establishes is `(VID_a, VID_b)`.
+Suppose endpoint `A` learns from another endpoint `B` through an Out-Of-Band Introduction method the VID for `B`, say `VID_b`, together with a routing path, `{ …, VID_hopk, VID_exit}`. Endpoint `A` MAY use the following control message to form a relationship with `B`. Suppose the source VID that endpoint `A` uses is `VID_a`, and optionally endpoint `A` specifies a reply path `{ …,  VID_rhopk, VID_rexit}`, then the relationship `A` and `B` establishes is `(VID_a, VID_b)`.
 
 ``` text
 Out-Of-Band Introduction: VID_b, VID_hop2, …, VID_hopk, VID_exit
-The relationship forming message = [VID_a, VID_b, VID_hop1, …, VID_hopk, VID_exit, Payload]
+The relationship forming message = [VID_a, VID_b, …, VID_hopk, VID_exit, Payload]
 
-Control payload fields:
+Payload fields:
     - Type = NEW_REL
-    - Nonce_Field = Nonce, 
-    - VID_hop1, …, VID_hopk, VID_exit
+    - Reply_Path = ..., VID_rhopk, VID_rexit
+    - Digest = TSP_DIGEST
+    - Nonce_Field = Nonce
 ```
 
 Endpoint `B` retrieves and verifies `VID_a`, and if agrees, replies with the following:
 
 ``` text
-Return message: [VID_b, VID_a, VID_rethop1, …, VID_rethopk, VID_retexit, Msg]
-Control payload fields:
+Return message: [VID_b, VID_a, …, VID_rhopk, VID_rexit, Payload]
+Payload fields:
     - Type = NEW_REL_REPLY
-    - Thread_ID = TSP_DIGEST([VID_a, VID_b, VID_hop1, …, VID_hopk, VID_exit, Payload])
+    - Digest = Digest of the corresponding `NEW_REL`
+    - Reply_Digest = TSP_DIGEST
 ```
+In the above illustration, endpoint `A` has chosen at least its direct intermediary {`VID_rhopk`, `VID_rexit`}. If endpoint `B` sends the reply message to its direct intermediary and that intermediary knows how to route to `A`'s intermediary `VID_rhopk`, then all is good. Optionally, endpoint `B` may also add additional hops, illustrated above as `...` hop list. The minimal required condition is that the last intermediary in `B`'s hop list knows how to reach the first hop in `A`'s list. 
+
+In common cases, intermediaries MAY use well-known public VIDs and know how to reach each other.
 
 Note, either `A` or `B` may choose to specify a routed path for the relationship forming messages. If one party specifies a routed path while the other party does not (but they both agree to such an arrangement), then the result can be a relationship over a routed path in one direction but via a direct path in the other direction.
 
-The result of the above message exchange is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` over a routed path to `B` and vice versa. The `Thread_ID` is recorded by both endpoints and used in all future messages.
+The result of the above message exchange is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` over a routed path to `B` and vice versa. 
 
 ### Parallel Relationship Forming
 
 If endpoints `A` and `B` have a relationship `(VID_a0, VID_b0)` in `A` and `(VID_b0, VID_a0)` in `B`, they can establish a new parallel relationship using the current relationship as a means of referral.
 
-Endpoint `B` sends to `A` this relationship forming message:
+Endpoint `A` sends to `B` this relationship forming message:
 
 ``` text
-Message: [VID_b0, VID_a0, …, Payload], 
+Message: [VID_a0, VID_b0, …, Payload], 
 we omitted the optional route path VID list so this can either a Direct or Routed message.
 
-Control payload control fields:
-    - Type = NEW_REFER_REL
-    - Thread_ID = Thread_ID
-    - Payload fields = {VID_b1, [VID_List] | NULL}
+Payload fields:
+    - Type = NEW_REL
+    - New_VID = VID_a1
+    - Reply_Path = VID_list | NULL
+    - Digest = TSP_DIGEST
+    - Nonce_Field = Nonce
+    - New_Signature = TSP_SIGN(the preceding payload) by New_VID
 ```
 
-When endpoint `A` receives this message from `B` and it treats it as an introduction, then `A` initiates a normal new relationship forming procedure as specified in Section [7.1](#relationship-forming).
+In this procedure, `VID_a1` is the new VID for endpoint `A`. If endpoint `B` picks `VID_b1` and replies with `NEW_REL_REPLY`, then the new relationship `(VID_a1, VID_b1)` is parallel to `(VID_a0, VID_b0)` in endpoint `A`, and similarly in `B`.
 
-In this procedure, `VID_b1` is the new VID for endpoint `B`. If endpoint `A` picks `VID_a1`, then the new relationship `(VID_a1, VID_b1)` is parallel to `(VID_a0, VID_b0)` in endpoint `A`.
+If the `VID_List` is present, then `B` MUST use the routed path specified by `VID_List` to send the `NEW_REL_REPLY` message to endpoint `A` as defined in the previous section [Relationship over a Routed Path](#relationship-over-a-routed-path).
 
-If a list of VIDs, `VID_List` is present, then `A` MUST use the specified routed path specified by VID\_List to send the `NEW_REL` message to endpoint `B`.
+``` text
+Return message: [VID_b1, VID_a1, …, Payload]
+Payload fields:
+    - Type = NEW_REL_REPLY
+    - Digest = Digest of the corresponding `NEW_REL`
+    - Reply_Digest = TSP_DIGEST
+```
 
 ### Nested Relationship Forming
 
@@ -782,33 +806,65 @@ Endpoint `A` sends to `B` the following relationship forming message:
 
 ``` text
 Message: [VID_a0, VID_b0, …, [VID_a1, NULL, Payload]]
-where the optional VID list is omitted so this can be either Direct or Routed Mode.
+where the optional VID list is omitted so `(VID_a0, VID_b0)` can be either Direct or Routed Mode.
 
-Control payload control fields:
-    - Type = NEW_NEST_REL
+Payload fields:
+    - Type = NEW_REL
+    - Digest = TSP_DIGEST
     - Nonce_Field = Nonce
-    - VID verification data: VID_a1.VeriInfo
 ```
 
-`VID_a1.VeriInfo` is a field defined by the VID type as information for `VID_a1` verification, e.g. public key for `did:peer`. The detail format of this field is to be specified by individual VID specifications.
+The VID `VID_a1` used in the nested relationship MAY be a *private* VID, for example `did:peer`. With the use of such private VID, the receiver can verify it using its self-contained information without accessing an external [[ref: Support System]]. 
 
-Endpoint `B` replies to `A` the following message if it choooses: 
+::: note
+Do we want to keep an option to provide verification information in the NEW_REL itself?
+:::
+
+Endpoint `B` replies to `A` the following message if it chooses: 
 
 ``` text
 Return Message: [VID_b0, VID_a0, …, [VID_b1, VID_a1, Payload]]
-where the optional VID list is omitted so this can be either Direct or Routed Mode.
+where the optional VID list is omitted so the outer relationship can be either Direct or Routed Mode.
 
-Control payload control fields:
-    - Type = NEW_NEST_REL_REPLY
-    - Thread_ID = TSP_DIGEST([VID_b1, VID_a1, Payload])
-    - VID veridication data: VID_b1.VeriInfo
+Payload fields:
+    - Type = NEW_REL_REPLY
+    - Digest =  Digest of the corresponding `NEW_REL`
+    - Reply_Digest = TSP_DIGEST
 ```
-
-The new relationship formed by the above control message exchange is: `(VID_a1, VID_b1)` in `A` and `(VID_b1, VID_a1)` in `B`. Because these relationships are private, the verification can be done through the above two messages privately. No address resolution procedure is required.
+The new relationship formed by the above control message exchange is: `(VID_a1, VID_b1)` in `A` and `(VID_b1, VID_a1)` in `B`. This relationship is private. The verification can be done through the above two messages privately if the endpoints use private VIDs with self-contained verification information. No address resolution procedure is required because it relies on the outer relationship.
 
 The outer relationship can be either direct or over routed mode, the same procedure applies. Similarly, the outer relationship itself can be a nested relationship, the same procedure applies. The resulting new relationship can only be used for nested messages with the coupled outer relationship.
 
+A same procedure can also be used for creating new parallel relationships with the following messages below. Here the outer relationship is `(VID_a0, VID_b0)`; the existing nested relationship is `(VID_a1, VID_b1)`; the new relationship being created is `(VID_a2, VID_b2)` that is nested inside the same outer relationship.
+
+``` text
+Message: [VID_a0, VID_b0, …, [VID_a1, VID_b1, Payload]], 
+we omitted the optional route path VID list so this can either a Direct or Routed message.
+
+Payload fields:
+    - Type = NEW_REL
+    - New_VID = VID_a2
+    - Reply_Path = VID_list | NULL
+    - Digest = TSP_DIGEST
+    - Nonce_Field = Nonce
+    - New_Signature = TSP_SIGN(the preceding payload) by New_VID
+```
+And endpoint `B` replies with:
+
+``` text
+Return message: [VID_b0, VID_a0, ..., [VID_b2, VID_a2, Payload]]
+Payload fields:
+    - Type = NEW_REL_REPLY
+    - Digest = Digest of the corresponding `NEW_REL`
+    - Reply_Digest = TSP_DIGEST
+```
+
 ### Third Party Relationship Referral
+
+::: issue
+Consider to remove this section. Leave more complex relationship forming procedures to further study?
+:::
+
 If endpoints `A` and `B` have a relationship `(VID_a0, VID_b0)` (for brevity, we will use either one of the two directions to represent both in this section), and endpoints `A` and `C` have a relationship `(VID_a0, VID_c0)`, then `A` can help endpoints `B` and `C` establish a new relationship using their respective current relationship with `A` as a way of referral.
 
 This referral process takes 3 steps:
@@ -852,11 +908,13 @@ https://github.com/trustoverip/tswg-tsp-specification/issues/8
 :::
 
 #### Relationship Cancellation
-Bidirectional relationships in TSP are essentially a combination of two unidirectional relationships that involve the same pair of VIDs. Due to the asymmetric nature of TSP messages, it's possible for a relationship to exist unidirectionally for a time — where messages flow in one direction but not yet in the reverse. This scenario can occur both when a relationship is being established and when it's being terminated.
+Bidirectional relationships in TSP are essentially a combination of two unidirectional relationships that involve the same pair of VIDs. Due to the asymmetric nature of TSP messages, it's possible for a relationship to exist unidirectionally for a time — where messages flow in one direction but not yet in the reverse. This scenario can occur both when a relationship is being established and when it's being terminated. It is also permissible that endpoints simply want to keep a unidirectional relationship if they choose to.
 
-While sending explicit messages to cancel a relationship is not strictly necessary in TSP, such messages MAY be beneficial for upper-layer protocols that require a clear and definite termination of relationships. For this purpose, endpoints utilize `REL_CANCEL` control payloads.
+While sending explicit messages to cancel a relationship is not strictly necessary in TSP, such messages MAY be beneficial for upper-layer protocols that require a clear and definite termination of relationships. For this purpose, endpoints utilize `REL_CANCEL` control messages.
 
-The process for canceling a relationship is uniform, regardless of whether the relationship uses a direct or a routed path.
+During a relationship forming process, the receiver of a `NEW_REL` request MAY choose to respond to the sender to *decline* the request. While such a decline message may expose certain vulnerabilities, some application scenarios may warrant such an action to give certainty to the upper layer applications. In such cases, the same `REL_CANCEL` message is used for declining a `NEW_REL` request.
+
+The process for canceling an existing relationship or declining a requested new relationship is uniform, regardless of whether the relationship uses a direct or a routed path, or if it is nested.
 
 For a relationship denoted as `(VID_a, VID_b)` in endpoint `A`, `A` can initiate the cancellation by sending a `REL_CANCEL` message. The same could happen from `B` to cancel in the opposite direction. This process is asynchronous, meaning it's possible for cancellation messages from both `A` and `B` to cross paths.
 
@@ -866,9 +924,10 @@ When `A` initiates the cancellation, `A` sends a control message with the follow
 Message: [VID_a, VID_b, Payload]
 Control payload fields:
     - Type = REL_CANCEL
-    - Nonce
-    - Thread_ID
+    - Digest = the previously received Digest or Reply_Digest, NULL if there is none
+    - Nonce_field = Nonce
 ```
+Note that the Nonce is added here to prevent easy attacks when the Digest is NULL.
 
 When `B` Receives a cancellation:
 
@@ -877,6 +936,16 @@ If the relationship is `(VID_b, VID_a)` in `B`: `B` should reply with REL_CANCEL
 If the relationship is `<VID_a, VID_b>` in `B`: `B` should remove the relationship but does not need to send a reply.
 
 If the relationship does not exist or is not recognized: `B` should ignore the cancellation request.
+
+When `B` is declining a `NEW_REL` from `A`, and chooses to send an explicit message, then `B`'s `REL_CANCEL` is as follows:
+
+``` text
+Message: [VID_b, VID_a, Payload]
+Payload fields:
+    - Type = REL_CANCEL
+    - Digest = Digest from the corresponding `NEW_REL`
+    - Nonce_field = Nonce
+```
 
 ## Cryptographic Algorithms
 
@@ -1069,7 +1138,7 @@ Similar to HPKE-Base mode, the sealed box API also does not have sender authenti
 
 Per [[spec-norm:libsodium]] documentation, the sealed box API leverages the `crypto_box` construction which in turn uses `X25519` and `XSalsa20-Poly1305`, and uses `blake2b` for nonce. As a non-standard implementation, such information is not precisely known and is implementation specific depending on the open source development of lipsodium.
 
-### Secure Hash and  Functions
+### Secure Hash and Digest Functions
 
 All TSP implementations MUST support the following secure hash and digest functions. They can be used for nonce and Thread_ID constructions as the operator TSP_DIGEST.
 
