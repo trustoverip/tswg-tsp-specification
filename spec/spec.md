@@ -899,6 +899,24 @@ Payload fields:
 ```
 ### Relationship Events
 
+#### Padding Message
+
+A padding message is a TSP message with a payload containing only a padding field besides required control fields. Such padding messages MAY be used as a mechanism to defend against traffic analysis based threats. The payload type is `TSP_PAD`.
+
+If endpoint `A` chooses to send a padding message to `B`, the message will be as follows:
+
+``` text
+Message: [VID_a, VID_b, Payload]
+Payload fields:
+    - Type = TSP_PAD
+    - Nonce_field = Nonce
+    - Padding_field = Padding
+```
+
+The receiver SHOULD silently discard padding messages.
+
+Note that an upper layer protocol may send their own similar messages without no real content. In that case, however, the payload type would be `TSP_GEN`.
+
 #### Key Update
 
 ::: issue #7
