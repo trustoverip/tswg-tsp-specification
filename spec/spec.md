@@ -957,6 +957,13 @@ TSP implementations MUST support Ed25519.
 This implementor's draft only specifies one signature scheme at the moment. Future drafts will add additional signature schemes.
 :::
 
+#### Post-Quantum Signatures
+
+This section is in early experiemental draft status. We aim for demonstrating future support of Post-Quantum Digital Signature Algorithms in TSP.
+
+For early implementations, we recommend for ML-DSA as defined in [[FIPS204]]. ML-DSA (Module-Lattice-Based Digital Signature Algorithm) is also known as the CRYSTALS-Dilithium algorithm.
+
+
 ### Public-Key Authenticated Encryption
 
 TSP uses strong public key encryption schemes that supports IND-CCA2 (Indistinguishability under Adaptive Chosen Ciphertext Attack). These schemes are also called Integrated Encryption Schemes (IES), ECIES if using Elliptic Curves, or Hybrid Public Key Encryption (HPKE) since they combine public key cryptography with the efficiency of symmetric key encryption/decryption operations. These schemes follow similar designs that incorporate a key exchange mechanism (KEM), a key derivation function (KDF), and a symmetric encryption scheme using the ephemeral derived key, or formalized as an Authenticated Encryption with Associated Data (AEAD) function. The use of AEAD also leads to the acrynym PKAE (public-key authenticated encryption). We use the term PKAE as a general term for this class of algorithms.  
@@ -1063,6 +1070,12 @@ Plaintext = TSP_OPEN(VID_sndr, VID_rcvr,
 ```
 
 In HPKE-Base mode, the `VID_sndr` field MUST be present in the confidential control payload (as required by [[spec-inform:ESSR]]).
+
+#### HPKE PQ and PQ/T Algorithms
+
+This section is in early draft status. We aim for demonstrating potential support of Post-Quantum (PQ) and Post-Quantum and Traditional hybrid (PQ/T) algorithms within the HPKE specification framework, as (to be) defined in the ongoing work [[HPKE-PQ]].
+
+For the early experimentation, we recommend the ML-KEM (the NIST Module-Lattice-Based Key-Encapsulation Mechanism) as defined in [[FIPS203]]. The ML-KEM is also known as the CRYSTALS-Kyber algorithm.
 
 #### Lipsodium Sealed Box
 
@@ -1301,6 +1314,9 @@ Example:
 ``` text
 Todo
 ```
+##### HPKE PQ and PQ/T Encoding
+
+TBD
 
 ##### Lipsodium Sealed Box Encoding
 See [[ref:CESR]] on X25519 Sealed Box cipher bytes encoding.
@@ -1434,7 +1450,9 @@ The TSP Signature is encoded as an attachment group in CESR. TSP allows multiple
 
 An Ed25519 (EdDSA) signature is always 64 bytes. It is identified by the two character code `0B`, followed by 2 padding bytes (in binary) and the 64 byte signature (in binary). The equivalent text format is 22 triplets.
 
-#### Other Signature TODO
+#### ML-KEM Signature
+
+TODO
 
 
 ## Transports
@@ -1516,6 +1534,18 @@ https://github.com/trustoverip/tswg-tsp-specification/issues/13
 
 [ESSR]. Authenticated Encryption in the Public-Key Setting: Security Notations and Analyses, *Jee Hea An*, Cryptology ePrint Archive, Paper 2001/079.
 [ESSR]: https://eprint.iacr.org/2001/079
+
+[HPKE-WG]. The IETF HPKE Working Group
+[HPKE-WG]: https://datatracker.ietf.org/group/hpke/about/
+
+[HPKE-PQ]. Post-Quantum and Post-Quantum/Traditional Hybrid Algorithms for HPKE, June 2, 2025, draft-ietf-hpke-pq-00.
+[HPKE-PQ]: https://datatracker.ietf.org/doc/draft-ietf-hpke-pq/
+
+[FIPS203]. Module-Lattice-Based Key-Encapsulation Mechanism Standard, National Institute of Standards and Technology (U.S.), DOI 10.6028/nist.fips.203, August 2024
+[FIPS203]: https://doi.org/10.6028/nist.fips.203
+
+[FIPS204]. Module-Lattice-Based Digital Signature Standard, National Institute of Standards and Technology (U.S.), DOI 10.6028/nist.fips.204, August 2024
+[FIPS204]: https://doi.org/10.6028/NIST.FIPS.204
 
 [TOIP-TAS]. ToIP Technology Architecture Specification (DRAFT)
 [TAS]: https://github.com/trustoverip/TechArch/blob/main/spec.md
