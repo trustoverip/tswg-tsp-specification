@@ -676,18 +676,18 @@ When an endpoint `A` learns  the VID for another endpoint `B`, say `VID_b`, thro
 Out-Of-Band Introduction to A: VID_b
 The relationship forming message from A to B: [VID_a, VID_b, Payload]
 Payload fields:
-    - Type = NEW_REL
+    - Type = TSP_RFI (Relationship Forming Invite)
     - Digest = TSP_DIGEST
     - Nonce_Field = Nonce
 ```
-This `NEW_REL` is not strictly required for forming a relationship between two *direct* endpoints. It is permissible that one endpoint which has learned a VID of the other simply starts with an application level message without first having an exchange of TSP control messages. In such cases, it is up to the application or the Out-of-Band Introduction mechanism or other means that they make acceptance decisions. Similarly, they will not have the digests embedded in the `NEW_REL` (or `NEW_REL_REPLY`) and again, it is up to the application to create another form of identifier or their own digest.
+This `TSP_RFI` is not strictly required for forming a relationship between two *direct* endpoints. It is permissible that one endpoint which has learned a VID of the other simply starts with an application level message without first having an exchange of TSP control messages. In such cases, it is up to the application or the Out-of-Band Introduction mechanism or other means that they make acceptance decisions. Similarly, they will not have the digests embedded in the `TSP_RFI` (or `TSP-RFA`) and again, it is up to the application to create another form of identifier or their own digest.
 
 Endpoint `B` retrieves and verifies `VID_a`, and if agrees, replies with the following:
 ``` text
 Message: [VID_b, VID_a, Payload]
 Payload fields:
-    - Type = NEW_REL_REPLY
-    - Digest = Digest of the corresponding `NEW_REL`
+    - Type = TSP_RFA (Relationship Forming Accept)
+    - Digest = Digest of the corresponding `TSP_RFI`
     - Reply_Digest = TSP_DIGEST
 ```
 
@@ -695,7 +695,7 @@ The result is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` and
 
 If endpoint `B` fails to verify `VID_a`, it SHOULD silently drop the message and MAY direct the transport layer to disconnect or otherwise block or filter out further incoming messages from `VID_a` for a period of time..
 
-If endpoint `B`, for any other reason, does not want to or can not engage with endpoint `A`, it MAY simply remain silent (if `B` does not want to give `A` any private information), or it MAY reply with a `REL_CANCEL` message as specified in Section [7.4](#relationship-events) with proper event code (if `B` is willing to risk additional information disclosure by providing `A` some useful information). 
+If endpoint `B`, for any other reason, does not want to or can not engage with endpoint `A`, it MAY simply remain silent (if `B` does not want to give `A` any private information), or it MAY reply with a `TSP_RFD` message as specified in Section [7.4](#relationship-events) with proper event code (if `B` is willing to risk additional information disclosure by providing `A` some useful information). 
 
 
 If endpoint `B` is OK with receiving the incoming messages from endpoint `A`, but declines to reply to endpoint `A` to establish the opposite direction relationship, it MAY simply remain silent. 
@@ -712,7 +712,7 @@ Out-Of-Band Introduction: VID_b, VID_hop2, …, VID_hopk, VID_exit
 The relationship forming message = [VID_a, VID_b, …, VID_hopk, VID_exit, Payload]
 
 Payload fields:
-    - Type = NEW_REL
+    - Type = TSP_RFI
     - Reply_Path = ..., VID_rhopk, VID_rexit
     - Digest = TSP_DIGEST
     - Nonce_Field = Nonce
@@ -723,8 +723,8 @@ Endpoint `B` retrieves and verifies `VID_a`, and if agrees, replies with the fol
 ``` text
 Return message: [VID_b, VID_a, …, VID_rhopk, VID_rexit, Payload]
 Payload fields:
-    - Type = NEW_REL_REPLY
-    - Digest = Digest of the corresponding `NEW_REL`
+    - Type = TSP_RFA
+    - Digest = Digest of the corresponding `TSP_RFI`
     - Reply_Digest = TSP_DIGEST
 ```
 In the above illustration, endpoint `A` has chosen at least its direct intermediary {`VID_rhopk`, `VID_rexit`}. If endpoint `B` sends the reply message to its direct intermediary and that intermediary knows how to route to `A`'s intermediary `VID_rhopk`, then all is good. Optionally, endpoint `B` may also add additional hops, illustrated above as `...` hop list. The minimal required condition is that the last intermediary in `B`'s hop list knows how to reach the first hop in `A`'s list. 
@@ -746,7 +746,7 @@ Message: [VID_a0, VID_b0, …, Payload],
 we omitted the optional route path VID list so this can either a Direct or Routed message.
 
 Payload fields:
-    - Type = NEW_REL
+    - Type = TSP_RFI
     - New_VID = VID_a1
     - Reply_Path = VID_list | NULL
     - Digest = TSP_DIGEST
@@ -754,15 +754,15 @@ Payload fields:
     - New_Signature = TSP_SIGN(the preceding payload) by New_VID
 ```
 
-In this procedure, `VID_a1` is the new VID for endpoint `A`. If endpoint `B` picks `VID_b1` and replies with `NEW_REL_REPLY`, then the new relationship `(VID_a1, VID_b1)` is parallel to `(VID_a0, VID_b0)` in endpoint `A`, and similarly in `B`.
+In this procedure, `VID_a1` is the new VID for endpoint `A`. If endpoint `B` picks `VID_b1` and replies with `TSP_RFA`, then the new relationship `(VID_a1, VID_b1)` is parallel to `(VID_a0, VID_b0)` in endpoint `A`, and similarly in `B`.
 
-If the `VID_List` is present, then `B` MUST use the routed path specified by `VID_List` to send the `NEW_REL_REPLY` message to endpoint `A` as defined in the previous section [Relationship over a Routed Path](#relationship-over-a-routed-path).
+If the `VID_List` is present, then `B` MUST use the routed path specified by `VID_List` to send the `TSP_RFA` message to endpoint `A` as defined in the previous section [Relationship over a Routed Path](#relationship-over-a-routed-path).
 
 ``` text
 Return message: [VID_b1, VID_a1, …, Payload]
 Payload fields:
-    - Type = NEW_REL_REPLY
-    - Digest = Digest of the corresponding `NEW_REL`
+    - Type = TSP_RFA
+    - Digest = Digest of the corresponding `TSP_RFI`
     - Reply_Digest = TSP_DIGEST
 ```
 
@@ -777,7 +777,7 @@ Message: [VID_a0, VID_b0, …, [VID_a1, NULL, Payload]]
 where the optional VID list is omitted so `(VID_a0, VID_b0)` can be either Direct or Routed Mode.
 
 Payload fields:
-    - Type = NEW_REL
+    - Type = TSP_RFI
     - Digest = TSP_DIGEST
     - Nonce_Field = Nonce
 ```
@@ -785,7 +785,7 @@ Payload fields:
 The VID `VID_a1` used in the nested relationship MAY be a *private* VID, for example `did:peer`. With the use of such private VID, the receiver can verify it using its self-contained information without accessing an external [[ref: Support System]]. 
 
 ::: note
-Do we want to keep an option to provide verification information in the NEW_REL itself?
+Do we want to keep an option to provide verification information in the TSP_RFI itself?
 :::
 
 Endpoint `B` replies to `A` the following message if it chooses: 
@@ -795,8 +795,8 @@ Return Message: [VID_b0, VID_a0, …, [VID_b1, VID_a1, Payload]]
 where the optional VID list is omitted so the outer relationship can be either Direct or Routed Mode.
 
 Payload fields:
-    - Type = NEW_REL_REPLY
-    - Digest =  Digest of the corresponding `NEW_REL`
+    - Type = TSP_RFA
+    - Digest =  Digest of the corresponding `TSP_RFI`
     - Reply_Digest = TSP_DIGEST
 ```
 The new relationship formed by the above control message exchange is: `(VID_a1, VID_b1)` in `A` and `(VID_b1, VID_a1)` in `B`. This relationship is private. The verification can be done through the above two messages privately if the endpoints use private VIDs with self-contained verification information. No address resolution procedure is required because it relies on the outer relationship.
@@ -810,7 +810,7 @@ Message: [VID_a0, VID_b0, …, [VID_a1, VID_b1, Payload]],
 we omitted the optional route path VID list so this can either a Direct or Routed message.
 
 Payload fields:
-    - Type = NEW_REL
+    - Type = TSP_RFI
     - New_VID = VID_a2
     - Reply_Path = VID_list | NULL
     - Digest = TSP_DIGEST
@@ -822,8 +822,8 @@ And endpoint `B` replies with:
 ``` text
 Return message: [VID_b0, VID_a0, ..., [VID_b2, VID_a2, Payload]]
 Payload fields:
-    - Type = NEW_REL_REPLY
-    - Digest = Digest of the corresponding `NEW_REL`
+    - Type = TSP_RFA
+    - Digest = Digest of the corresponding `TSP_RFI`
     - Reply_Digest = TSP_DIGEST
 ```
 
@@ -855,26 +855,26 @@ Control payload fields:
 ```
 When endpoint `C` receives this message from `A`, it treats it as an introduction, then `C` initiates a normal new relationship forming procedure as specified in Section [7.1](#relationship-forming). The resulting relationship between `B` and `C` is `(VID_b0, VID_c0)`.
 
-If `VID_List` is present, then `C` uses the specified routed path, in part, to send the `NEW_REL` message to endpoint `B`.
+If `VID_List` is present, then `C` uses the specified routed path, in part, to send the `TSP_RFI` message to endpoint `B`.
 
 
-### Relationship Cancellation and Decline
+### Relationship Forming Decline or Cancel
 Bidirectional relationships in TSP are essentially a combination of two unidirectional relationships that involve the same pair of VIDs. Due to the asymmetric nature of TSP messages, it's possible for a relationship to exist unidirectionally for a time — where messages flow in one direction but not yet in the reverse. This scenario can occur both when a relationship is being established and when it's being terminated. It is also permissible that endpoints simply want to keep a unidirectional relationship if they choose to.
 
-While sending explicit messages to cancel a relationship is not strictly necessary in TSP, such messages MAY be beneficial for upper-layer protocols that require a clear and definite termination of relationships. For this purpose, endpoints utilize `REL_CANCEL` control messages.
+While sending explicit messages to cancel a relationship is not strictly necessary in TSP, such messages MAY be beneficial for upper-layer protocols that require a clear and definite termination of relationships. For this purpose, endpoints utilize `TSP_RFD` (Relationship Forming Decline) control messages.
 
-During a relationship forming process, the receiver of a `NEW_REL` request MAY choose to respond to the sender to *decline* the request. While such a decline message may expose certain vulnerabilities, some application scenarios may warrant such an action to give certainty to the upper layer applications. In such cases, the same `REL_CANCEL` message is used for declining a `NEW_REL` request.
+During a relationship forming process, the receiver of a `TSP_RFI` request MAY choose to respond to the sender to *decline* the request. While such a decline message may expose certain vulnerabilities, some application scenarios may warrant such an action to give certainty to the upper layer applications. In such cases, the same `TSP_RFD` message is used for declining a `TSP_RFI` request.
 
 The process for canceling an existing relationship or declining a requested new relationship is uniform, regardless of whether the relationship uses a direct or a routed path, or if it is nested.
 
-For a relationship denoted as `(VID_a, VID_b)` in endpoint `A`, `A` can initiate the cancellation by sending a `REL_CANCEL` message. The same could happen from `B` to cancel in the opposite direction. This process is asynchronous, meaning it's possible for cancellation messages from both `A` and `B` to cross paths.
+For a relationship denoted as `(VID_a, VID_b)` in endpoint `A`, `A` can initiate the cancellation by sending a `TSP_RFD` message. The same could happen from `B` to cancel in the opposite direction. This process is asynchronous, meaning it's possible for cancellation messages from both `A` and `B` to cross paths.
 
 When `A` initiates the cancellation, `A` sends a control message with the following structure:
 
 ``` text
 Message: [VID_a, VID_b, Payload]
 Control payload fields:
-    - Type = REL_CANCEL
+    - Type = TSP_RFD
     - Digest = the previously received Digest or Reply_Digest, NULL if there is none
     - Nonce_field = Nonce
 ```
@@ -882,19 +882,19 @@ Note that the Nonce is added here to prevent easy attacks when the Digest is NUL
 
 When `B` Receives a cancellation:
 
-If the relationship is `(VID_b, VID_a)` in `B`: `B` should reply with REL_CANCEL and then remove the relationship from its local relationship table.
+If the relationship is `(VID_b, VID_a)` in `B`: `B` should reply with `TSP_RFD` and then remove the relationship from its local relationship table.
 
 If the relationship is `<VID_a, VID_b>` in `B`: `B` should remove the relationship but does not need to send a reply.
 
 If the relationship does not exist or is not recognized: `B` should ignore the cancellation request.
 
-When `B` is declining a `NEW_REL` from `A`, and chooses to send an explicit message, then `B`'s `REL_CANCEL` is as follows:
+When `B` is declining a `TSP_RFI` from `A`, and chooses to send an explicit message, then `B`'s `TSP_RFD` is as follows:
 
 ``` text
 Message: [VID_b, VID_a, Payload]
 Payload fields:
-    - Type = REL_CANCEL
-    - Digest = Digest from the corresponding `NEW_REL`
+    - Type = TSP_RFD
+    - Digest = Digest from the corresponding `TSP_RFI`
     - Nonce_field = Nonce
 ```
 ### Relationship Events
@@ -1355,69 +1355,69 @@ The hop list field encoding is specified in [VID Hop List Field](#vid-hop-list-f
 #### Control Message Encoding
 Control messages are composition of payload fields that are used for TSP's own control mechanisms. The following sections define these payload fields in its plaintext text mode. The actual final encoding will be in ciphertext format as described in [Confidential Payload Ciphertext](#confidential-payload-ciphertext).
 
-##### NEW_REL
+##### TSP_RFI
 
-The NEW_REL payload is specified in [Direct Relationship Forming](#direct-relationship-forming).
+The TSP_RFI payload is specified in [Direct Relationship Forming](#direct-relationship-forming).
 
 ```text
 -Z## | -0Z####, XRFI, VID_sndr, Digest, Nonce, `4BAA`, Padding_field
 ```
-where `4BAA` is an empty VID. This VID is `4BAA` to indicate that we are *not* signaling a *new* VID from an existing relationship. For the latter case, please see [NEW_REFER_REL](#new_refer_rel).
+where `4BAA` is an empty VID. This VID is `4BAA` to indicate that we are *not* signaling a *new* VID from an existing relationship. For the latter case, please see [TSP_RFI in Referal](#tsp_rfi_in_referal).
 
-##### NEW_REL_REPLY
+##### TSP_RFA
 
-The NEW_REL_REPLY payload is specified in [Direct Relationship Forming](#direct-relationship-forming).
+The TSP_RFA payload is specified in [Direct Relationship Forming](#direct-relationship-forming).
 
 ```text
 -Z## | -0Z####, XRFA, VID_sndr, Digest, Reply_Digest, Padding_field
 ```
 
-##### NEW_REFER_REL
+##### TSP_RFI in Referal
 
 ```text
 -Z## | -0Z####, XRFI, VID_sndr, Digest, Nonce, VID_new, Signature_new, Padding_field
 ```
 The `Signature_new` field is a signature signed by the VID_new's key over the fields that preceeds it: {XRFI,  VID_sndr, Digest, Nonce, VID_new}. It is then encoded in the same way as specified in [TSP Signature Encoding](#tsp-signature-encoding).
 
-##### NEW_REFER_REL_REPLY
+##### TSP_RFA in Referal
 
 ```text
 -Z## | -0Z####, XRFA, VID_sndr, Digest, Reply_Digest, VID_new, Signature_new, Padding_field
 ```
 The `Signature_new` field is a signature signed by the VID_new's key over the fields that preceeds it: {XRFA,  VID_sndr, Digest, Reply_Digest, VID_new}. It is then encoded in the same way as specified in [TSP Signature Encoding](#tsp-signature-encoding).
 
-##### NEW_NEST_REL
-The NEW_NES\_REL message can be constructed by composing a NEW_REL inside a nested outer message:
+##### TSP_RFI Nested
+The TSP_RFI message can be constructed by composing a TSP_RFI inside a nested outer message:
 
 ``` text
 -Z## | -0Z####, XHOP, VID_sndr, -J## | -0J####, VID_HOP_1, ..., Padding_field, Encoded_TSP_Message
 ```
-The `Encoded_TSP_Message` is in fact the `NEW_REL` message as follows:
+The `Encoded_TSP_Message` is in fact the `TSP_RFI` message as follows:
 
 ```text
 TSP_Tag, TSP_Version, VID_sndr_new, `4BAA`, -Z## | -0Z####, XRFI, VID_sndr_new, Digest, Nonce, Padding_field, Signature_new
 ```
-In the nested `NEW_REL` message, the Signature_new is the signature of the new `VID_sndr_new`.
+In the nested `TSP_RFI` message, the Signature_new is the signature of the new `VID_sndr_new`.
 
 Note that the hop list will be encoded as `-JAA` if this message is nested over a direct relationship without intermediary.
 
-##### NEW_NEST_REL_REPLY
+##### TSP_RFI Nested
 
-The NEW_NEST_REL_REPLY message can be constructed by composing a NEW_REL_REPLY inside a nested outer message:
+The TSP_RFA message can be constructed by composing a TSP_RFA inside a nested outer message:
 
 ``` text
 -Z## | -0Z####, XHOP, VID_sndr, -J## | -0J####, VID_HOP_1, ..., Padding_field, Encoded_TSP_Message
 ```
-The `Encoded_TSP_Message` is in fact the `NEW_REL_REPLY` message as follows:
+The `Encoded_TSP_Message` is in fact the `TSP_RFA` message as follows:
 
 ```text
 TSP_Tag, TSP_Version, VID_sndr_new, VID_rcvr_new, -Z## | -0Z####, XRFA, VID_sndr_new, VID_new, Digest, Reply_Digest, Padding_field, Signature_new
 ```
 Note that the hop list will be encoded as `-JAA` if this message is nested over a direct relationship without intermediary.
 
-##### REL_CANCEL
+##### TSP_RFD
 
-The `REL_CANCEL` message can be constructed as follows in a direct relationship,
+The `TSP_RFD` message can be constructed as follows in a direct relationship,
 
 ```text
 -Z## | -0Z####, XRFD, VID_sndr, Nonce, Digest, Padding_field
