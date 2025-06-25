@@ -1042,7 +1042,7 @@ Plaintext = TSP_OPEN(VID_sndr, VID_rcvr,
 
 In HPKE-Base mode, the `VID_sndr` field MUST be present in the confidential control payload (as required by [[spec-inform:ESSR]]).
 
-#### HPKE PQ and PQ/T Algorithms
+##### HPKE PQ and PQ/T Algorithms
 
 This section is in early draft status. We aim for demonstrating potential support of Post-Quantum (PQ) and Post-Quantum and Traditional hybrid (PQ/T) algorithms within the HPKE specification framework, as (to be) defined in the ongoing work [[HPKE-PQ]].
 
@@ -1118,7 +1118,13 @@ All TSP implementations MUST support the following secure hash and digest functi
 
 ## Serialization and Encoding
 
-TSP uses CESR [[ref:CESR]] version 2.0 (master code table for `--AAACAA`) for message serialization and encoding. The TSP payload however may have data encoded in other formats including CBOR, JSON, and MsgPak that are compatible formats to interleave within CESR streams.
+TSP uses CESR [[ref:CESR]] (master code table for `--AAACAA`) for message serialization and encoding. The TSP payload however may have data encoded in other formats including CBOR, JSON, and MsgPak that are compatible formats to interleave within CESR streams.
+
+This version of TSP uses CESR version (2.Y.Z) and CESR code table (A.B.C). As the specifications of TSP, CESR and CESR code table may evolve not fully synchronized, we will increment the TSP version (MINOR version number, for instance) to reflect code table changes and keep track of the mapping.
+
+::: note
+Need to replace 2.Y.Z and A.B.C once the numerings are finalized in CESR.
+:::
 
 In this section, we describe the relevant CESR codes used in TSP.
 
