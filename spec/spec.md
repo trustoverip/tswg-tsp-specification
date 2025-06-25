@@ -664,14 +664,14 @@ Both the control and data sections of the payload are extendable. While we defin
 
 TSP uses a *self referencing* or *self addressing* digest in its relationship forming protocol messages defined below. It is calculated according to the *SAID* (Self Addressing Identifier) convention as described in the [[ref:CESR]] specification. The supported hash or digest functions are listed in section [Secure Hash and Digest Functions](#secure-hash-and-digest-functions). 
 
-TSP Digest is calculated and contained in the message that it is based on. In a bi-directional relationship formation exchange, the request message contains its own TSP Digest field which identifies the request message, and the reply message contains both the Digest it received from the requester and its Reply_Digest. Conceptually, this exchange creates two uni-directional relationships, one (from the requester) can be identified by the Digest, and the other (From the replier) can be identified by the Reply_Digest.
+TSP Digest is calculated and contained in the message that it is based on. In a bi-directional relationship formation exchange, the request message contains its own TSP Digest field which identifies the request message, and the reply message contains both the Digest it received from the requester and its Reply_Digest. Conceptually, this exchange creates two uni-directional relationships, one (from the requester) can be identified by the Digest, and the other (From the replier) can be identified by the Reply_Digest. The two digests are bound together as the Reply_Digest's calculation includes the Digest of the incoming request, as described in the sections that follow.
 
 In describing this digest field, we will use TSP_DIGEST in the content of the payload which should be interpreted as the result of the above self referential calculations over the payload (excluding any padding that may be introduced).
 
 The sender and receiver of these TSP digests SHOULD save them as part of the relationship state if they wish to use them as a thread identifier or to validate the relationship formation process in the future.
 
 #### Direct Relationship Forming
-When an endpoint `A` learns  the VID for another endpoint `B`, say `VID_b`, through an Out-Of-Band Introduction method, the endpoint `A` MAY use the following message type to form a direct relationship with `B`. Suppose the source VID that endpoint `A` uses is `VID_a`, then the relationship A and B establishes is `(VID_a, VID_b)`.
+When an endpoint `A` learns  the VID for another endpoint `B`, say `VID_b`, through an Out-Of-Band Introduction method, the endpoint `A` MUST use the following message type to form a direct relationship with `B`. Suppose the source VID that endpoint `A` uses is `VID_a`, then the relationship A and B establishes is `(VID_a, VID_b)`.
 ``` text
 Out-Of-Band Introduction to A: VID_b
 The relationship forming message from A to B: [VID_a, VID_b, Payload]
@@ -680,7 +680,7 @@ Payload fields:
     - Digest = TSP_DIGEST
     - Nonce_Field = Nonce
 ```
-This `TSP_RFI` is not strictly required for forming a relationship between two *direct* endpoints. It is permissible that one endpoint which has learned a VID of the other simply starts with an application level message without first having an exchange of TSP control messages. In such cases, it is up to the application or the Out-of-Band Introduction mechanism or other means that they make acceptance decisions. Similarly, they will not have the digests embedded in the `TSP_RFI` (or `TSP-RFA`) and again, it is up to the application to create another form of identifier or their own digest.
+This `TSP_RFI` is required for forming a relationship between two *direct* endpoints. It is not permissible that one endpoint which has learned a VID of the other simply starts with an application level message without first having an exchange of TSP control messages. If an endpoint receives an application message destined to one its legitimate VIDs, but it has not established a relationship from the source VID in the message to its own VID (i.e. the destination VID in the message), it SHOULD drop the message.
 
 Endpoint `B` retrieves and verifies `VID_a`, and if agrees, replies with the following:
 ``` text
@@ -690,13 +690,11 @@ Payload fields:
     - Digest = Digest of the corresponding `TSP_RFI`
     - Reply_Digest = TSP_DIGEST
 ```
-
 The result is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` and `(VID_b, VID_a)` in endpoint `B`. The Digest is recorded by both endpoints and can be used in future messages in `<VID_a, VID_b>`, and similarly Reply_Digest for `<VID_b, VID_a>`.
 
-If endpoint `B` fails to verify `VID_a`, it SHOULD silently drop the message and MAY direct the transport layer to disconnect or otherwise block or filter out further incoming messages from `VID_a` for a period of time..
+If endpoint `B` fails to verify `VID_a`, it SHOULD silently drop the message and MAY direct the transport layer to disconnect or otherwise block or filter out further incoming messages from `VID_a` for a period of time.
 
 If endpoint `B`, for any other reason, does not want to or can not engage with endpoint `A`, it MAY simply remain silent (if `B` does not want to give `A` any private information), or it MAY reply with a `TSP_RFD` message as specified in Section [7.4](#relationship-events) with proper event code (if `B` is willing to risk additional information disclosure by providing `A` some useful information). 
-
 
 If endpoint `B` is OK with receiving the incoming messages from endpoint `A`, but declines to reply to endpoint `A` to establish the opposite direction relationship, it MAY simply remain silent. 
 
@@ -704,8 +702,12 @@ Other actions that endpoint B may take MAY be application specific and are left 
 
 In all of the above cases, the responding party (endpoint `B`) should be careful about privacy leaks if it chooses to respond to an incoming message. The most private option is to remain silent.
 
+#### Race Condition of TSP_RFI
+
+It is possible that two endpoints `A` and `B` may initiate a TSP_RFI message to each other at roughly same time with the same pair of `VID_a` and `VID_b`. Under such a race condition, endpoint `A` may have sent an TSP_RFI for <VID_a, VID_b>, and while it is waiting for a TSP_RFA, receives a TSP_RFI for <VID_b, VID_a>. The endpoints MUST break this race condition based on the Digest field in the TSP_RFI. The rule is that the TSP_RFI with the lower value of Digest using using lexicographical comparison. Both endpoints will keep the TSP_RFI with lower Digest and discard the other.
+
 #### Relationship over a Routed Path
-Suppose endpoint `A` learns from another endpoint `B` through an Out-Of-Band Introduction method the VID for `B`, say `VID_b`, together with a routing path, `{ …, VID_hopk, VID_exit}`. Endpoint `A` MAY use the following control message to form a relationship with `B`. Suppose the source VID that endpoint `A` uses is `VID_a`, and optionally endpoint `A` specifies a reply path `{ …,  VID_rhopk, VID_rexit}`, then the relationship `A` and `B` establishes is `(VID_a, VID_b)`.
+Suppose endpoint `A` learns from another endpoint `B` through an Out-Of-Band Introduction method the VID for `B`, say `VID_b`, together with a routing path, `{ …, VID_hopk, VID_exit}`. Endpoint `A` MUST use the following control message to form a relationship with `B`. Suppose the source VID that endpoint `A` uses is `VID_a`, and optionally endpoint `A` specifies a reply path `{ …,  VID_rhopk, VID_rexit}`, then the relationship `A` and `B` establishes is `(VID_a, VID_b)`.
 
 ``` text
 Out-Of-Band Introduction: VID_b, VID_hop2, …, VID_hopk, VID_exit
@@ -735,7 +737,7 @@ Note, either `A` or `B` may choose to specify a routed path for the relationship
 
 The result of the above message exchange is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` over a routed path to `B` and vice versa. 
 
-### Parallel Relationship Forming
+#### Parallel Relationship Forming
 
 If endpoints `A` and `B` have a relationship `(VID_a0, VID_b0)` in `A` and `(VID_b0, VID_a0)` in `B`, they can establish a new parallel relationship using the current relationship as a means of referral.
 
@@ -766,7 +768,7 @@ Payload fields:
     - Reply_Digest = TSP_DIGEST
 ```
 
-### Nested Relationship Forming
+#### Nested Relationship Forming
 
 If endpoints `A` and `B` have a relationship `(VID_a0, VID_b0)` in `A` and `(VID_b0, VID_a0)` in `B`, they can also establish a new nested relationship using the current relationship as a referral. The new relationship is *private* as discussed in Section [2.1](#vid-use-scenarios).
 
@@ -827,7 +829,7 @@ Payload fields:
     - Reply_Digest = TSP_DIGEST
 ```
 
-### Relationship Forming Decline or Cancel
+#### Relationship Forming Decline or Cancel
 Bidirectional relationships in TSP are essentially a combination of two unidirectional relationships that involve the same pair of VIDs. Due to the asymmetric nature of TSP messages, it's possible for a relationship to exist unidirectionally for a time — where messages flow in one direction but not yet in the reverse. This scenario can occur both when a relationship is being established and when it's being terminated. It is also permissible that endpoints simply want to keep a unidirectional relationship if they choose to.
 
 While sending explicit messages to cancel a relationship is not strictly necessary in TSP, such messages MAY be beneficial for upper-layer protocols that require a clear and definite termination of relationships. For this purpose, endpoints utilize `TSP_RFD` (Relationship Forming Decline) control messages.
