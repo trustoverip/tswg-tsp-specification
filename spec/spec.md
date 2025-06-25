@@ -827,37 +827,6 @@ Payload fields:
     - Reply_Digest = TSP_DIGEST
 ```
 
-### Third Party Relationship Referral
-
-::: issue
-Consider to remove this section. Leave more complex relationship forming procedures to further study?
-:::
-
-If endpoints `A` and `B` have a relationship `(VID_a0, VID_b0)` (for brevity, we will use either one of the two directions to represent both in this section), and endpoints `A` and `C` have a relationship `(VID_a0, VID_c0)`, then `A` can help endpoints `B` and `C` establish a new relationship using their respective current relationship with `A` as a way of referral.
-
-This referral process takes 3 steps:
-- Endpoint `A` sends referral to `C` (or alternatively to `B`)
-- Endpoint `C` sends relationship forming message to `B`
-- Endpoint `B` replies to `C`
-
-The last two steps use relationship forming messages already defined in previous sections. We define new control fields used in the first referral step below.
-
-Endpoint `A` sends to `C` this message as a third party referral to invite `C` to form a relationship with `B`:
-
-``` text
-Message: [VID_a0, VID_c0, …, Payload], 
-we omitted the optional route path VID list so this can either a Direct or Routed message.
-
-Control payload fields:
-    - Type = 3P_REFER_REL
-    - Referred VID: VID_b0
-    - Route Hop List: VID_List | NULL
-```
-When endpoint `C` receives this message from `A`, it treats it as an introduction, then `C` initiates a normal new relationship forming procedure as specified in Section [7.1](#relationship-forming). The resulting relationship between `B` and `C` is `(VID_b0, VID_c0)`.
-
-If `VID_List` is present, then `C` uses the specified routed path, in part, to send the `TSP_RFI` message to endpoint `B`.
-
-
 ### Relationship Forming Decline or Cancel
 Bidirectional relationships in TSP are essentially a combination of two unidirectional relationships that involve the same pair of VIDs. Due to the asymmetric nature of TSP messages, it's possible for a relationship to exist unidirectionally for a time — where messages flow in one direction but not yet in the reverse. This scenario can occur both when a relationship is being established and when it's being terminated. It is also permissible that endpoints simply want to keep a unidirectional relationship if they choose to.
 
