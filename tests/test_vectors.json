@@ -1,0 +1,173 @@
+{
+  "version": "TSP vs1.0 Experimental Implementor's Draft Rev 2",
+  "description": "Deterministic test vectors for TSP cryptographic primitives. All inputs are fixed so any conforming implementation must produce the same outputs.",
+  "ed25519_sign_verify": [
+    {
+      "description": "Ed25519 signing: empty message",
+      "algorithm": "Ed25519",
+      "inputs": {
+        "private_key_seed_hex": "0000000000000000000000000000000000000000000000000000000000000001",
+        "message_hex": ""
+      },
+      "outputs": {
+        "public_key_hex": "4cb5abf6ad79fbf5abbccafcc269d85cd2651ed4b885b5869f241aedf0a5ba29",
+        "signature_hex": "7e1b9dc1e332c4238edcd07a68101474b640fdcb1b7b84fb711ac4bfbc85eb85a77480950d69398dcd19f61e1ea74d0f183cfbf34df8f6e7733ebfb9f944f106"
+      },
+      "notes": "Signature covers the message bytes directly. In TSP, the signed data is {TSP_Envelope || TSP_Payload} per Section 3.3 of the specification."
+    },
+    {
+      "description": "Ed25519 signing: short ASCII message",
+      "algorithm": "Ed25519",
+      "inputs": {
+        "private_key_seed_hex": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae3d55",
+        "message_hex": "68656c6c6f20545350"
+      },
+      "outputs": {
+        "public_key_hex": "700e2ce7c4b674427eab27ba820bcf6f0faebe68e09fe8564292114e41dc6a41",
+        "signature_hex": "e33213c6037c1aa0b13c9e0903e44d7eb2681aad07abfc511a5cabe28f9125e000eb929d8345fc192c3f18f78e06cbc6561c90e6281ecc41f6ab87aadfc8430b"
+      },
+      "notes": "Signature covers the message bytes directly. In TSP, the signed data is {TSP_Envelope || TSP_Payload} per Section 3.3 of the specification."
+    },
+    {
+      "description": "Ed25519 signing: TSP envelope bytes (32-byte payload)",
+      "algorithm": "Ed25519",
+      "inputs": {
+        "private_key_seed_hex": "4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4d0bd6f4",
+        "message_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      },
+      "outputs": {
+        "public_key_hex": "9f71b850219db38702ab2e7e93aaf7411fc832496bb11e79d4da44e5cacbc42b",
+        "signature_hex": "f5c4f3a67fc70fa787656bac2e24598d03886a55c34487eebec581d6cc94d9c01a324b21c09f8b365d8b93d7c84211479334606443bf3da9e9f17e02e5d6cd03"
+      },
+      "notes": "Signature covers the message bytes directly. In TSP, the signed data is {TSP_Envelope || TSP_Payload} per Section 3.3 of the specification."
+    }
+  ],
+  "hpke_base": [
+    {
+      "description": "HPKE-Base: empty plaintext, empty AAD",
+      "algorithm": "HPKE-Base",
+      "kem": "DHKEM(X25519, HKDF-SHA256)",
+      "kdf": "HKDF-SHA256",
+      "aead": "ChaCha20Poly1305",
+      "kem_id": "0x0020",
+      "kdf_id": "0x0001",
+      "aead_id": "0x0003",
+      "mode": "base (0x00)",
+      "inputs": {
+        "recipient_private_key_hex": "4310ee97d88cc1f088a5576c77ab0cf5c3ac797f3d95139c6c84b5429c59662a",
+        "recipient_public_key_hex": "8fab9c4759d70f00388441ace8a67274d684b64980970e90a39d0cedbc9d7918",
+        "ephemeral_private_key_seed_hex": "f4ec9b33b792c372c1d2c2063507b684ef925b8c75a42dbcbf57d63ccd381600",
+        "info_hex": "",
+        "aad_hex": "",
+        "plaintext_hex": ""
+      },
+      "outputs": {
+        "enc_hex": "1afa08d3dec047a643885163f1180476fa7ddb54c6a8029ea33f95796bf2ac4a",
+        "ciphertext_hex": "eee2cb90de5e3c77a56c072a35c99f12"
+      },
+      "notes": "enc is the serialized ephemeral public key (32 bytes for X25519). ciphertext includes the 16-byte ChaCha20Poly1305 authentication tag. In TSP, HPKE-Base requires VID_sndr in the confidential payload per \u00a78.4."
+    },
+    {
+      "description": "HPKE-Base: short plaintext (TSP payload simulation)",
+      "algorithm": "HPKE-Base",
+      "kem": "DHKEM(X25519, HKDF-SHA256)",
+      "kdf": "HKDF-SHA256",
+      "aead": "ChaCha20Poly1305",
+      "kem_id": "0x0020",
+      "kdf_id": "0x0001",
+      "aead_id": "0x0003",
+      "mode": "base (0x00)",
+      "inputs": {
+        "recipient_private_key_hex": "7ef22b03f5a3f6db0f3fca748b37f74f7d24a2a37f4c7b71e3ad756f8a3d1c02",
+        "recipient_public_key_hex": "da1b26fb30f733fe91e4304f81fd547c5fb79a7a50093d44b80f90e5f92de655",
+        "ephemeral_private_key_seed_hex": "e9b0de1b3a4e5f60718293a4056c7bd8f9e0a1b2c3d4e5f60102030405060708",
+        "info_hex": "5453502076657273696f6e20302e302e31",
+        "aad_hex": "7473702d656e76656c6f70652d616164",
+        "plaintext_hex": "48656c6c6f2c2054535020776f726c6421"
+      },
+      "outputs": {
+        "enc_hex": "c3999e2a24efd9079623dc27c7eacb01c865da126ab97186721423e066ba5c57",
+        "ciphertext_hex": "7732f2345618dc9be11f13fbdbea9fcbe510ef8d4ff72d57141d66023b1fa3dd2d"
+      },
+      "notes": "enc is the serialized ephemeral public key (32 bytes for X25519). ciphertext includes the 16-byte ChaCha20Poly1305 authentication tag. In TSP, HPKE-Base requires VID_sndr in the confidential payload per \u00a78.4."
+    },
+    {
+      "description": "HPKE-Base: 32-byte plaintext (typical TSP confidential payload)",
+      "algorithm": "HPKE-Base",
+      "kem": "DHKEM(X25519, HKDF-SHA256)",
+      "kdf": "HKDF-SHA256",
+      "aead": "ChaCha20Poly1305",
+      "kem_id": "0x0020",
+      "kdf_id": "0x0001",
+      "aead_id": "0x0003",
+      "mode": "base (0x00)",
+      "inputs": {
+        "recipient_private_key_hex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "recipient_public_key_hex": "14ca9e4d387bccf35746e0407daaacc6b28a4f8445ef5a5158894db983e24070",
+        "ephemeral_private_key_seed_hex": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "info_hex": "545350",
+        "aad_hex": "656e76656c6f7065",
+        "plaintext_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      },
+      "outputs": {
+        "enc_hex": "6b0b616d718e53691236d3be3ce6d44f9d28836426d81305d131f488206f8d2b",
+        "ciphertext_hex": "4167d3f63a2c874a32fed40cc5da7475bcb2d9e53a3073509f40c42ab5e10240fc91d39aca8f09c083cf59f9568adc1a"
+      },
+      "notes": "enc is the serialized ephemeral public key (32 bytes for X25519). ciphertext includes the 16-byte ChaCha20Poly1305 authentication tag. In TSP, HPKE-Base requires VID_sndr in the confidential payload per \u00a78.4."
+    }
+  ],
+  "hpke_auth": [
+    {
+      "description": "HPKE-Auth: sender-authenticated TSP payload",
+      "algorithm": "HPKE-Auth",
+      "kem": "DHKEM(X25519, HKDF-SHA256)",
+      "kdf": "HKDF-SHA256",
+      "aead": "ChaCha20Poly1305",
+      "kem_id": "0x0020",
+      "kdf_id": "0x0001",
+      "aead_id": "0x0003",
+      "mode": "auth (0x02)",
+      "inputs": {
+        "recipient_private_key_hex": "3310ee97d88cc1f088a5576c77ab0cf5c3ac797f3d95139c6c84b5429c59662a",
+        "recipient_public_key_hex": "f3f95a60e245129f4263fa6000d69e16ab5a9c362041096ce3aa3ba5e1faa342",
+        "sender_private_key_hex": "5510ee97d88cc1f088a5576c77ab0cf5c3ac797f3d95139c6c84b5429c59662a",
+        "sender_public_key_hex": "6918b9b6ad1c63678077d9d06ce268c8d2e9953e878075ef653f17d443e68024",
+        "ephemeral_private_key_seed_hex": "7710ee97d88cc1f088a5576c77ab0cf5c3ac797f3d95139c6c84b5429c59662a",
+        "info_hex": "5453502076657273696f6e20302e302e31",
+        "aad_hex": "7473702d656e76656c6f7065",
+        "plaintext_hex": "61757468656e7469636174656420545350206d657373616765207061796c6f6164"
+      },
+      "outputs": {
+        "enc_hex": "dc08634de2604a008b448bd8879e8f37d337d875939a4d91610160ec3dbe257e",
+        "ciphertext_hex": "247aa63bad5d3f7e031ed133f465f9122cc5e99c0dc03d2594bd4155652f0cf5bca60c3ac8ce47641db7444e152b7b4101"
+      },
+      "notes": "enc is the serialized ephemeral public key (32 bytes for X25519). HPKE-Auth binds the sender's static key into the KEM shared secret, providing implicit sender authentication at the KEM layer. In TSP HPKE-Auth mode, VID_sndr in the confidential payload is optional (\u00a78.3)."
+    },
+    {
+      "description": "HPKE-Auth: 32-byte payload (simulates encrypted TSP control fields)",
+      "algorithm": "HPKE-Auth",
+      "kem": "DHKEM(X25519, HKDF-SHA256)",
+      "kdf": "HKDF-SHA256",
+      "aead": "ChaCha20Poly1305",
+      "kem_id": "0x0020",
+      "kdf_id": "0x0001",
+      "aead_id": "0x0003",
+      "mode": "auth (0x02)",
+      "inputs": {
+        "recipient_private_key_hex": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "recipient_public_key_hex": "e8980c4ea5ebf8fb6c281098b75cdd32862922a638778251979b6d322ed7e02e",
+        "sender_private_key_hex": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "sender_public_key_hex": "b2599e860bbe532e4955cca4dbd20d3b7f6805d81bb505ddbe69276a170c4d74",
+        "ephemeral_private_key_seed_hex": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "info_hex": "545350",
+        "aad_hex": "656e76656c6f7065",
+        "plaintext_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      },
+      "outputs": {
+        "enc_hex": "7f115a43399180f6c05b02e1265fef92c2d91961b0cd3c6d8fa1cd001589fc0f",
+        "ciphertext_hex": "702fef9c8e80515720ff62f2c2c8cc3f98dfb192457f75aa3f660dee99852ab9f6c46f106aad706d13650603d8c7999e"
+      },
+      "notes": "enc is the serialized ephemeral public key (32 bytes for X25519). HPKE-Auth binds the sender's static key into the KEM shared secret, providing implicit sender authentication at the KEM layer. In TSP HPKE-Auth mode, VID_sndr in the confidential payload is optional (\u00a78.3)."
+    }
+  ]
+}

@@ -1535,14 +1535,134 @@ https://github.com/trustoverip/tswg-tsp-specification/issues/13
 
 ## Appendix A: Test Vectors
 
-::: issue #14
-To provide sample test vectors for a few common cases.
-https://github.com/trustoverip/tswg-tsp-specification/issues/14
-:::
+This appendix provides deterministic test vectors for the cryptographic
+primitives used in TSP. All inputs are fixed so any conforming implementation
+MUST produce the same outputs. The machine-readable version of all vectors,
+together with the Python script used to generate and verify them, is available
+at `tests/test_vectors.json` and `tests/generate_test_vectors.py` in this
+repository.
 
-### Test Vectors for Direct Mode TSP Message
+### Test Vectors for Ed25519 Signing (Section 8.1)
 
-### Test Vectors for Direct Mode Nested TSP Message
+These vectors cover the `TSP_SIGN` and `TSP_SIGN_VERIFY` operations.
+In TSP, the signed data is the concatenation `{TSP_Envelope, TSP_Payload}`
+(Section 3.3). The `private_key_seed` is the 32-byte raw private key.
+The `public_key` is the corresponding 32-byte raw public key.
 
-### Test Vectors for Routed Mode Message
+#### Vector 1: Empty message
+
+```text
+private_key_seed : 0000000000000000000000000000000000000000000000000000000000000001
+message          : (empty)
+public_key       : 4cb5abf6ad79fbf5abbccafcc269d85cd2651ed4b885b5869f241aedf0a5ba29
+signature        : 7e1b9dc1e332c4238edcd07a68101474b640fdcb1b7b84fb711ac4bfbc85eb85a77480950d69398dcd19f61e1ea74d0f183cfbf34df8f6e7733ebfb9f944f106
+```
+
+#### Vector 2: Short ASCII message (`hello TSP`)
+
+```text
+private_key_seed : 9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae3d55
+message          : 68656c6c6f20545350
+public_key       : 700e2ce7c4b674427eab27ba820bcf6f0faebe68e09fe8564292114e41dc6a41
+signature        : e33213c6037c1aa0b13c9e0903e44d7eb2681aad07abfc511a5cabe28f9125e000eb929d8345fc192c3f18f78e06cbc6561c90e6281ecc41f6ab87aadfc8430b
+```
+
+#### Vector 3: 32-byte payload (simulates a TSP envelope byte string)
+
+```text
+private_key_seed : 4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4d0bd6f4
+message          : 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+public_key       : 9f71b850219db38702ab2e7e93aaf7411fc832496bb11e79d4da44e5cacbc42b
+signature        : f5c4f3a67fc70fa787656bac2e24598d03886a55c34487eebec581d6cc94d9c01a324b21c09f8b365d8b93d7c84211479334606443bf3da9e9f17e02e5d6cd03
+```
+
+### Test Vectors for HPKE-Base (Section 8.4)
+
+Suite: `DHKEM(X25519, HKDF-SHA256) + HKDF-SHA256 + ChaCha20Poly1305`
+(KEM ID 0x0020, KDF ID 0x0001, AEAD ID 0x0003, HPKE mode 0x00).
+
+`enc` is the serialized ephemeral public key (32 bytes for X25519).
+`ciphertext` includes the 16-byte ChaCha20Poly1305 authentication tag.
+In HPKE-Base mode, `VID_sndr` MUST be present in the confidential control
+payload per Section 8.4.
+
+#### Vector 1: Empty plaintext, empty AAD
+
+```text
+recipient_public_key : 8fab9c4759d70f00388441ace8a67274d684b64980970e90a39d0cedbc9d7918
+recipient_private_key: 4310ee97d88cc1f088a5576c77ab0cf5c3ac797f3d95139c6c84b5429c59662a
+ephemeral_private_key: f4ec9b33b792c372c1d2c2063507b684ef925b8c75a42dbcbf57d63ccd381600
+info                 : (empty)
+aad                  : (empty)
+plaintext            : (empty)
+enc                  : 1afa08d3dec047a643885163f1180476fa7ddb54c6a8029ea33f95796bf2ac4a
+ciphertext           : eee2cb90de5e3c77a56c072a35c99f12
+```
+
+#### Vector 2: Short plaintext with TSP info and AAD
+
+```text
+recipient_public_key : da1b26fb30f733fe91e4304f81fd547c5fb79a7a50093d44b80f90e5f92de655
+recipient_private_key: 7ef22b03f5a3f6db0f3fca748b37f74f7d24a2a37f4c7b71e3ad756f8a3d1c02
+ephemeral_private_key: e9b0de1b3a4e5f60718293a4056c7bd8f9e0a1b2c3d4e5f60102030405060708
+info (hex)           : 5453502076657273696f6e20302e302e31  ("TSP version 0.0.1")
+aad (hex)            : 7473702d656e76656c6f70652d616164   ("tsp-envelope-aad")
+plaintext (hex)      : 48656c6c6f2c2054535020776f726c6421 ("Hello, TSP world!")
+enc                  : c3999e2a24efd9079623dc27c7eacb01c865da126ab97186721423e066ba5c57
+ciphertext           : 7732f2345618dc9be11f13fbdbea9fcbe510ef8d4ff72d57141d66023b1fa3dd2d
+```
+
+#### Vector 3: 32-byte plaintext (typical TSP confidential payload length)
+
+```text
+recipient_public_key : 14ca9e4d387bccf35746e0407daaacc6b28a4f8445ef5a5158894db983e24070
+recipient_private_key: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+ephemeral_private_key: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+info (hex)           : 545350  ("TSP")
+aad (hex)            : 656e76656c6f7065  ("envelope")
+plaintext            : 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+enc                  : 6b0b616d718e53691236d3be3ce6d44f9d28836426d81305d131f488206f8d2b
+ciphertext           : 4167d3f63a2c874a32fed40cc5da7475bcb2d9e53a3073509f40c42ab5e10240fc91d39aca8f09c083cf59f9568adc1a
+```
+
+### Test Vectors for HPKE-Auth (Section 8.3)
+
+Suite: `DHKEM(X25519, HKDF-SHA256) + HKDF-SHA256 + ChaCha20Poly1305`
+(KEM ID 0x0020, KDF ID 0x0001, AEAD ID 0x0003, HPKE mode 0x02).
+
+HPKE-Auth binds the sender's static X25519 key (`sk_s`) into the KEM shared
+secret, providing implicit sender authentication at the KEM layer. The
+`sender_public_key` corresponds to `VID_sndr.SK_e` (Section 8.3). In
+HPKE-Auth mode, `VID_sndr` in the confidential payload is optional.
+
+#### Vector 1: Sender-authenticated TSP payload
+
+```text
+recipient_public_key : f3f95a60e245129f4263fa6000d69e16ab5a9c362041096ce3aa3ba5e1faa342
+recipient_private_key: 3310ee97d88cc1f088a5576c77ab0cf5c3ac797f3d95139c6c84b5429c59662a
+sender_public_key    : 6918b9b6ad1c63678077d9d06ce268c8d2e9953e878075ef653f17d443e68024
+sender_private_key   : 5510ee97d88cc1f088a5576c77ab0cf5c3ac797f3d95139c6c84b5429c59662a
+ephemeral_private_key: 7710ee97d88cc1f088a5576c77ab0cf5c3ac797f3d95139c6c84b5429c59662a
+info (hex)           : 5453502076657273696f6e20302e302e31  ("TSP version 0.0.1")
+aad (hex)            : 7473702d656e76656c6f7065  ("tsp-envelope")
+plaintext (hex)      : 61757468656e7469636174656420545350206d657373616765207061796c6f6164
+                       ("authenticated TSP message payload")
+enc                  : dc08634de2604a008b448bd8879e8f37d337d875939a4d91610160ec3dbe257e
+ciphertext           : 247aa63bad5d3f7e031ed133f465f9122cc5e99c0dc03d2594bd4155652f0cf5bca60c3ac8ce47641db7444e152b7b4101
+```
+
+#### Vector 2: 32-byte payload (simulates encrypted TSP control fields)
+
+```text
+recipient_public_key : e8980c4ea5ebf8fb6c281098b75cdd32862922a638778251979b6d322ed7e02e
+recipient_private_key: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+sender_public_key    : b2599e860bbe532e4955cca4dbd20d3b7f6805d81bb505ddbe69276a170c4d74
+sender_private_key   : dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+ephemeral_private_key: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+info (hex)           : 545350  ("TSP")
+aad (hex)            : 656e76656c6f7065  ("envelope")
+plaintext            : 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+enc                  : 7f115a43399180f6c05b02e1265fef92c2d91961b0cd3c6d8fa1cd001589fc0f
+ciphertext           : 702fef9c8e80515720ff62f2c2c8cc3f98dfb192457f75aa3f660dee99852ab9f6c46f106aad706d13650603d8c7999e
+```
 
