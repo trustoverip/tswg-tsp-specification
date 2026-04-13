@@ -49,7 +49,7 @@ Beyond offering enhanced trust properties when compared to previous solutions an
 
 TSP messages can traverse various transport mechanisms without making prior assumptions about their trustworthiness although users may opt for specific underlying transport protocols for TSP based on various factors such as additional operational or security considerations. TSP messages can be transported directly between endpoints (Direct Mode) or routed via intermediaries (Routed Mode). We first describe the Direct Mode in [Section 3](#messages), followed by the routing mechanism in [Section 5](#routed-messages-through-intermediaries).
 
-TSP stands as the spanning layer protocol within the Trust over IP technology architecture [spec-in[form:TOIP-TAS]]. It occupies a pivotal role, facilitating the twin goals of robust trustworthiness and universal interoperability across the Trust over IP stack. For additional details on the reference architecture, please see [Section 1.2](#reference-architecture).
+TSP stands as the spanning layer protocol within the Trust over IP technology architecture [[spec-inform:TOIP-TAS]]. It occupies a pivotal role, facilitating the twin goals of robust trustworthiness and universal interoperability across the Trust over IP stack. For additional details on the reference architecture, please see [Section 1.2](#reference-architecture).
 
 ### Terminology
 
@@ -952,7 +952,7 @@ This section specifies all PKAE schemes that TSP implementations MUST or optiona
 
 #### Hybrid Public Key Encryption (HPKE) 
 
-HPKE is a draft standard defined in IETF [[spec-norm:RFC9180]] which formalizes and generalizes similar schemes and implementations that support encryption of messages for a receiver with a public-private key pair. [[spec-norm:RFC9180]] defines a framework from which we specify a subset of concrete configuration to best meet TSP requirements. HPKE uses modern cryptographic algorithms and has been studied with proofs of IND-CCA2 security. The HPKE base mode does not use sender authentication in the HPKE itself. The algorithms in a HPKE suite are KEM (Key Exchange Mechanism), KDF (Key Derivation Function), and AEAD (Authenticated Encryption with Associated Data function). Schemes that follow [[spec-norm:RFC9180]] have seen adoption in Messaging Layer Security [[spec-inform:RFC9420]] and TLS Encrypted ClientHello [[TLS-ECH]].
+HPKE is a draft standard defined in IETF [[spec-norm:RFC9180]] which formalizes and generalizes similar schemes and implementations that support encryption of messages for a receiver with a public-private key pair. [[spec-norm:RFC9180]] defines a framework from which we specify a subset of concrete configuration to best meet TSP requirements. HPKE uses modern cryptographic algorithms and has been studied with proofs of IND-CCA2 security. The HPKE base mode does not use sender authentication in the HPKE itself. The algorithms in a HPKE suite are KEM (Key Exchange Mechanism), KDF (Key Derivation Function), and AEAD (Authenticated Encryption with Associated Data function). Schemes that follow [[spec-norm:RFC9180]] have seen adoption in Messaging Layer Security [[spec-inform:RFC9420]] and TLS Encrypted ClientHello [[spec-inform:TLS-ECH]].
 
 TSP implementations MUST support both HPKE-Auth and HPKE-Base modes.
 
@@ -1044,7 +1044,7 @@ In HPKE-Base mode, the `VID_sndr` field MUST be present in the confidential cont
 
 ##### HPKE PQ and PQ/T Algorithms
 
-This section is in early draft status. We aim for demonstrating potential support of Post-Quantum (PQ) and Post-Quantum and Traditional hybrid (PQ/T) algorithms within the HPKE specification framework, as (to be) defined in the ongoing work [[HPKE-PQ]].
+This section is in early draft status. We aim for demonstrating potential support of Post-Quantum (PQ) and Post-Quantum and Traditional hybrid (PQ/T) algorithms within the HPKE specification framework, as (to be) defined in the ongoing work [[spec-inform:HPKE-PQ]].
 
 For the early experimentation, we recommend the ML-KEM (the NIST Module-Lattice-Based Key-Encapsulation Mechanism) as defined in [[FIPS203]]. The ML-KEM is also known as the CRYSTALS-Kyber algorithm.
 
@@ -1525,7 +1525,7 @@ https://github.com/trustoverip/tswg-tsp-specification/issues/13
 [FIPS204]: https://doi.org/10.6028/NIST.FIPS.204
 
 [TOIP-TAS]. ToIP Technology Architecture Specification (DRAFT)
-[TAS]: https://github.com/trustoverip/TechArch/blob/main/spec.md
+[TOIP-TAS]: https://github.com/trustoverip/TechArch/blob/main/spec.md
 
 [TLS-ECH]. TLS Encrypted Client Hello, *Rescorla, E., Oku, K., Sullivan, N., and C. A. Wood,* Work in Progress, Internet-Draft, draft-ietf-tls-esni-18, 4 March 2024.
 [TLS-ECH]: https://datatracker.ietf.org/doc/html/draft-ietf-tls-esni-18
