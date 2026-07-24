@@ -666,7 +666,16 @@ TSP uses a *self referencing* or *self addressing* digest in its relationship fo
 
 TSP Digest is calculated and contained in the message that it is based on. In a bi-directional relationship formation exchange, the request message contains its own TSP Digest field which identifies the request message, and the reply message contains both the Digest it received from the requester and its Reply_Digest. Conceptually, this exchange creates two uni-directional relationships, one (from the requester) can be identified by the Digest, and the other (From the replier) can be identified by the Reply_Digest. The two digests are bound together as the Reply_Digest's calculation includes the Digest of the incoming request, as described in the sections that follow.
 
-In describing this digest field, we will use TSP_DIGEST in the content of the payload which should be interpreted as the result of the above self referential calculations over the payload (excluding any padding that may be introduced).
+For the message that contains it, its TSP_Digest is computed over the binary serialization of that message's own TSP_Version, VID_sndr, VID_rcvr, and Payload fields (the plaintext payload, before encryption), with these rules:
+
+ - The -E## framing tag and the Padding_field are excluded from the computation.
+ - During derivation, the digest field's own slot is filled with the dummy byte 0x23 over its full length (e.g. 33 bytes for a 256-bit digest), then the digest is computed and its CESR-encoded value replaces the dummy.
+ - The hash function is identified by the digest's own CESR derivation code (e.g. I = SHA2-256, F = Blake2b-256), from [[ref:Secure-Hash-and-Digest-Functions]].
+ - In a nested message, "the message" means the innermost message that carries the digest, not any outer routing envelope. A digest that is echoed from a prior message (e.g. the Digest copied into a TSP_RFA) is copied verbatim, not recomputed. Verification reverses the derivation.
+
+Note that the SAID calculation for TSP messages is in binary domain, so is its result used.
+
+In describing this digest field, we will use TSP_DIGEST in the context of the message that it is identifying and it should be interpreted as the result of the above self referential calculation.
 
 The sender and receiver of these TSP digests SHOULD save them as part of the relationship state if they wish to use them as a thread identifier or to validate the relationship formation process in the future.
 
