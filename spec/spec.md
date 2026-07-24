@@ -930,10 +930,7 @@ This implementor's draft only specifies one signature scheme at the moment. Futu
 
 #### Post-Quantum Signatures
 
-This section is in early experiemental draft status. We aim for demonstrating future support of Post-Quantum Digital Signature Algorithms in TSP.
-
-For early implementations, we recommend for ML-DSA as defined in [[FIPS204]]. ML-DSA (Module-Lattice-Based Digital Signature Algorithm) is also known as the CRYSTALS-Dilithium algorithm.
-
+TSP supports post-quantum digital signatures using ML-DSA-65 (Module-Lattice-Based Digital Signature Algorithm, security category 3), as defined in [[FIPS204]] (also known as CRYSTALS-Dilithium). An endpoint uses ML-DSA-65 or Ed25519 according to the signature key type of its VID. The signature encoding is specified in [[ref:ML-DSA-65-Signature]].
 
 ### Public-Key Authenticated Encryption
 
@@ -963,8 +960,11 @@ HPKE configuration(s) supported by TSP:
 Primitive | Code | Description
 ----:|----:|--------:
 KEM | 0x0020 | DHKEM(X25519, HKDF-SHA256)
+KEM | 0x647a | X25519MLKEM768 (PQ/T hybrid)
 KDF | 0x0001 | HKDF-SHA256
 AEAD | 0x0003 | ChaCha20Poly1305
+
+A VID's encryption key type selects the KEM; the KDF and AEAD are the same in both cases.
 
 ##### HPKE Base Mode
 
@@ -1005,9 +1005,7 @@ In HPKE-Base mode, the `VID_sndr` field MUST be present in the confidential cont
 
 ##### HPKE PQ and PQ/T Algorithms
 
-This section is in early draft status. We aim for demonstrating potential support of Post-Quantum (PQ) and Post-Quantum and Traditional hybrid (PQ/T) algorithms within the HPKE specification framework, as (to be) defined in the ongoing work [[HPKE-PQ]].
-
-For the early experimentation, we recommend the ML-KEM (the NIST Module-Lattice-Based Key-Encapsulation Mechanism) as defined in [[FIPS203]]. The ML-KEM is also known as the CRYSTALS-Kyber algorithm.
+Post-quantum support in TSP is not a separate mode — it is HPKE-Base with the post-quantum/traditional hybrid KEM X25519MLKEM768 (0x647a), as defined in [[HPKE-PQ]]. The KEM is selected by the recipient VID's encryption key type; all other HPKE-Base processing, framing, and AAD are unchanged. Note that [[HPKE-PQ]] is an active Internet-Draft; this reference is to be updated to the RFC on publication.
 
 #### Libsodium Sealed Box
 
@@ -1243,7 +1241,7 @@ Todo
 ```
 ##### HPKE PQ and PQ/T Encoding
 
-TBD
+The post-quantum ciphertext uses the same encoding as HPKE-Base — the 4F/5F/6F/7AAF/8AAF/9AAF codes. There is no separate post-quantum ciphertext code. The KEM (and hence the size of the encapsulated key enc) is determined by the recipient VID's key type, so the receiver knows how to split enc ‖ ct.
 
 ##### Libsodium Sealed Box Encoding
 See [[ref:CESR]] on X25519 Sealed Box cipher bytes encoding.
@@ -1377,10 +1375,9 @@ The TSP Signature is encoded as an attachment group in CESR. TSP allows multiple
 
 An Ed25519 (EdDSA) signature is always 64 bytes. It is identified by the two character code `0B`, followed by 2 padding bytes (in binary) and the 64 byte signature (in binary). The equivalent text format is 22 triplets.
 
-#### ML-KEM Signature
+#### ML-DSA-65 Signature
 
-TODO
-
+An ML-DSA-65 signature is always 3309 bytes. It is identified by the CESR code ⟨TBD — confirm with CESR code table⟩, followed by the 3309-byte signature in binary. As 3309 is a multiple of 3, no lead-pad bytes are required. The equivalent text format is 1103 triplets.
 
 ## Transports
 The TSP messages are mostly agnostic to transport mechanisms which deliver them from a sender to a receiver endpoint. The authenticity, confidentiality, and privacy properties of the TSP messages are designed to be independent of the choice of transport layer. This is one of the main goals of TSP. That being said, it does not mean that the choice and implementation of transport mechanisms are not important to the proper functioning of TSP. In this section, we describe a generic service interface between TSP and the transport layer, and provide guidance on some aspects of how various transport mechanisms can be used to carry TSP messages.
@@ -1457,6 +1454,8 @@ https://github.com/trustoverip/tswg-tsp-specification/issues/13
 [DID]. Decentralized Identifiers (DIDs) v1.0, https://www.w3.org/TR/did-1.0/
 
 [HPKE]: Hybrid Public Key Encryption, 6 July 2026, https://www.ietf.org/archive/id/draft-ietf-hpke-hpke-04.txt
+
+[HPKE-PQ]: Post-Quantum and Post-Quantum/Traditional Hybrid Algorithms for HPKE, 6 July 2026, https://www.ietf.org/archive/id/draft-ietf-hpke-pq-05.txt
 
 ### Informational References
 [[spec-inform]]
