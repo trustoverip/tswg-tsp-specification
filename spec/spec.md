@@ -941,7 +941,7 @@ TSP uses strong public key encryption schemes that supports IND-CCA2 (Indistingu
 TSP defines a standard way to encrypt a single TSP message to a receiver's public key. The operations use the following `seal` and `open` primitives.
 
 ``` text
-Ciphertext = TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Data, Plaintext)
+Ciphertext = TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Fields, Plaintext)
 Plaintext = TSP_OPEN(VID_sndr, VID_rcvr, Ciphertext)
 ```
 
@@ -975,7 +975,7 @@ In the HPKE-Base mode, for a TSP message that uses a confidential payload, the c
 ``` text
 def TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Plaintext):
     pkR = VID_rcvr.PK_e
-    aad = CONCAT(VID_sndr, VID_rcvr, Non_Confidential_Fields)
+    aad = CONCAT(TSP_Version, VID_sndr, VID_rcvr, Non_Confidential_Fields)
     info = NULL
     pt = Confidential_Fields_Plaintext
     enc, ct = SealBase(pkR, info, aad, pt)
@@ -991,7 +991,7 @@ The receiver MUST use the corresponding single-shot API to decrypt:
 ``` text
 def TSP_OPEN(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Ciphertext):
     skR = VID_rcvr.SK_e
-    aad = CONCAT(VID_sndr, VID_rcvr, Non_Confidential_Fields)
+    aad = CONCAT(TSP_Version, VID_sndr, VID_rcvr, Non_Confidential_Fields)
     info = NULL
     enc, ct = SPLIT(Confidential_Fields_Ciphertext)
     return OpenBase(enc, skR, info, aad, ct)
@@ -1002,6 +1002,10 @@ Plaintext = TSP_OPEN(VID_sndr, VID_rcvr,
 ```
 
 In HPKE-Base mode, the `VID_sndr` field MUST be present in the confidential control payload (as required by [[spec-inform:ESSR]]).
+
+Note that the 'aad' input is the serialized octet sequence of the cleartext message fields preceding the ciphertext — the version, both VIDs, and the non-confidential payload (if present) — taken exactly as encoded on the wire.
+
+TODO: discuss if 'aad' is useful.
 
 ##### HPKE PQ and PQ/T Algorithms
 
