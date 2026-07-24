@@ -1028,7 +1028,7 @@ int crypto_box_seal_open(unsigned char *m, const unsigned char *c,
                          unsigned long long clen,
                          const unsigned char *pk, const unsigned char *sk);
 ```
-`crypto_box_seal_open()` decrypts the ciphertext `c` of length `clen` using the sender's public key `pk` and the receiver's secret key `sk`, and outputs the plaintext to `m`.
+`crypto_box_seal_open()` decrypts the ciphertext `c` of length `clen` using the receiver's public key `pk` and the receiver's secret key `sk`, and outputs the plaintext to `m`.
 
 ##### TSP Use of Sealed Box for PKAE
 
@@ -1051,11 +1051,11 @@ The receiver MUST use the corresponding `crypto_box_seal_open()` API procedure o
 
 ``` text
 def TSP_OPEN(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Ciphertext):
-    pkS = VID_sndr.PK_e
+    pkR = VID_rcvr.PK_e
     skR = VID_rcvr.SK_e
     ct = Confidential_Fields_Ciphertext
     clen = Length(ct)
-    output = crypto_box_seal_open(ct, clen, pkS, skR)
+    output = crypto_box_seal_open(ct, clen, pkR, skR)
     return output
 
 Plaintext = TSP_OPEN(VID_sndr, VID_rcvr, 
