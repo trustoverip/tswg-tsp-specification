@@ -1339,7 +1339,9 @@ In the nested `TSP_RFI` message, the Signature_new is the signature of the new `
 
 Note that the hop list will be encoded as `-JAA` if this message is nested over a direct relationship without intermediary.
 
-##### TSP_RFI Nested
+The same method can be applied to nest TSP_RFI in Referal messages.
+
+##### TSP_RFA Nested
 
 The TSP_RFA message can be constructed by composing a TSP_RFA inside a nested outer message:
 
@@ -1349,9 +1351,11 @@ The TSP_RFA message can be constructed by composing a TSP_RFA inside a nested ou
 The `Encoded_TSP_Message` is in fact the `TSP_RFA` message as follows:
 
 ```text
-TSP_Tag, TSP_Version, VID_sndr_new, VID_rcvr_new, -Z## | -0Z####, XRFA, VID_sndr_new, VID_new, Digest, Reply_Digest, Padding_field, Signature_new
+TSP_Tag, TSP_Version, VID_sndr_new, VID_rcvr_new, -Z## | -0Z####, XRFA, VID_sndr_new, Digest, Reply_Digest, Padding_field, Signature
 ```
 Note that the hop list will be encoded as `-JAA` if this message is nested over a direct relationship without intermediary.
+
+The same method can be applied to nest TSP_RFA in Referal messages.
 
 ##### TSP_RFD
 
