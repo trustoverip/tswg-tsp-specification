@@ -1267,10 +1267,18 @@ Todo
 Comformant TSP implementations MUST support the interleaving scheme in [[ref:CESR]] which allows interleaved payloads encoded in JSON, CBOR or MsgPak in addition to native CESR.
 Because TSP supports nesting, this interleaving of different encoding methods may occur in the payload field of any nesting level.
 
-Example:
-``` text
-Todo
+An application payload (type XSCS) or control payload (type XCTL) is a generic CESR stream. It may contain native CESR and/or non-native serializations — JSON, CBOR, or MsgPak. TSP carries this payload opaquely; the upper layer parses its content. TSP itself does not interpret JSON, CBOR, or MsgPak.
+
+Because the payload sits inside TSP messages, a non-native serialization cannot be free-interleaved. Per [[ref:CESR]], it MUST be encoded as a CESR primitive and enclosed in the non-native message group -H## (or -0H####). TSP uses the Bytes primitive (4B/5B/6B, chosen by length for lead-byte alignment) in the binary domain to carry the serialization bytes.
+
+A payload may contain one or more such -H## groups in sequence, alongside native CESR — for example a JSON object followed by a CBOR map. This sequencing is the interleaving.
+
+```text
+-A## | -0A####, ( -H## | -0H#### (4B|5B|6B)## <serialization bytes> ) + [and/or native CESR]
 ```
+
+(A byte-accurate worked example will be added with the test vectors.)
+
 
 #### Nested Payload
 In TSP Nested Mode, the inner TSP message is carried inside a payload field of the outer TSP message. When the outer message is being parsed, the message may carry a simple application payload or a nested TSP message which will require additional processing.
