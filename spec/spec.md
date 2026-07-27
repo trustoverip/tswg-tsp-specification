@@ -651,7 +651,7 @@ See [Section 3.7](#out-of-band-introductions).
 
 A common use case of sending TSP messages to multiple recipents is to anycast authenticated but not encrypted messages to anyone who is interested in receiving them, e.g. by subscribing to a messaging service or by social media recommendation algorithms.
 
-Since these messages are not confidential, the distribution of these messages can be performed by an intermediary. For details of such TSP messages, see Section [3.5.2](#authentic-non-confidential-anc-messages).
+Since these messages are not confidential, the distribution of these messages can be performed by an intermediary.
 
 Although these messages are authenticated to a sender's VID, the messages between the sender and its intermediary can still be confidential. In fact, they can be communicated from the source to its intermediary over a Nested Mode relationship specific to the anycast group (or similar notions supported by the intermediary). The details of such mechanisms are out of scope for this specification.
 
@@ -1262,12 +1262,12 @@ Because TSP supports nesting, this interleaving of different encoding methods ma
 
 An application payload (type XSCS) or control payload (type XCTL) is a generic CESR stream. It may contain native CESR and/or non-native serializations — JSON, CBOR, or MsgPak. TSP carries this payload opaquely; the upper layer parses its content. TSP itself does not interpret JSON, CBOR, or MsgPak.
 
-Because the payload sits inside TSP messages, a non-native serialization cannot be free-interleaved. Per [[ref:CESR]], it MUST be encoded as a CESR primitive and enclosed in the non-native message group -H## (or -0H####). TSP uses the Bytes primitive (4B/5B/6B, chosen by length for lead-byte alignment) in the binary domain to carry the serialization bytes.
+Because the payload sits inside TSP messages, a non-native serialization cannot be free-interleaved. Per [[ref:CESR]], it MUST be encoded as a CESR primitive and enclosed in the non-native message group -H## (or -0H#####). TSP uses the Bytes primitive (4B/5B/6B, chosen by length for lead-byte alignment) in the binary domain to carry the serialization bytes.
 
 A payload may contain one or more such -H## groups in sequence, alongside native CESR — for example a JSON object followed by a CBOR map. This sequencing is the interleaving.
 
 ```text
--A## | -0A#####, ( -H## | -0H#### (4B|5B|6B)## <serialization bytes> ) + [and/or native CESR]
+-A## | -0A#####, ( -H## | -0H##### (4B|5B|6B)## <serialization bytes> ) + [and/or native CESR]
 ```
 
 (A byte-accurate worked example will be added with the test vectors.)
