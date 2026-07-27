@@ -643,9 +643,9 @@ Endpoints in such a group MAY also use Nested Mode and Routed Mode as they wish 
 
 Each TSP message is duplicated and individually encrypted (if confidential) over each relationship.
 
-The group membership management mechanism MAY be implemented using third party relationship referral. For example, if `endpoint_0` has one existing individual relationship with each other member `endpoint_i, i = 1..K-1`, then `endpoint_0` may use those relationships to help establish relationships `(endpoint_i, endpoint_j), i, j in range of 1..K-1, i != j`.
+The group membership management mechanism MAY be implemented using TSP relationships themselves as an introduction mechanism. For example, if `endpoint_0` has an existing relationship with each other member `endpoint_i, i = 1..K-1`, it may use those relationships to introduce the members to each other, so that they can establish relationships `(endpoint_i, endpoint_j), i, j in range of 1..K-1, i != j`.
 
-Please refer to [Section 7](#control-messages) for details of relationship referral control messages.
+See [Section 3.7](#out-of-band-introductions).
 
 ### Anycast Intermediary
 
