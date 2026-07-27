@@ -197,22 +197,19 @@ An endpoint that needs to change a private VID MAY establishe a new one rather t
 
 ### Examples
 
-::: issue #5
-This section should include a list of example [[ref: Verifiable Identifiers]]. The list may include: KERI AID, `did:webs`, `did:x509`, `did:peer` for private use, and one or two examples based on a public blockchain. For each example, information discussions can provide recommendations on how the required primitives may be implemented.
-https://github.com/trustoverip/tswg-tsp-specification/issues/5
-:::
+The following are examples of identifier types suitable for use as VIDs. They are informative and neither exhaustive nor privileged.
 
-- KERI AID
+- KERI AID: An Autonomic Identifier (AID) is self-certifying: it is derived from its own inception key state, and its key event log records every subsequent change. Rotation and pre-rotation are native to the log, which provides the verifiable provenance of the current key state from inception. An AID supports multiple signing keys with weighted signing thresholds. An AID is not a DID; it is used directly, and is also the basis of the `did:webs` and `did:webvh` methods below. See [[spec-inform:KERI]].
 
+- `did:webs`: Binds a KERI AID to a web-published DID document. Discovery and transport addresses come from the web location; key state, rotation, and provenance continue to be verified against the AID's key event log. See [[spec-inform:DID-WEBS]].
 
-- `did:webs`
+- `did:webvh`: A web-published DID whose key state is verified against a verifiable history log. The log records rotations together with pre-rotation commitments, allowing a verifier to establish the key state at a point in the identifier's history. When it is used as a VID, the key rotation and pre-rotation features must be supported. See See [[spec-inform:DID-WEBVH]].
 
+- `did:peer`: A pairwise identifier requiring no public infrastructure, generated and exchanged directly between two endpoints. It is intended for private use in nested relationships, and does not meet the requirements for public VIDs. *Numalgo 4* is suitable: its short form is a digest over the DID document, exchanged once in long form and referenced thereafter. See [[spec-inform:DID-PEER]] and [[spec-inform:DID-PEER-4]].
 
-- `did:x509`
+- `urn:said`: A Self-Addressing Identifier is a digest over the document that contains it, expressed as a URN. Verification consists of recomputing the digest over the identified document. A `urn:said` may identify a document held in an authoritative store rather than a decentralized one, which makes it an example of a VID that is verifiable without being decentralized. See [[spec-inform:SAID-URN]].
 
-
-- `did:peer` for private use
-
+Several of these are constructed the same way: an AID, a SAID, and the short form of a did:peer:4 are each derived as a digest over the content or key state they identify, and each is - at least in part - verified by recomputing that digest. The identifier syntax differs; the construct does not.
 
 ## Messages
 
@@ -1499,6 +1496,24 @@ https://github.com/trustoverip/tswg-tsp-specification/issues/13
 
 ### Informational References
 [[spec-inform]]
+
+[KERI]. Key Event Receipt Infrastructure (KERI), Trust over IP Foundation.
+[KERI]: https://trustoverip.github.io/kswg-keri-specification/
+
+[SAID-URN]. Namespace Registration for Self-Addressing Identifiers (SAID), IANA, urn:said, 2026.
+[SAID-URN]: https://www.iana.org/assignments/urn-formal/said
+
+[DID-WEBS]. did:webs Method Specification, Trust over IP Foundation.
+[DID-WEBS]: https://trustoverip.github.io/kswg-did-method-webs-specification/
+
+[DID-WEBVH]. did:webvh Method Specification v1.0, Decentralized Identity Foundation.
+[DID-WEBVH]: https://identity.foundation/didwebvh/v1.0/
+
+[DID-PEER]. Peer DID Method Specification, Decentralized Identity Foundation.
+[DID-PEER]: https://identity.foundation/peer-did-method-spec/
+
+[DID-PEER-4]. DID Peer Numalgo 4, Decentralized Identity Foundation.
+[DID-PEER-4]: https://github.com/decentralized-identity/did-peer-4
 
 [ESSR]. Authenticated Encryption in the Public-Key Setting: Security Notations and Analyses, *Jee Hea An*, Cryptology ePrint Archive, Paper 2001/079.
 [ESSR]: https://eprint.iacr.org/2001/079
