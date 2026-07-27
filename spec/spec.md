@@ -289,7 +289,7 @@ A [[ref: TSP relationship]] is a pairing `<VID_a, VID_b>` of two VIDs controlled
 
 An endpoint is able to obtain (or create) one or more VIDs possibly through the service of their respective [[ref: Support Systems]]. Let us say `VID_a` is one such VID for endpoint `A`. As a convention, we will use a lower case letter, such as `a`, to indicate that `VID_a` is controlled by the endpoint named with the corresponding upper case letter, say `A`. Details of VID management for any particular VID type is out of scope for this specification but an endpoint will need to implement necessary support for all of the VID types it supports.
 
-Endpoint `A` learns a `VID_b` of endpoint `B` via either [Out of Band Introduction](#out-of-band-introductions) or other TSP [Relationship Formation Protocol](#relationship-formation-protocol). At this point, endpoint `A` chooses `VID_a` and performs necessary verification and appraisal operations on `VID_b` with respect to `VID_a`. If this verification is successful, endpoint `A` may add a relationship `<VID_a, VID_b>` to its relationship table.
+Endpoint `A` learns a `VID_b` of endpoint `B` via either [Out of Band Introduction](#out-of-band-introductions) or other TSP [Relationship Forming Protocol](#relationship-forming-protocol). At this point, endpoint `A` chooses `VID_a` and performs necessary verification and appraisal operations on `VID_b` with respect to `VID_a`. If this verification is successful, endpoint `A` may add a relationship `<VID_a, VID_b>` to its relationship table.
 
 Afterwards, endpoint `A` may resolve `VID_b` to obtain a transport layer address for delivery of a TSP message with `VID_a` as the sender `VID_sndr` and `VID_b` as the receiver `VID_rcvr`.
 
@@ -1145,7 +1145,7 @@ The overall higher layer payload is as follows:
 ``` text
 -Z## | -0Z#####, XSCS, VID_sndr, Padding_field, -A## | -0A#####, higher-layer-interleaved-payload-stream
 ```
-where, ## or #### stands for a 2 or 4, respectively, character code of the length of the payload. All counts start immediately after the count code, not including the count code itself. The encoding of `VID_sndr` is specified in [VID Envelope Encoding](#vid-envelope-encoding). The encoding of the padding field is specified in [Padding Field](#padding-field).
+where, ## or #### stands for a 2 or 4, respectively, character code of the length of the payload. All counts start immediately after the count code, not including the count code itself. The encoding of `VID_sndr` is specified in [TSP Envelope Encoding](#tsp-envelope-encoding). The encoding of the padding field is specified in [Padding Field](#padding-field).
 
 #### Padding Field
 
@@ -1301,7 +1301,7 @@ The TSP_RFI payload is specified in [Direct Relationship Forming](#direct-relati
 ```text
 -Z## | -0Z#####, XRFI, VID_sndr, Digest, Nonce, `4BAA`, Padding_field
 ```
-where `4BAA` is an empty VID. This VID is `4BAA` to indicate that we are *not* signaling a *new* VID from an existing relationship. For the latter case, please see [TSP_RFI in Referral](#tsp_rfi_in_referral).
+where `4BAA` is an empty VID. This VID is `4BAA` to indicate that we are *not* signaling a *new* VID from an existing relationship. For the latter case, please see [TSP_RFI in Referral](#tsp_rfi-in-referral).
 
 ##### TSP_RFA
 
