@@ -179,10 +179,13 @@ For any VID designated for nested use, while the same verification procedure req
 
 #### Handling Changes
 
-::: issue #4
-TODO
-https://github.com/trustoverip/tswg-tsp-specification/issues/4
-:::
+A VID's key state may change over time. Most VID types support key rotation, and many support pre-rotation, where a commitment to the next key is published in advance. The mechanism, and the means of verifying a change, are VID type specific — for example a did:webvh verifiable log, or a KERI key event log.
+
+An assessing endpoint therefore treats a resolved VID as valid over a `window` of key state rather than as a fixed value. Rotation advances that window. An endpoint that has cached a resolved VID SHOULD re-resolve it when a signature fails to verify, since the peer may have rotated its keys, and MUST NOT treat a stale cached key state as authoritative.
+
+Because the resolution and verification of key state is VID type specific, TSP does not define a rotation mechanism of its own. TSP requires only that the VID type provides `VID.VERIFY` and the key mappings in [Mapping VID to Keys](#mapping-vid-to-keys) for the current key state.
+
+Note that rotating the keys of a VID is distinct from replacing one VID with another. Key rotation preserves the identifier, and therefore preserves existing relationships. Introducing a new VID is a separate operation, described in [Control Messages](#control-messages).
 
 ### Examples
 
