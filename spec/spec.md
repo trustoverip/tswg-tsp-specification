@@ -1437,7 +1437,7 @@ The input to this operation is the TSP relationship and a TSP message.
 
 - `TSP_TRANSPORT_EVENT`: called by the transport layer to report events to the TSP layer, e.g. errors. The input to this operation is the relationship and respective event information data structure.
 
-For each transport mechanism supported, TSP implementations MUST instantiate these operations in a way that facilitates interoperability.
+For each transport mechanism supported, TSP implementations instantiate these operations in a way that facilitates interoperability.
 
 ### Transport Mechanism Examples
 
