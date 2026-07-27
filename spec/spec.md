@@ -908,15 +908,6 @@ Key rotation is TBD - define out-of-band only.
 https://github.com/trustoverip/tswg-tsp-specification/issues/7
 :::
 
-#### Route Info
-
-An Intermediary MAY send a TSP message to either another Intermediary or an endpoint to report route related information that MAY be useful for diagnoses or other legitimate purposes.
-
-::: issue #8
-TODO
-https://github.com/trustoverip/tswg-tsp-specification/issues/8
-:::
-
 ## Cryptographic Algorithms
 
 TSP utilizes VIDs that are strongly bound to public-key pairs. The authenticity and confidentiality properties of TSP rely on public-key signature and encryption schemes based on public-key cryptography. In this section, we specify the supported cryptographic schemes and how they combine together as a TSP crypto suite. The choices we make here reflect our priorities to:
