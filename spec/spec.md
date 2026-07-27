@@ -1398,7 +1398,7 @@ The TSP Signature is encoded as an attachment group in CESR. TSP allows multiple
 
 #### Ed25519 Signature
 
-An Ed25519 (EdDSA) signature is always 64 bytes. It is identified by the two character code `0B`, followed by 2 padding bytes (in binary) and the 64 byte signature (in binary). The equivalent text format is 22 triplets.
+An Ed25519 (EdDSA) signature is always 64 bytes. Within the indexed signature group it is encoded with the code `B#` — the character B identifying an Ed25519 indexed signature, followed by one Base64 character giving the index of the signing key in the VID's key list — then 2 lead bytes and the 64-byte signature in binary. The full primitive is 88 characters in the text domain (66 bytes in binary), i.e. 22 triplets.
 
 #### ML-DSA-65 Signature
 
