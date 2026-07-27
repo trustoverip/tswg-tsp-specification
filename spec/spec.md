@@ -165,9 +165,9 @@ VIDs MUST support operations by the controlling endpoint to map a VID of its own
 VIDs MUST support operations by an assessing endpoint to map a VID of another endpoint to keys required by TSP.
 - Mapping to the public key used by VID verification: `VID.PK_s`.
 - Mapping to the public key used by PKAE: `VID.PK_e`.
-- Mapping to the public key used by signature verification: `VID.PK_s`.
+- Mapping to the public key or keys used by signature verification: `VID.PK_s`, or `VID.PK_s_i`, i = 1..K.
 
-Implementation of these mapping operations is VID type specific.
+Implementation of these mapping operations is VID type specific. When a VID has multiple signing keys, their order and the number of valid signatures required are determined by the VID type.
 
 #### Verification
 VIDs MUST support an operation by an assessing endpoint to verify a VID of another endpoint: 
