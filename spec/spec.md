@@ -139,6 +139,12 @@ VIDs are considered to be in *nested* use when their usage is protected within a
 ### VID General Requirements
 This section specifies general expections TSP requires VIDs to meet. TSP uses VID as an abstract data type that must support a set of abstract operations. This section lists these operations in a format like `VID.OPERATION`.
 
+A VID intended for public use MUST support key rotation, and MUST support verification of the provenance of its key state — that is, an assessing endpoint must be able to establish that the current key state derives from the identifier's inception through a verifiable sequence of changes. Pre-rotation, in which a commitment to the next key is published in advance, is a common mechanism for providing this property, but may not be the only mechanism.
+
+A VID intended for private use between endpoints that already have an established TSP relationship need not meet these requirements. Such VIDs are verified within the existing relationship rather than by public resolution, and MAY be simple and static; an endpoint that wishes to change such a VID discards it and establishes a new one.
+
+TSP requires that a VID be verifiable; it does not require that it be implemented in a specific decentralized, centralized or federated ways.
+
 #### Cryptographic Non-Correlation
 
 An endpoint can control multiple VIDs simultaneously and over extended periods. It is imperative that these VIDs are cryptographically non-correlatable in an information-theoretic security context, meaning the knowledge of one VID does not reveal any information about another.
@@ -186,6 +192,8 @@ An assessing endpoint therefore treats a resolved VID as valid over a `window` o
 Because the resolution and verification of key state is VID type specific, TSP does not define a rotation mechanism of its own. TSP requires only that the VID type provides `VID.VERIFY` and the key mappings in [Mapping VID to Keys](#mapping-vid-to-keys) for the current key state.
 
 Note that rotating the keys of a VID is distinct from replacing one VID with another. Key rotation preserves the identifier, and therefore preserves existing relationships. Introducing a new VID is a separate operation, described in [Control Messages](#control-messages).
+
+An endpoint that needs to change a private VID MAY establishe a new one rather than rotating its keys; this is also preferable for unlinkability.
 
 ### Examples
 
