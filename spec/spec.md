@@ -355,6 +355,8 @@ If endpoint `B` receives a TSP message of the generic form `{... VID_sndr, VID_r
 - Step 8: Process the rest of the control fields.
 - Step 9: Return the payload to the upper layer application.
 
+CESR primitives are canonically encoded: lead bytes and pad bits are zero. A receiver MUST reject a message containing a primitive whose pad bits are non-zero. Because TSP digests and signatures are computed over exact encoded bytes, accepting a non-canonical encoding would admit distinct byte sequences for the same value.
+
 ### Out of Band Introductions
 
 Before an endpoint `A` can send the first TSP message to another endpoint `B` it must somehow discover at least one VID that belongs to `B`. If A also wishes to utilize Routed Mode, as specified in [Section 5](#routed-messages-through-intermediaries), then additional VIDs may also be needed before the first TSP routed message can be sent. We call any such method that helps the endpoints discover such prerequisite information an [[ref:Out of Band Introduction]]. There may be many such OOBI methods. Detailed specifications of OOBI methods are out of scope for this specification.
