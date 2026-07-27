@@ -1441,23 +1441,31 @@ For each transport mechanism supported, TSP implementations instantiate these op
 
 ### Transport Mechanism Examples
 
-::: issue #11
-Decide what to include as examples. For each, complete a short section.
-https://github.com/trustoverip/tswg-tsp-specification/issues/11
-:::
-
-- QUIC
+These examples are for illustration only. Detailed bindings for specific transports are to be specified in companion documents for implementation guidelines elsewhere.
 
 - HTTPS
 
+A TSP message can be carried as an HTTP request body to the endpoint resolved from the receiver's VID. Responses, or a long-lived stream such as Server-Sent Events or a WebSocket, carry messages in the return direction. This is the common choice where endpoints are reachable as web services.
+
+- QUIC
+
+A TSP message can be sent as a stream or datagram payload. QUIC provides its own framing, so message boundaries are preserved. Its connection setup maps to TSP_TRANSPORT_SETUP, and its built-in encryption is independent of TSP's own.
+
 - Matrix
+
+A TSP message can be carried as the content of a Matrix event in a room shared by the endpoints. Matrix's own federation and store-and-forward handle delivery.
 
 - Message Queues
 
+A TSP message can be a queue message; the receiver's VID resolves to a queue or topic. Suited to asynchronous and intermittently connected endpoints.
+
 - Email
+
+A TSP message can be carried as a message body or attachment, in text form where a binary attachment is inconvenient. Delivery is store-and-forward with no timeliness guarantee, which suits applications tolerant of long delays.
 
 - Paper Messages
 
+A TSP message can be printed, for example as a QR code, and transferred physically. This illustrates that the properties of the TSP message are carried by the message itself.
 
 
 ## Security and Privacy Considerations
