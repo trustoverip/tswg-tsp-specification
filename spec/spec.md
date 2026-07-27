@@ -657,7 +657,7 @@ This section specifies control payload fields that are required for the proper f
 
 For either Direct Mode or Routed Mode endpoint-to-endpoint relationships, Authentic and Confidential (AAC) messages defined in [Section 3.5.1](#authentic-and-confidential-aac-messages) SHOULD be used with control data being carried in the confidential payload fields.
 
-Both the control and data sections of the payload are extendable. While we define the necessary TSP control fields here, higher layers have the flexibility to expand upon them. This structure ensures a standardized approach for the essential components of the message while allowing adaptability for specific use cases or additional requirements at the higher layer. 
+TSP defines a set of payload types. TSP payload type codes are allocated only by this specification, in coordination with [[ref:CESR]]. Higher layers define their own content within the XSCS (data) and XCTL (control) payloads, which TSP carries opaquely. This structure ensures a standardized approach for the essential components of the message while allowing adaptability for specific use cases or additional requirements at the higher layer. 
 
 ### Relationship Forming Protocol
 #### TSP Digest
@@ -1379,7 +1379,7 @@ For nested or routed relationships, the same message is encoded as an inner mess
 A TSP generic control message uses the `XCTL` code in the CESR code table and its payload can be any comformant stream, including interleaving JSON, CBOR, or MsgPak encodings.
 
 ```text
--Z## | -0Z####, XCTL, VID_sndr, Padding_field, any_payload_stream
+-Z## | -0Z####, XCTL, VID_sndr, Padding_field, -A## | -0A####, higher-layer-interleaved-payload-stream
 ```
 ##### Padding Message
 
