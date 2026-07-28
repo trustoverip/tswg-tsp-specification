@@ -1402,7 +1402,11 @@ An Ed25519 (EdDSA) signature is always 64 bytes. Within the indexed signature gr
 
 #### ML-DSA-65 Signature
 
-An ML-DSA-65 signature is always 3309 bytes. It is identified by the CESR code ⟨TBD — confirm with CESR code table⟩, followed by the 3309-byte signature in binary. As 3309 is a multiple of 3, no lead-pad bytes are required. The equivalent text format is 1103 triplets.
+An ML-DSA-65 signature is always 3309 bytes. It is identified by the CESR code `1AAQ`, followed by the 3309-byte signature in binary. As 3309 is a multiple of 3, no lead-pad bytes are required. The equivalent text format is 1103 triplets. The full primitive is 4416 characters in the text domain.
+
+::: note
+The code point 1AAQ is provisional. It is the next available code in the CESR master code table for genus -_AAACAA and does not conflict with any currently assigned code, but it has not yet been formally registered. See CESR issue #14.
+:::
 
 ## Transports
 The TSP messages are mostly agnostic to transport mechanisms which deliver them from a sender to a receiver endpoint. The authenticity, confidentiality, and privacy properties of the TSP messages are designed to be independent of the choice of transport layer. This is one of the main goals of TSP. That being said, it does not mean that the choice and implementation of transport mechanisms are not important to the proper functioning of TSP. In this section, we describe a generic service interface between TSP and the transport layer, and provide guidance on some aspects of how various transport mechanisms can be used to carry TSP messages.
