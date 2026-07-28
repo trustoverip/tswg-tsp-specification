@@ -806,7 +806,7 @@ Payload fields:
 The VID `VID_a1` used in the nested relationship MAY be a *private* VID, for example `did:peer`. With the use of such private VID, the receiver can verify it using its self-contained information without accessing an external [[ref: Support System]]. 
 
 ::: note
-Do we want to keep an option to provide verification information in the TSP_RFI itself?
+Verification information for a private VID is often carried in the TSP_RFI itself. For example, the long form of `did:peer:4` embeds the DID document in the identifier, and `VID_new` is accompanied by its own signature.
 :::
 
 Endpoint `B` replies to `A` the following message if it chooses: 
