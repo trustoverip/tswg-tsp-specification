@@ -278,7 +278,7 @@ TSP_Payload_Ciphertext = TSP_SEAL(TSP_Payload)
 
 The details of the supported PKAE schemes for the `TSP_SEAL` operation are specified in Section [Cryptographic Algorithms](#cryptographic-algorithms).
 
-For PKAE schemes *HPKE-Base* ([[ref:hpke]]) and *libsodium Sealed Box* ([[ref:libsodium]]), the `VID_sndr` MUST appear as a confidential payload field following the ESSR ([[ref:ESSR]]) scheme. See [Section 8](#cryptographic-algorithms) for the details.
+For PKAE schemes *HPKE-Base* ([[ref:HPKE]]) and *libsodium Sealed Box* ([[ref:libsodium]]), the `VID_sndr` MUST appear as a confidential payload field following the ESSR ([[ref:ESSR]]) scheme. See [Section 8](#cryptographic-algorithms) for the details.
 
 On the receiving side, the corresponding TSP primitive is `TSP_OPEN`.
 
@@ -680,7 +680,7 @@ For the message that contains it, its TSP_Digest is computed over the binary ser
 
  - The -E## framing tag and the Padding_field are excluded from the computation.
  - During derivation, the digest field's own slot is filled with the dummy byte 0x23 over its full length (e.g. 33 bytes for a 256-bit digest), then the digest is computed and its CESR-encoded value replaces the dummy.
- - The hash function is identified by the digest's own CESR derivation code (e.g. I = SHA2-256, F = Blake2b-256), from [[ref:Secure-Hash-and-Digest-Functions]].
+ - The hash function is identified by the digest's own CESR derivation code (e.g. I = SHA2-256, F = Blake2b-256), from [Secure Hash and Digest Functions](#secure-hash-and-digest-functions).
  - In a nested message, "the message" means the innermost message that carries the digest, not any outer routing envelope. A digest that is echoed from a prior message (e.g. the Digest copied into a TSP_RFA) is copied verbatim, not recomputed. Verification reverses the derivation.
 
 Note that the SAID calculation for TSP messages is in binary domain, so is its result used.
@@ -943,7 +943,7 @@ This implementor's draft only specifies one signature scheme at the moment. Futu
 
 #### Post-Quantum Signatures
 
-TSP supports post-quantum digital signatures using ML-DSA-65 (Module-Lattice-Based Digital Signature Algorithm, security category 3), as defined in [[FIPS204]] (also known as CRYSTALS-Dilithium). An endpoint uses ML-DSA-65 or Ed25519 according to the signature key type of its VID. The signature encoding is specified in [[ref:ML-DSA-65-Signature]].
+TSP supports post-quantum digital signatures using ML-DSA-65 (Module-Lattice-Based Digital Signature Algorithm, security category 3), as defined in [[FIPS204]] (also known as CRYSTALS-Dilithium). An endpoint uses ML-DSA-65 or Ed25519 according to the signature key type of its VID. The signature encoding is specified in [ML-DSA-65 Signature](#ml-dsa-65-signature).
 
 ### Public-Key Authenticated Encryption
 
@@ -962,7 +962,7 @@ This section specifies all PKAE schemes that TSP implementations MUST or optiona
 
 #### Hybrid Public Key Encryption (HPKE) 
 
-HPKE is a draft standard defined in IETF [[ref:hpke]] which formalizes and generalizes similar schemes and implementations that support encryption of messages for a receiver with a public-private key pair. [[ref:hpke]] defines a framework from which we specify a subset of concrete configuration to best meet TSP requirements. HPKE uses modern cryptographic algorithms and has been studied with proofs of IND-CCA2 security. The HPKE base mode does not use sender authentication in the HPKE itself. The algorithms in a HPKE suite are KEM (Key Exchange Mechanism), KDF (Key Derivation Function), and AEAD (Authenticated Encryption with Associated Data function). Schemes that follow [[ref:hpke]] have seen adoption in Messaging Layer Security [[spec-inform:RFC9420]] and TLS Encrypted ClientHello [[spec-inform:RFC9849]].
+HPKE is a draft standard defined in IETF [[ref:HPKE]] which formalizes and generalizes similar schemes and implementations that support encryption of messages for a receiver with a public-private key pair. [[ref:HPKE]] defines a framework from which we specify a subset of concrete configuration to best meet TSP requirements. HPKE uses modern cryptographic algorithms and has been studied with proofs of IND-CCA2 security. The HPKE base mode does not use sender authentication in the HPKE itself. The algorithms in a HPKE suite are KEM (Key Exchange Mechanism), KDF (Key Derivation Function), and AEAD (Authenticated Encryption with Associated Data function). Schemes that follow [[ref:HPKE]] have seen adoption in Messaging Layer Security [[spec-inform:RFC9420]] and TLS Encrypted ClientHello [[spec-inform:RFC9849]].
 
 TSP implementations MUST support HPKE-Base mode as defined in this document.
 
@@ -983,7 +983,7 @@ A VID's encryption key type selects the KEM; the KDF and AEAD are the same in bo
 
 The HPKE-Base mode does not include the authentication mechanism allowing the receiver to verify that the sender possessed a given KEM private key `VID_sndr.SK_e`. Leaving this verification out is intentional choice because TSP has `VID_sndr` in the encrypted payload ciphertext and a separate signature for sender authentication.
 
-In the HPKE-Base mode, for a TSP message that uses a confidential payload, the ciphertext MUST be generated by the HPKE-Base single-shot API defined in [[ref:hpke]] as follows:
+In the HPKE-Base mode, for a TSP message that uses a confidential payload, the ciphertext MUST be generated by the HPKE-Base single-shot API defined in [[ref:HPKE]] as follows:
 
 ``` text
 def TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Plaintext):
@@ -1228,7 +1228,7 @@ enc, ct = SealBase(pkR, info, aad, pt)
 return CONCAT(enc, ct)
 ```
 
-The `enc` is defined by HPKE [[ref:hpke]] which contains identifiers for KEM, KDF and AEAD functions and a bytestring for the encapsulated key.
+The `enc` is defined by HPKE [[ref:HPKE]] which contains identifiers for KEM, KDF and AEAD functions and a bytestring for the encapsulated key.
 
 Name | Data Type | Value Registry | Description
 ----:|----:|--------:|--------:
@@ -1245,7 +1245,7 @@ KDF | 0x0001 | HKDF-SHA256
 AEAD | 0x0003 | ChaCha20Poly1305
 
 ::: note
-`SHA256` should be read as `SHA2-256`. The HPKE [[ref:hpke]] and many other specifications still use `SHA256` to mean `SHA2-256`.
+`SHA256` should be read as `SHA2-256`. The HPKE [[ref:HPKE]] and many other specifications still use `SHA256` to mean `SHA2-256`.
 :::
 
 ::: note
@@ -1479,7 +1479,7 @@ https://github.com/trustoverip/tswg-tsp-specification/issues/12
 
 ### Normative References
 
-**[[def::DID]]**. Decentralized Identifiers (DIDs) v1.0, https://www.w3.org/TR/did-1.0/
+**[[def:DID]]**. Decentralized Identifiers (DIDs) v1.0, https://www.w3.org/TR/did-1.0/
 
 **[[def:CESR]]**. *Composable Event Streaming Representation (CESR)*, v1.1, Samuel Smith, Philip Feairheller,
 , https://trustoverip.github.io/kswg-cesr-specification/.
