@@ -1094,13 +1094,9 @@ All TSP implementations MUST support the following secure hash and digest functi
 
 ## Serialization and Encoding
 
-TSP uses CESR [[ref:CESR]] (master code table for `--AAACAA`) for message serialization and encoding. The TSP payload however may have data encoded in other formats including CBOR, JSON, and MsgPak that are compatible formats to interleave within CESR streams.
+TSP uses CESR [[ref:CESR]] (master code table for `-_AAACAA`) for message serialization and encoding. The TSP payload however may have data encoded in other formats including CBOR, JSON, and MsgPak that are compatible formats to interleave within CESR streams.
 
-This version of TSP uses CESR version (2.Y.Z) and CESR code table (A.B.C). As the specifications of TSP, CESR and CESR code table may evolve not fully synchronized, we will increment the TSP version (MINOR version number, for instance) to reflect code table changes and keep track of the mapping.
-
-::: note
-Need to replace 2.Y.Z and A.B.C once the numerings are finalized in CESR.
-:::
+This version of TSP uses the CESR code table at genus AAA, Version 2.00, identified by the genus/version code `-_AAACAA`. As the specifications of TSP, CESR, and the CESR code table may evolve without being fully synchronized, we will increment the TSP version (the MINOR version number, for instance) to reflect code table changes and keep track of the mapping.
 
 In this section, we describe the relevant CESR codes used in TSP.
 
@@ -1133,7 +1129,7 @@ Object | Description | Code | Note
 TSP Payload | short or long TSP payload | `-Z##` or `-0Z#####` | Use `-Z##` for payloads up to 4095 quadlets/triplets, `-0Z#####` for up to 1,073,741,823 quadlets/triplets
 
 #### Payload Field Types
-Following the Payload Tag is a number of payload fields. Each field is encoded with a payload type and additional data depending on the type. The top level TSP payload field types consist of the following CESR codes using the three character code table starting with `X` as defined in CESR [[ref:CESR]] version 2.0 (master code table for `--AAACAA`).
+Following the Payload Tag is a number of payload fields. Each field is encoded with a payload type and additional data depending on the type. The top level TSP payload field types consist of the following CESR codes using the three character code table starting with `X` as defined in CESR [[ref:CESR]] version 2.0 (master code table for `-_AAACAA`).
 
 Object | Description | Code | Note
 ----:|----:|--------:|--------:
