@@ -937,10 +937,6 @@ Ed25519 supports a stronger sense of unforgeability, namely SUF-CMA (Strong UnFo
 
 TSP implementations MUST support Ed25519.
 
-::: note
-This implementor's draft only specifies one signature scheme at the moment. Future drafts will add additional signature schemes.
-:::
-
 #### Post-Quantum Signatures
 
 TSP supports post-quantum digital signatures using ML-DSA-65 (Module-Lattice-Based Digital Signature Algorithm, security category 3), as defined in [[FIPS204]] (also known as CRYSTALS-Dilithium). An endpoint uses ML-DSA-65 or Ed25519 according to the signature key type of its VID. The signature encoding is specified in [ML-DSA-65 Signature](#ml-dsa-65-signature).
@@ -1237,6 +1233,7 @@ The ID values that MUST be supported by TSP:
 Primitive | Code | Description
 ----:|----:|--------:
 KEM | 0x0020 | DHKEM(X25519, HKDF-SHA256)
+KEM | 0x647a | X25519MLKEM768 (PQ/T hybrid)
 KDF | 0x0001 | HKDF-SHA256
 AEAD | 0x0003 | ChaCha20Poly1305
 
@@ -1244,25 +1241,13 @@ AEAD | 0x0003 | ChaCha20Poly1305
 `SHA256` should be read as `SHA2-256`. The HPKE [[ref:HPKE]] and many other specifications still use `SHA256` to mean `SHA2-256`.
 :::
 
-::: note
-This implementor's draft only specify a single configuration as above. Additional configurations will be added in the future.
-:::
-
-Example:
-``` text
-Todo
-```
 ##### HPKE PQ and PQ/T Encoding
 
-The post-quantum ciphertext uses the same encoding as HPKE-Base — the 4F/5F/6F/7AAF/8AAF/9AAF codes. There is no separate post-quantum ciphertext code. The KEM (and hence the size of the encapsulated key enc) is determined by the recipient VID's key type, so the receiver knows how to split enc ‖ ct.
+The post-quantum ciphertext uses the same encoding as HPKE-Base — the `4F/5F/6F/7AAF/8AAF/9AAF` codes. There is no separate post-quantum ciphertext code. The KEM (and hence the size of the encapsulated key `enc`) is determined by the recipient VID's key type, so the receiver knows how to split `CONCAT(enc, ct)`.
 
 ##### Libsodium Sealed Box Encoding
 See [[ref:CESR]] on X25519 Sealed Box cipher bytes encoding.
 
-Example:
-``` text
-Todo
-```
 #### Interleaved JSON, CBOR or MsgPak Payload
 Conformant TSP implementations MUST support the interleaving scheme in [[ref:CESR]] which allows interleaved payloads encoded in JSON, CBOR or MsgPak in addition to native CESR.
 Because TSP supports nesting, this interleaving of different encoding methods may occur in the payload field of any nesting level.
