@@ -909,11 +909,11 @@ Note that an upper layer protocol may send their own similar messages without no
 
 #### Key Update
 
-Key rotation for a VID is performed out of band, by the mechanisms of the VID type, as described in [Handling Changes](#handling-changes). TSP defines no control message for key rotation.
+Key rotation for a VID is performed out of band, by the mechanisms of the VID type, as described in [Handling Changes](#handling-changes). TSP defines no control message for key rotation: any such message would have to be authenticated by the very key state whose change it announces, and the receiving endpoint would still have to confirm the change against the VID's provenance chain.
 
 A relationship in TSP is a pair of VIDs, not a pair of keys. Rotating the keys of a VID therefore does not directly affect any relationship in which it participates: the relationship, its thread identifier, and any nested relationships within it are unchanged. An endpoint does not need to notify its peers of a rotation within TSP, and does not need to re-establish relationships after one.
 
-An endpoint that fails to verify a message from a peer SHOULD re-resolve the peer's VID and retry the verification once before discarding the message, as the failure may be the result of a rotation the endpoint has not yet observed.
+An endpoint holds a peer's resolved key state as a cached value; the authoritative source is the VID's provenance chain. An endpoint that fails to verify a message from a peer SHOULD re-resolve the peer's VID and retry the verification once before discarding the message, as the failure may be the result of a rotation the endpoint has not yet observed. And it SHOULD re-resolve before acting on a message that arrives after a silence longer than its *re-verification threshold*. This threshold is a local policy choice. The second case is the one that matters under compromise: stale key state is internally consistent, so a message signed with a compromised key verifies and gives no warning — but the attacker must send a message to exploit it, and that message is itself a trigger for re-resolution that will update the key state.
 
 An endpoint that rotates its keys because they may have been compromised should be aware that peers holding a stale key state may continue to accept messages signed with the old key until they re-resolve. The timeliness of that re-resolution is a property of the VID type and the endpoint's caching policy. TSP endpoints of course can always re-establish any suspect relationship using other un-compromised relationships.
 
