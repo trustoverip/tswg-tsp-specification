@@ -49,7 +49,7 @@ Beyond offering enhanced trust properties when compared to previous solutions an
 
 TSP messages can traverse various transport mechanisms without making prior assumptions about their trustworthiness although users may opt for specific underlying transport protocols for TSP based on various factors such as additional operational or security considerations. TSP messages can be transported directly between endpoints (Direct Mode) or routed via intermediaries (Routed Mode). We first describe the Direct Mode in [Section 3](#messages), followed by the routing mechanism in [Section 5](#routed-messages-through-intermediaries).
 
-TSP stands as the spanning layer protocol within the Trust over IP technology architecture [spec-inform[form:TOIP-TAS]]. It occupies a pivotal role, facilitating the twin goals of robust trustworthiness and universal interoperability across the Trust over IP stack. For additional details on the reference architecture, please see [Section 1.2](#reference-architecture).
+TSP stands as the spanning layer protocol within the Trust over IP technology architecture [[ref:TOIP-TAS]]. It occupies a pivotal role, facilitating the twin goals of robust trustworthiness and universal interoperability across the Trust over IP stack. For additional details on the reference architecture, please see [Section 1.2](#reference-architecture).
 
 ### Terminology
 
@@ -199,15 +199,15 @@ An endpoint that needs to change a private VID MAY establishe a new one rather t
 
 The following are examples of identifier types suitable for use as VIDs. They are informative and neither exhaustive nor privileged.
 
-- KERI AID: An Autonomic Identifier (AID) is self-certifying: it is derived from its own inception key state, and its key event log records every subsequent change. Rotation and pre-rotation are native to the log, which provides the verifiable provenance of the current key state from inception. An AID supports multiple signing keys with weighted signing thresholds. An AID is not a DID; it is used directly, and is also the basis of the `did:webs` and `did:webvh` methods below. See [[spec-inform:KERI]].
+- KERI AID: An Autonomic Identifier (AID) is self-certifying: it is derived from its own inception key state, and its key event log records every subsequent change. Rotation and pre-rotation are native to the log, which provides the verifiable provenance of the current key state from inception. An AID supports multiple signing keys with weighted signing thresholds. An AID is not a DID; it is used directly, and is also the basis of the `did:webs` and `did:webvh` methods below. See [[ref:KERI]].
 
-- `did:webs`: Binds a KERI AID to a web-published DID document. Discovery and transport addresses come from the web location; key state, rotation, and provenance continue to be verified against the AID's key event log. See [[spec-inform:DID-WEBS]].
+- `did:webs`: Binds a KERI AID to a web-published DID document. Discovery and transport addresses come from the web location; key state, rotation, and provenance continue to be verified against the AID's key event log. See [[ref:DID-WEBS]].
 
-- `did:webvh`: A web-published DID whose key state is verified against a verifiable history log. The log records rotations together with pre-rotation commitments, allowing a verifier to establish the key state at a point in the identifier's history. When it is used as a VID, the key rotation and pre-rotation features must be supported. See See [[spec-inform:DID-WEBVH]].
+- `did:webvh`: A web-published DID whose key state is verified against a verifiable history log. The log records rotations together with pre-rotation commitments, allowing a verifier to establish the key state at a point in the identifier's history. When it is used as a VID, the key rotation and pre-rotation features must be supported. See See [[ref:DID-WEBVH]].
 
-- `did:peer`: A pairwise identifier requiring no public infrastructure, generated and exchanged directly between two endpoints. It is intended for private use in nested relationships, and does not meet the requirements for public VIDs. *Numalgo 4* is suitable: its short form is a digest over the DID document, exchanged once in long form and referenced thereafter. See [[spec-inform:DID-PEER]] and [[spec-inform:DID-PEER-4]].
+- `did:peer`: A pairwise identifier requiring no public infrastructure, generated and exchanged directly between two endpoints. It is intended for private use in nested relationships, and does not meet the requirements for public VIDs. *Numalgo 4* is suitable: its short form is a digest over the DID document, exchanged once in long form and referenced thereafter. See [[ref:DID-PEER]] and [[ref:DID-PEER-4]].
 
-- `urn:said`: A Self-Addressing Identifier is a digest over the document that contains it, expressed as a URN. Verification consists of recomputing the digest over the identified document. A `urn:said` may identify a document held in an authoritative store rather than a decentralized one, which makes it an example of a VID that is verifiable without being decentralized. See [[spec-inform:SAID-URN]].
+- `urn:said`: A Self-Addressing Identifier is a digest over the document that contains it, expressed as a URN. Verification consists of recomputing the digest over the identified document. A `urn:said` may identify a document held in an authoritative store rather than a decentralized one, which makes it an example of a VID that is verifiable without being decentralized. See [[ref:SAID-URN]].
 
 Several of these are constructed the same way: an AID, a SAID, and the short form of a did:peer:4 are each derived as a digest over the content or key state they identify, and each is - at least in part - verified by recomputing that digest. The identifier syntax differs; the construct does not.
 
@@ -266,7 +266,7 @@ Higher layer application messages use the general payload type `TSP_GEN`.
 
 Each payload consists of a type and a number of fields determined by the type. They will be defined in the corresponding sections when their functions are defined.
 
-Some payload fields are required by TSP, including the sender VID `VID_sndr` used for ESSR operations and VID list used in routing mode. When it is necessary to differentiate these fields, we will refer them as Control Fields or Control Payload Fields. These control fields are used for all messages, not just control messages.
+Some payload fields are required by TSP, including the sender VID `VID_sndr` used for ESSR ([[ref:ESSR]]) operations and VID list used in routing mode. When it is necessary to differentiate these fields, we will refer them as Control Fields or Control Payload Fields. These control fields are used for all messages, not just control messages.
 
 #### Ciphertext of the Confidential Payloads
 
@@ -278,7 +278,7 @@ TSP_Payload_Ciphertext = TSP_SEAL(TSP_Payload)
 
 The details of the supported PKAE schemes for the `TSP_SEAL` operation are specified in Section [Cryptographic Algorithms](#cryptographic-algorithms).
 
-For PKAE schemes *HPKE-Base* ([[spec-norm:HPKE]]) and *Libsodium Sealed Box* ([[ref:Sealed Boxes]]), the `VID_sndr` MUST appear as a confidential payload field following the ESSR scheme. See [Section 8](#cryptographic-algorithms) for the details.
+For PKAE schemes *HPKE-Base* ([[ref:hpke]]) and *libsodium Sealed Box* ([[ref:libsodium]]), the `VID_sndr` MUST appear as a confidential payload field following the ESSR ([[ref:ESSR]]) scheme. See [Section 8](#cryptographic-algorithms) for the details.
 
 On the receiving side, the corresponding TSP primitive is `TSP_OPEN`.
 
@@ -477,7 +477,7 @@ TSP routed messages have the same TSP Envelope as TSP messages sent in direct mo
 ``` text
 Control_Payload_Fields = {VID_sndr, VID_hop2, ..., VID_hopk, VID_exit}
 ```
-The first field `VID_sndr` MUST be the sender VID required by ESSR PKAE schemes. This field is mandatory in all TSP messages.
+The first field `VID_sndr` MUST be the sender VID required by ESSR ([[ref:ESSR]]) PKAE schemes. This field is mandatory in all TSP messages.
 
 The VIDs following the first `VID_sndr` is an ordered list of next hop VIDs of intermediary systems and the last VID represents the destination endpoint. The list can vary in length from 1, 2, to k > 2, and should be interpreted as an ordered routing path with the `VID_hop2` coming first, followed by `VID_hop3`, `VID_hop4` etc... Note that the first hop is already identified as the `VID_rcvr`.
 
@@ -962,7 +962,7 @@ This section specifies all PKAE schemes that TSP implementations MUST or optiona
 
 #### Hybrid Public Key Encryption (HPKE) 
 
-HPKE is a draft standard defined in IETF [[spec-norm:HPKE]] which formalizes and generalizes similar schemes and implementations that support encryption of messages for a receiver with a public-private key pair. [[spec-norm:HPKE]] defines a framework from which we specify a subset of concrete configuration to best meet TSP requirements. HPKE uses modern cryptographic algorithms and has been studied with proofs of IND-CCA2 security. The HPKE base mode does not use sender authentication in the HPKE itself. The algorithms in a HPKE suite are KEM (Key Exchange Mechanism), KDF (Key Derivation Function), and AEAD (Authenticated Encryption with Associated Data function). Schemes that follow [[spec-norm:HPKE]] have seen adoption in Messaging Layer Security [[spec-inform:RFC9420]] and TLS Encrypted ClientHello [[TLS-ECH]].
+HPKE is a draft standard defined in IETF [[ref:hpke]] which formalizes and generalizes similar schemes and implementations that support encryption of messages for a receiver with a public-private key pair. [[ref:hpke]] defines a framework from which we specify a subset of concrete configuration to best meet TSP requirements. HPKE uses modern cryptographic algorithms and has been studied with proofs of IND-CCA2 security. The HPKE base mode does not use sender authentication in the HPKE itself. The algorithms in a HPKE suite are KEM (Key Exchange Mechanism), KDF (Key Derivation Function), and AEAD (Authenticated Encryption with Associated Data function). Schemes that follow [[ref:hpke]] have seen adoption in Messaging Layer Security [[spec-inform:RFC9420]] and TLS Encrypted ClientHello [[spec-inform:RFC9849]].
 
 TSP implementations MUST support HPKE-Base mode as defined in this document.
 
@@ -983,7 +983,7 @@ A VID's encryption key type selects the KEM; the KDF and AEAD are the same in bo
 
 The HPKE-Base mode does not include the authentication mechanism allowing the receiver to verify that the sender possessed a given KEM private key `VID_sndr.SK_e`. Leaving this verification out is intentional choice because TSP has `VID_sndr` in the encrypted payload ciphertext and a separate signature for sender authentication.
 
-In the HPKE-Base mode, for a TSP message that uses a confidential payload, the ciphertext MUST be generated by the HPKE-Base single-shot API defined in [[spec-norm:HPKE]] as follows:
+In the HPKE-Base mode, for a TSP message that uses a confidential payload, the ciphertext MUST be generated by the HPKE-Base single-shot API defined in [[ref:hpke]] as follows:
 
 ``` text
 def TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Plaintext):
@@ -1014,7 +1014,7 @@ Plaintext = TSP_OPEN(VID_sndr, VID_rcvr,
                 Confidential_Fields_Ciphertext)
 ```
 
-In HPKE-Base mode, the `VID_sndr` field MUST be present in the confidential control payload (as required by [[spec-inform:ESSR]]).
+In HPKE-Base mode, the `VID_sndr` field MUST be present in the confidential control payload (as required by [[ref:ESSR]]).
 
 Note that the 'aad' input is the serialized octet sequence of the cleartext message fields preceding the ciphertext — the version, both VIDs, and the non-confidential payload (if present) — taken exactly as encoded on the wire.
 
@@ -1022,15 +1022,15 @@ TODO: discuss if 'aad' is useful.
 
 ##### HPKE PQ and PQ/T Algorithms
 
-Post-quantum support in TSP is not a separate mode — it is HPKE-Base with the post-quantum/traditional hybrid KEM X25519MLKEM768 (0x647a), as defined in [[HPKE-PQ]]. The KEM is selected by the recipient VID's encryption key type; all other HPKE-Base processing, framing, and AAD are unchanged. Note that [[HPKE-PQ]] is an active Internet-Draft; this reference is to be updated to the RFC on publication.
+Post-quantum support in TSP is not a separate mode — it is HPKE-Base with the post-quantum/traditional hybrid KEM X25519MLKEM768 (0x647a), as defined in [[ref:HPKE-PQ]]. The KEM is selected by the recipient VID's encryption key type; all other HPKE-Base processing, framing, and AAD are unchanged. Note that [[ref:HPKE-PQ]] is an active Internet-Draft; this reference is to be updated to the RFC on publication.
 
 #### Libsodium Sealed Box
 
-Libsodium is a popular open source software library that is a fork of [[spec-inform:NaCl]]. Among many modern and easy-to-use cryptographic tools, it provides an implementation of a crypto\_box primitive that is essentially a non-standardized PKAE scheme. We specify a way for TSP to use the libsodium sealed box API as a PKAE choice here because of its popularity. However, since the sealed box API is not standard alongside the fact that the Libsodium community is also implementing HPKE options in parallel, implementors SHOULD consider migrating to the HPKE option specified in this document. We MAY remove this option in the future.
+Libsodium is a popular open source software library that is a fork of [[ref:NaCl]]. Among many modern and easy-to-use cryptographic tools, it provides an implementation of a crypto\_box primitive that is essentially a non-standardized PKAE scheme. We specify a way for TSP to use the libsodium sealed box API as a PKAE choice here because of its popularity. However, since the sealed box API is not standard alongside the fact that the Libsodium community is also implementing HPKE options in parallel, implementors SHOULD consider migrating to the HPKE option specified in this document. We MAY remove this option in the future.
 
 ##### Sealed Box
 
-Per [[spec-norm:libsodium]] documentation, the combined mode API defined in `C` is as follows.
+Per [[ref:libsodium]] documentation, the combined mode API defined in `C` is as follows.
 
 ``` c
 int crypto_box_seal(unsigned char *c, const unsigned char *m,
@@ -1078,11 +1078,11 @@ Plaintext = TSP_OPEN(VID_sndr, VID_rcvr,
                 Confidential_Fields_Ciphertext)
 ```
 
-Similar to HPKE-Base mode, the `VID_sndr` field MUST be present in the Confidential Control Fields (as required by [[spec-inform:ESSR]]).
+Similar to HPKE-Base mode, the `VID_sndr` field MUST be present in the Confidential Control Fields (as required by [[ref:ESSR]]).
 
 ##### Sealed Box Cryptographic Algorithms
 
-Per [[spec-norm:libsodium]] documentation, the sealed box API leverages the `crypto_box` construction which in turn uses `X25519` and `XSalsa20-Poly1305`, and uses `blake2b` for nonce. As a non-standard implementation, such information is not precisely known and is implementation specific depending on the open source development of libsodium.
+Per [[ref:libsodium]] documentation, the sealed box API leverages the `crypto_box` construction which in turn uses `X25519` and `XSalsa20-Poly1305`, and uses `blake2b` for nonce. As a non-standard implementation, such information is not precisely known and is implementation specific depending on the open source development of libsodium.
 
 ### Secure Hash and Digest Functions
 
@@ -1228,7 +1228,7 @@ enc, ct = SealBase(pkR, info, aad, pt)
 return CONCAT(enc, ct)
 ```
 
-The `enc` is defined by HPKE [[spec-norm:HPKE]] which contains identifiers for KEM, KDF and AEAD functions and a bytestring for the encapsulated key.
+The `enc` is defined by HPKE [[ref:hpke]] which contains identifiers for KEM, KDF and AEAD functions and a bytestring for the encapsulated key.
 
 Name | Data Type | Value Registry | Description
 ----:|----:|--------:|--------:
@@ -1245,7 +1245,7 @@ KDF | 0x0001 | HKDF-SHA256
 AEAD | 0x0003 | ChaCha20Poly1305
 
 ::: note
-`SHA256` should be read as `SHA2-256`. The HPKE [[spec-norm:HPKE]] and many other specifications still use `SHA256` to mean `SHA2-256`.
+`SHA256` should be read as `SHA2-256`. The HPKE [[ref:hpke]] and many other specifications still use `SHA256` to mean `SHA2-256`.
 :::
 
 ::: note
@@ -1477,67 +1477,46 @@ https://github.com/trustoverip/tswg-tsp-specification/issues/12
 
 ## References
 
-::: issue #13
-The `spec` primitives are not yet working for all cases.
-https://github.com/trustoverip/tswg-tsp-specification/issues/13
-:::
-
 ### Normative References
-[[spec-norm]]
 
-**[[def:CESR]]**. *Composable Event Streaming Representation (CESR)*, Samuel Smith
-[CESR]: https://trustoverip.github.io/tswg-cesr-specification/
+**[[def::DID]]**. Decentralized Identifiers (DIDs) v1.0, https://www.w3.org/TR/did-1.0/
 
-[DID]. Decentralized Identifiers (DIDs) v1.0, https://www.w3.org/TR/did-1.0/
+**[[def:CESR]]**. *Composable Event Streaming Representation (CESR)*, v1.1, Samuel Smith, Philip Feairheller,
+, https://trustoverip.github.io/kswg-cesr-specification/.
 
-[HPKE]: Hybrid Public Key Encryption, 6 July 2026, https://www.ietf.org/archive/id/draft-ietf-hpke-hpke-04.txt
+**[[def:libsodium]]** The Sodium cryptographic library, https://doc.libsodium.org/. Authors: https://raw.githubusercontent.com/jedisct1/libsodium/master/AUTHORS. 
 
-[HPKE-PQ]: Post-Quantum and Post-Quantum/Traditional Hybrid Algorithms for HPKE, 6 July 2026, https://www.ietf.org/archive/id/draft-ietf-hpke-pq-05.txt
+**[[def:HPKE]]**: Hybrid Public Key Encryption, 6 July 2026, https://www.ietf.org/archive/id/draft-ietf-hpke-hpke-04.txt
+
+**[[def:HPKE-PQ]]**: Post-Quantum and Post-Quantum/Traditional Hybrid Algorithms for HPKE, 6 July 2026, https://www.ietf.org/archive/id/draft-ietf-hpke-pq-05.txt
+
+**[[def:FIPS203]]**. Module-Lattice-Based Key-Encapsulation Mechanism Standard, National Institute of Standards and Technology (U.S.), DOI 10.6028/nist.fips.203, August 2024, https://doi.org/10.6028/nist.fips.203.
+
+**[[def:FIPS204]]**. Module-Lattice-Based Digital Signature Standard, National Institute of Standards and Technology (U.S.), DOI 10.6028/nist.fips.204, August 2024, https://doi.org/10.6028/NIST.FIPS.204.
 
 ### Informational References
-[[spec-inform]]
 
-[KERI]. Key Event Receipt Infrastructure (KERI), Trust over IP Foundation.
-[KERI]: https://trustoverip.github.io/kswg-keri-specification/
+**[[def:KERI]]**. Key Event Receipt Infrastructure (KERI), Trust over IP Foundation. https://trustoverip.github.io/kswg-keri-specification/.
 
-[SAID-URN]. Namespace Registration for Self-Addressing Identifiers (SAID), IANA, urn:said, 2026.
-[SAID-URN]: https://www.iana.org/assignments/urn-formal/said
+**[[def:SAID-URN]]**. Namespace Registration for Self-Addressing Identifiers (SAID), IANA, urn:said, 2026. https://www.iana.org/assignments/urn-formal/said.
 
-[DID-WEBS]. did:webs Method Specification, Trust over IP Foundation.
-[DID-WEBS]: https://trustoverip.github.io/kswg-did-method-webs-specification/
+**[[def:DID-WEBS]]**. did:webs Method Specification, Trust over IP Foundation. https://trustoverip.github.io/kswg-did-method-webs-specification/.
 
-[DID-WEBVH]. did:webvh Method Specification v1.0, Decentralized Identity Foundation.
-[DID-WEBVH]: https://identity.foundation/didwebvh/v1.0/
+**[[def:DID-WEBVH]]**. did:webvh Method Specification v1.0, Decentralized Identity Foundation. https://identity.foundation/didwebvh/v1.0/.
 
-[DID-PEER]. Peer DID Method Specification, Decentralized Identity Foundation.
-[DID-PEER]: https://identity.foundation/peer-did-method-spec/
+**[[def:DID-PEER]]**. Peer DID Method Specification, Decentralized Identity Foundation. https://identity.foundation/peer-did-method-spec/.
 
-[DID-PEER-4]. DID Peer Numalgo 4, Decentralized Identity Foundation.
-[DID-PEER-4]: https://github.com/decentralized-identity/did-peer-4
+**[[def:DID-PEER-4]]**. DID Peer Numalgo 4, Decentralized Identity Foundation. https://github.com/decentralized-identity/did-peer-4.
 
-[ESSR]. Authenticated Encryption in the Public-Key Setting: Security Notations and Analyses, *Jee Hea An*, Cryptology ePrint Archive, Paper 2001/079.
-[ESSR]: https://eprint.iacr.org/2001/079
+**[[def:ESSR]]**. Authenticated Encryption in the Public-Key Setting: Security Notations and Analyses, *Jee Hea An*, Cryptology ePrint Archive, Paper 2001/079. https://eprint.iacr.org/2001/079.
 
-[HPKE-WG]. The IETF HPKE Working Group
-[HPKE-WG]: https://datatracker.ietf.org/group/hpke/about/
+**[[def:NaCl]]**. The security impact of a new cryptographic library, *D. J. Bernstein, Tanja Lange, Peter Schwabe*, LATINCRYPT 2012. https://nacl.cr.yp.to/.
 
-[HPKE-PQ]. Post-Quantum and Post-Quantum/Traditional Hybrid Algorithms for HPKE, June 2, 2025, draft-ietf-hpke-pq-00.
-[HPKE-PQ]: https://datatracker.ietf.org/doc/draft-ietf-hpke-pq/
+**[[def:TOIP-TAS]]**. ToIP Technology Architecture Specification (DRAFT). https://github.com/trustoverip/TechArch/blob/main/spec.md
 
-[FIPS203]. Module-Lattice-Based Key-Encapsulation Mechanism Standard, National Institute of Standards and Technology (U.S.), DOI 10.6028/nist.fips.203, August 2024
-[FIPS203]: https://doi.org/10.6028/nist.fips.203
-
-[FIPS204]. Module-Lattice-Based Digital Signature Standard, National Institute of Standards and Technology (U.S.), DOI 10.6028/nist.fips.204, August 2024
-[FIPS204]: https://doi.org/10.6028/NIST.FIPS.204
-
-[TOIP-TAS]. ToIP Technology Architecture Specification (DRAFT)
-[TOIP-TAS]: https://github.com/trustoverip/TechArch/blob/main/spec.md
-
-[TLS-ECH]. TLS Encrypted Client Hello, *Rescorla, E., Oku, K., Sullivan, N., and C. A. Wood,* Work in Progress, Internet-Draft, draft-ietf-tls-esni-18, 4 March 2024.
-[TLS-ECH]: https://datatracker.ietf.org/doc/html/draft-ietf-tls-esni-18
-
-[COSE-HPKE]. Use of Hybrid Public-Key Encryption (HPKE) with CBOR Object Signing and Encryption (COSE), *H. Tschofenig, B. Moran*, draft-ietf-cose-hpke-03, 27 February 2023.
-[COSE-HPKE]: https://www.ietf.org/archive/id/draft-ietf-cose-hpke-03.html
+**[[def:JWE-HPKE]]**. Use of Hybrid Public Key Encryption (HPKE) with JSON Web Encryption (JWE), *T. Reddy, H. Tschofenig, A. Banerjee, O. Steele, M. Jones*, draft-ietf-jose-hpke-encrypt-22, 6 July 2026, https://www.ietf.org/archive/id/draft-ietf-jose-hpke-encrypt-22.txt.
+                    
+**[[def:COSE-HPKE]]**. Use of Hybrid Public-Key Encryption (HPKE) with CBOR Object Signing and Encryption (COSE), *H. Tschofenig, B. Moran*, draft-ietf-cose-hpke-26, 4 July, 2026. https://www.ietf.org/archive/id/draft-ietf-cose-hpke-26.txt. 
 
 ## Appendix A: Test Vectors
 
