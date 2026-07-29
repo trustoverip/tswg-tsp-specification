@@ -367,7 +367,11 @@ If endpoint `B` receives a TSP message of the generic form `{... VID_sndr, VID_r
 
 CESR primitives are canonically encoded: lead bytes and pad bits are zero. A receiver MUST reject a message containing a primitive whose pad bits are non-zero. Because TSP digests and signatures are computed over exact encoded bytes, accepting a non-canonical encoding would admit distinct byte sequences for the same value.
 
-If a message fails any verification or validation step, the receiving endpoint SHOULD silently discard it. It MAY additionally direct the transport layer to disconnect, block, or filter further messages from that source for a period of time. A receiver SHOULD NOT respond to a failed message, as any response may disclose information to an attacker.
+If a message fails any verification or validation step, the receiving endpoint SHOULD silently discard it. Where the message is from a VID with which the endpoint has an established relationship, and the endpoint is responsible for resolving that VID's key state itself (rather than relying on the VID type to do so outside of TSP operations), it SHOULD first re-resolve and retry the verification once, as described in Key Update.
+
+An endpoint SHOULD NOT act on a message when it is unable to confirm the key state of the sending VID, or when the key state it obtains conflicts with the key state it holds rather than extending it. In these cases the endpoint suspends its reliance on that key state: it accepts no message under it, including a message that would otherwise verify, until the key state can be confirmed. An endpoint MAY retain such messages and process them if the key state is subsequently confirmed.
+
+An endpoint MAY direct the transport layer to disconnect, block, or filter further messages from a source whose messages repeatedly fail verification, but SHOULD NOT do so on the basis of a single failure within an established relationship. A receiver SHOULD NOT respond to a failed message, as any response may disclose information to an attacker.
 
 ### Out of Band Introductions
 
