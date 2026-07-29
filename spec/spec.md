@@ -175,6 +175,8 @@ VIDs MUST support operations by an assessing endpoint to map a VID of another en
 
 Implementation of these mapping operations is VID type specific. When a VID has multiple signing keys, their order and the number of valid signatures required are determined by the VID type.
 
+These operations return the assessing endpoint's current knowledge of the VID's key state. How current that knowledge is depends on the VID type and its implementation: some maintain key state continuously and reflect a change without being asked, while others are resolved on demand and are only as current as the last resolution.
+
 #### Verification
 VIDs MUST support an operation by an assessing endpoint to verify a VID of another endpoint: 
 - `VID.VERIFY` for TSP to verify that endpoint `A` has access to the corresponding secret key, `VID.SK_s`, using a PKC algorithm. VID types MAY use additional information in assessing the VID in the same `VID.VERIFY` operation.
