@@ -1469,10 +1469,38 @@ A TSP message can be printed, for example as a QR code, and transferred physical
 
 ## Security and Privacy Considerations
 
-::: issue #12
-We will be collecting FAQs and then provide relevant information in this section.
-https://github.com/trustoverip/tswg-tsp-specification/issues/12
-:::
+### Key Compromise and Recovery
+A VID has keys with distinct roles: a signing key, a decryption key, and the authority to change them. What can be recovered depends on which is compromised, and claims about recovery should be considered in that context. TSP requires that rotation authority be separate from the signing key ([VID General Requirements](#vid-general-requirements)).
+
+Given that separation, an endpoint whose signing or decryption key is compromised can restore the security of its future communication by rotating the compromised key. This property is known as post-compromise security. Recovery is not global: it takes effect with respect to each peer independently, when that peer obtains the new key state. Until then the peer holds key state that is stale but internally consistent, and a message signed with the compromised key verifies without any indication of error.
+
+Whether that key state is obtained by the TSP implementation or by the VID implementation beneath it is a matter of deployment: in some arrangements the change is observed and applied without TSP being involved at all, and the endpoint's key mappings simply begin returning the new state. What follows describes what an endpoint should consider where the responsibility falls to it.
+
+#### Obtaining current key state
+Some VID implementations maintain and distribute current key state independently — e.g. by observing a peer's published key history, comparing what independent observers report, and treating a conflicting history as evidence rather than as an error to be resolved by choosing one. An endpoint in such a deployment need do nothing: its key mappings reflect the change, and messages that failed during the interval simply resume verifying.
+
+An endpoint that instead resolves key state on demand must determine for itself when to do so, and its exposure is bounded by how promptly it does. It has three occasions: when a message fails to verify, when a message arrives after a long silence, and on its own schedule. The first two are the common cases and cost nothing when nothing is happening. The third matters against an adversary that sends messages which verify under the superseded key, since such messages produce neither a failure nor a silence, and only an occasion that is independent of received traffic will fire.
+
+An endpoint reduces its exposure further by resolving over a path independent of the one carrying TSP messages, and by consulting more than one source and comparing what they return. An adversary must then control several channels at once rather than one. Where the paths are not in fact independent — as they may not be if both traverse the same network — the benefit is correspondingly smaller.
+
+#### Denial of service
+An endpoint that resolves in response to a message it has not authenticated can be made to resolve by anyone able to send it such a message, and the sender and receiver VIDs are visible in the envelope of any observed message. Resolution is more expensive than the message that provokes it, and an adversary can direct many endpoints to resolve the same VID at once, so the cost may fall on the peer's infrastructure rather than on the endpoints themselves. This is inherent in treating a verification failure as a signal, and is bounded by limiting the rate at which any one peer's VID is resolved: legitimate rotations are infrequent, so a limit that permits one resolution in an interval constrains an adversary without materially delaying recovery.
+
+An adversary may also consume that allowance so that a genuine rotation is not resolved promptly. The delay is bounded by the interval and requires the adversary to sustain the effort.
+
+Refusing to act on unconfirmed key state has an availability cost of its own, and an endpoint should distinguish being unable to reach a resolver, which is common and usually transient, from obtaining a key history that conflicts with the one it holds, which is evidence of compromise. Retaining a message until its sender's key state can be confirmed is preferable to discarding it and to acting on it.
+
+#### Rotating keys
+An endpoint rotating keys as a matter of hygiene should publish the new key state and allow it to propagate before signing with the new keys, so that peers do not encounter failures at all. An endpoint rotating because keys may have been compromised should do the opposite: invalidate the old key state immediately and accept that peers will fail, since every moment the superseded key remains valid is exposure. In that case the endpoint may also send a padding message to the peers with which it has relationships. A peer holding stale key state will fail to verify it and will therefore obtain the new key state, whereas a peer that receives nothing has no occasion to. Because such a message is signed with the new keys, an adversary holding the compromised keys cannot produce one.
+
+#### Limits
+Where the rotation authority itself is compromised, rotation is not a remedy: the adversary can produce a key state that verifies. Whether any recovery is available is a property of the VID type — a commitment made in advance to the next rotation keys prevents an adversary holding the current keys from rotating at all; delegation allows a delegating identifier to supersede a compromised delegate; and recording the first version of a key history that is observed, and treating a later conflicting version as evidence, makes such an attack apparent rather than silent. Where a VID type provides none of these, compromise of rotation authority is unrecoverable, and this should weigh in the choice of VID type.
+
+An adversary that can prevent an endpoint from obtaining a peer's key state can prevent it from learning of a rotation for as long as it holds that position. No arrangement described here defeats such an adversary; the arrangements above oblige it to maintain that control continuously, and across more than one channel, rather than to act once.
+
+Recovery applies only to future communication. TSP does not provide forward secrecy: an adversary that has recorded earlier messages and later obtains the decryption key can read them. An endpoint for which this matters should limit what it retains, and may rotate decryption keys on a schedule rather than only in response to compromise.
+
+
 
 ## References
 
