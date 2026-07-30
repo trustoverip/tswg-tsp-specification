@@ -576,7 +576,7 @@ To create an endpoint-to-endpoint relationship between `A` and `B`, Endpoint `A`
 [VID_a1, VID_p1, VID_q0, VID_b1, [VID_a2, VID_b2, Payload_e2e]]
 ```
 
-Because this is the first layer where endpoint-to-endpoint communication takes place, the source MUST use its own encryption and signing and not opt out as described in [Section 4](#nested-messages).
+Because this is the first layer at which endpoint-to-endpoint communication takes place, a source that requires confidentiality with respect to the intermediaries MUST encrypt at this layer, and MUST NOT rely on the protection provided by the direct neighbor relationships as permitted in [Section 4](#nested-messages). Where the source does not require confidentiality — for example where the payload is intended to be public — it MAY use the non-confidential payload, and the intermediaries will be able to read it. Signing at this layer is required in either case, as it is for all TSP messages.
 
 #### The Destination Endpoint
 
@@ -1478,21 +1478,21 @@ Given that separation, an endpoint whose signing or decryption key is compromise
 
 Whether that key state is obtained by the TSP implementation or by the VID implementation beneath it is a matter of deployment: in some arrangements the change is observed and applied without TSP being involved at all, and the endpoint's key mappings simply begin returning the new state. What follows describes what an endpoint should consider where the responsibility falls to it.
 
-#### Obtaining current key state
+#### Obtaining Current Key State
 Some VID implementations maintain and distribute current key state independently — e.g. by observing a peer's published key history, comparing what independent observers report, and treating a conflicting history as evidence rather than as an error to be resolved by choosing one. An endpoint in such a deployment need do nothing: its key mappings reflect the change, and messages that failed during the interval simply resume verifying.
 
 An endpoint that instead resolves key state on demand must determine for itself when to do so, and its exposure is bounded by how promptly it does. It has three occasions: when a message fails to verify, when a message arrives after a long silence, and on its own schedule. The first two are the common cases and cost nothing when nothing is happening. The third matters against an adversary that sends messages which verify under the superseded key, since such messages produce neither a failure nor a silence, and only an occasion that is independent of received traffic will fire.
 
 An endpoint reduces its exposure further by resolving over a path independent of the one carrying TSP messages, and by consulting more than one source and comparing what they return. An adversary must then control several channels at once rather than one. Where the paths are not in fact independent — as they may not be if both traverse the same network — the benefit is correspondingly smaller.
 
-#### Denial of service
+#### Denial of Service
 An endpoint that resolves in response to a message it has not authenticated can be made to resolve by anyone able to send it such a message, and the sender and receiver VIDs are visible in the envelope of any observed message. Resolution is more expensive than the message that provokes it, and an adversary can direct many endpoints to resolve the same VID at once, so the cost may fall on the peer's infrastructure rather than on the endpoints themselves. This is inherent in treating a verification failure as a signal, and is bounded by limiting the rate at which any one peer's VID is resolved: legitimate rotations are infrequent, so a limit that permits one resolution in an interval constrains an adversary without materially delaying recovery.
 
 An adversary may also consume that allowance so that a genuine rotation is not resolved promptly. The delay is bounded by the interval and requires the adversary to sustain the effort.
 
 Refusing to act on unconfirmed key state has an availability cost of its own, and an endpoint should distinguish being unable to reach a resolver, which is common and usually transient, from obtaining a key history that conflicts with the one it holds, which is evidence of compromise. Retaining a message until its sender's key state can be confirmed is preferable to discarding it and to acting on it.
 
-#### Rotating keys
+#### Rotating Keys
 An endpoint rotating keys as a matter of hygiene should publish the new key state and allow it to propagate before signing with the new keys, so that peers do not encounter failures at all. An endpoint rotating because keys may have been compromised should do the opposite: invalidate the old key state immediately and accept that peers will fail, since every moment the superseded key remains valid is exposure. In that case the endpoint may also send a padding message to the peers with which it has relationships. A peer holding stale key state will fail to verify it and will therefore obtain the new key state, whereas a peer that receives nothing has no occasion to. Because such a message is signed with the new keys, an adversary holding the compromised keys cannot produce one.
 
 #### Limits
@@ -1502,7 +1502,51 @@ An adversary that can prevent an endpoint from obtaining a peer's key state can 
 
 Recovery applies only to future communication. TSP does not provide forward secrecy: an adversary that has recorded earlier messages and later obtains the decryption key can read them. An endpoint for which this matters should limit what it retains, and may rotate decryption keys on a schedule rather than only in response to compromise.
 
+### Metadata Exposure and Intermediaries
+The authenticity and confidentiality of a TSP message do not depend on the transport that carries it or on the intermediaries that relay it. Its metadata does. This section describes what remains observable when the mechanisms in [Nested Messages](#nested-messages) and [Metadata Privacy in Routed Mode](#metadata-privacy-in-routed-mode) are used, and what an endpoint entrusts to an intermediary when it uses one.
 
+What follows describes what a TSP message exposes at the TSP layer, independently of the transport carrying it. Deployments commonly use an encrypted transport, and where they do, a party observing the network sees neither the envelope nor its VIDs. This does not alter what an intermediary learns, since an intermediary terminates the transport and processes the message in any case, and it does not conceal the timing and size of what is carried or the transport addresses between which it passes. TSP does not require an encrypted transport, and the properties it provides do not depend on one.
+
+TSP exposes VIDs, not identities. What learning a VID discloses is determined by how its controller chose and uses it, not by the protocol: a VID may be a long-lived public identifier or a random string used once. The exposure a party accumulates is therefore correlation — a record of which identifiers were seen together, and when — and an endpoint limits it by how it allocates and changes the VIDs it uses, as described in [Cryptographic Non-Correlation](#cryptographic-non-correlation).
+
+#### What Remains Observable
+Every TSP message exposes the pair of VIDs of the relationship that carries it, together with whatever addressing the transport requires to deliver it. Nesting conceals the VIDs of an inner relationship, and routing conceals the source and destination from third parties; neither conceals the outer pair, which is what an observer of that hop sees.
+
+Timing, size, and frequency survive encryption, nesting, and routing alike. An observer of a hop learns that a relationship exists between the VIDs it can see, and can accumulate the times, sizes, and frequency of what passes. An observer able to see more than one hop may be able to relate a message across them by its timing and size. TSP itself does not batch, reorder, or delay messages to frustrate this; whether anything does is a property of the arrangement between intermediaries rather than of TSP, and an endpoint that requires resistance to such an observer needs to know what its intermediaries actually do.
+
+#### What An Intermediary Learns
+An intermediary that relays a routed message sees the VIDs of its direct relationships with its neighbors, the timing and size of what passes through it, and the remaining entries of the hop list, of which it consumes the entry addressed to it before forwarding.
+
+It also sees the endpoint-to-endpoint envelope, which names the VIDs the source and destination use with each other. [Section 5](#routed-messages-through-intermediaries) requires that an intermediary neither process nor store these, but they are not concealed from it. These VIDs need reveal nothing about the endpoints beyond themselves, so what an intermediary accumulates is a correlation record rather than knowledge of who the parties are. Endpoints that wish to limit even this carry their relationship in a further nested relationship inside the endpoint-to-endpoint one, whose VIDs no intermediary sees; the endpoint-to-endpoint VIDs may then be changed freely, so that what the intermediaries observe does not link across time.
+
+The exposure is not equal. The source's intermediary holds its client's VID, the hop list it was given, and the endpoint-to-endpoint pair, and can relate all of them. The destination's intermediary sees only its own client, the party that forwarded to it, and the endpoint-to-endpoint pair; where further relays lie between the two, it does not learn of the source's intermediary at all.
+
+It is also directional. A source's routing VID is replaced at its first intermediary and travels no further, whereas whatever the destination advertises as its entry point must be known to the source and to every party that handles the message from there on. What that entry point actually reaches is out of scope: TSP does not specify a routing protocol, the arrangement in [Section 5](#routed-messages-through-intermediaries) is an example, and a destination or its intermediary may place any degree of indirection behind the VID that is advertised.
+
+The hop list is likewise not a complete path. It names the intermediaries the endpoints themselves selected, and TSP does not specify how a message travels between them; intermediaries arrange that among themselves by whatever means they have agreed, which need not be TSP and need not be direct. Further parties may therefore handle a message without appearing in the hop list and without the endpoints having chosen them or knowing of them. What a message exposes at a given hop is determined by TSP; what the path as a whole reveals is also affected by arrangements among intermediaries.
+
+The VID a destination advertises in order to be reached is in effect a routing capability: any party holding it can cause messages to be delivered over that route. Delivery is not acceptance — a message from a VID with which the destination has no relationship is discarded — but an endpoint that wishes to control who can route to it advertises a different VID to each correspondent.
+
+The message the exit intermediary delivers to the destination is an ordinary direct message with an empty route list, and is indistinguishable on the wire from another.
+
+#### End-to-end Protection in Routed Mode
+In routed mode the source and destination communicate through an endpoint-to-endpoint relationship carried within the messages exchanged between direct neighbors. The source encrypts and signs at that layer with its own keys, and the destination therefore authenticates the source itself rather than the intermediary that delivered the message.
+
+This depends on the requirement in [Section 5](#routed-messages-through-intermediaries) that the source sign at that layer, which it does for every TSP message. Confidentiality at that layer is separate and optional: an endpoint that requires it encrypts there rather than relying on the protection of the routed path, since that protection is provided by intermediaries rather than by the other endpoint. An endpoint that does not encrypt at that layer — for a payload intended to be public, for instance — leaves the content readable by the intermediaries that relay it, without affecting the destination's ability to authenticate the source.
+
+#### What An Intermediary Is Trusted For
+An intermediary cannot read an endpoint-to-endpoint payload if encrypted, cannot alter a message without invalidating a signature, and cannot originate one that the destination will accept as coming from the source. Three things are left to it.
+
+It observes. It knows which of its neighbors are communicating, when, and how much, and an intermediary serving many endpoints accumulates a correspondingly larger view. Intermediaries in a path can combine what each has seen to reconstruct more than any one holds alone.
+
+It retains, or does not. The requirement that an intermediary not store the endpoint-to-endpoint VIDs it handles is not enforced by any mechanism in TSP; it is a commitment by the operator.
+
+It delivers, or does not. TSP provides no delivery guarantee, and an intermediary that declines to relay a message cannot be distinguished by the sender from one that has not yet delivered it.
+
+The properties that require no judgement about an operator are authenticity and confidentiality, which are cryptographic. Metadata privacy and availability in routed mode are not among them.
+
+#### Measures Available to An Endpoint
+An endpoint that does not wish to rely on such trust has measures of its own. Carrying a relationship in a nested relationship inside the endpoint-to-endpoint one removes its VIDs from what any intermediary sees, leaving them identifiers that can be changed freely. The padding field and padding messages obscure the size and timing that would otherwise be observable. Using several intermediaries, rather than routing all traffic through one, prevents any single one from accumulating a complete record; using different intermediaries with different correspondents fragments it further, so that reconstructing the whole requires those operators to combine what they hold. None of these requires an intermediary to behave in any particular way — they reduce what any one of them is in a position to observe.
 
 ## References
 
