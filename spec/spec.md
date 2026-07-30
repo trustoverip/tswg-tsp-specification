@@ -461,7 +461,9 @@ In the high level, an overall endpoint-to-endpoint TSP routed mode involves thre
 TSP routing is accomplished by combining a list of designating intermediaries in the routing path with those intermediaries unwrapping nested messages and routing via direct neighbor relationships. The neighbors may create a specific routing context relationship for the purpose of routing messages en route.  A typical three hop pattern of TSP routed messages will traverse from source endpoint `A` to its intermediary `P`, then from `P` to another intermediary `Q`, and then from `Q` to the destination `B`. Naturally, the number of intermediaries in the route path may not be limited to 2. We generalize such a route path as `VID_hop1, VID_hop2, ..., VID_hopk, VID_exit`, where:
 - `VID_hop1` is the VID of the first intermediary that is in direct relationship with the source.
 - `VID_hop2, ..., VID_hopk`: are VIDs of the intermediaries in the chosen route path. `VID_hopk` must be the last intermediary that is in direct relationship with the destination endpoint.
-- `VID_exit`: This is the VID used by `hopk` intermediary for its direct relationship with the destination.
+- `VID_exit`: This is the VID by which the destination is known to the hopk intermediary in their direct relationship. It is chosen by the destination, and is the VID the destination shares with source in order to be reached over that route.
+
+The final entry in the hop list is the destination's own VID with its intermediary, rather than the intermediary's VID in that relationship. Either would allow the intermediary to identify the relationship, but carrying the destination's VID means the identifier exposed to the source, and to intermediaries along the route, is one the destination chose rather than one its intermediary chose. It also leaves the intermediary free to change the VIDs it uses without invalidating the routing information its clients have already shared: the intermediary is relied upon only for a mapping it must maintain in any case.
 
 The exact nature of how the intermediaries exchange necessary information in order to perform the routing of TSP messages needs not be fixed or follows a pre-determined way. We describe some ways in which this may be accomplished but implementors are free to use other ways to achieve the same goal.
 
@@ -473,7 +475,7 @@ As we will see below, the source endpoint MAY choose the first hop of the route,
 
 For the common case of `k = 1 or k = 2`, the route hop list MAY be acquired via a simple arrangement:
 - The source endpoint `A` chooses an intermediary `P` and establishes a relationship with `P`, `(VID_a1, VID_p1)`, then `VID_hop1` is `VID_p1`. This VID is used as the `VID_rcvr` in the envelope.
-- The destination endpoint `B` chooses an intermediary `Q` and establishes a relationship with `Q`, `(VID_b1, VID_q1)`, then `VID_exit` is `VID_q1`. The intermediary `Q`, as a common service provider, may have published a well-known public `VID_q0`, then `VID_hop2` could be `VID_q0`.
+- The destination endpoint `B` chooses an intermediary `Q` and establishes a relationship with `Q`, `(VID_b1, VID_q1)`, then `VID_exit` is `VID_b1`. The intermediary `Q`, as a common service provider, may have published a well-known public `VID_q0`, then `VID_hop2` could be `VID_q0`.
 - The destination endpoint `B` MAY share the routing information `(VID_q0, VID_b1)` in the Out-Of-Band Introduction mechanism or via a control payload TSP message in another TSP relationship, together with its chosen `VID_destination`.
 - The source endpoint `A` combines the routes together to form the whole message: `[VID_a1, VID_p1, VID_q0, VID_b1, Payload]`.
 - If the intermediary chosen by `B` is also acceptable to `A`, and the parties accept a single intermediary (with the potential loss of some metadata protection), then the resulting route may simply be `[VID_sndr, VID_intermediary_rcvr, VID_exit, Payload]`.
@@ -519,10 +521,10 @@ We will detail each party’s operations in the following sections.
 The source endpoint `A` sends the following routed message to intermediary `P`:
 
 ``` text
-[VID_a1, VID_p1, VID_q0, VID_q1, Payload]
+[VID_a1, VID_p1, VID_q0, VID_b1, Payload]
 ```
 
-Again, the VIDs (`VID_q0` and `VID_q1`) may become known to endpoint `A` prior to this step via an OOBI, a TSP control payload, or another discovery protocol out of scope of this specification. Note that in this outer layer, all VIDs are public while `p0` and `q0`, as public VIDs of intermediaries may also be well-known.
+Again, the VIDs (`VID_q0` and `VID_b1`) may become known to endpoint `A` prior to this step via an OOBI, a TSP control payload, or another discovery protocol out of scope of this specification. Note that in this outer layer, all VIDs are public while `p0` and `q0`, as public VIDs of intermediaries may also be well-known.
 
 #### The Source Endpoint's Intermediary
 
@@ -531,16 +533,16 @@ The source’s intermediary `P` MUST support routed messages. As previously spec
 If the `(VID_p0, VID_q0)` relationship is pre-existing, `P` will already know how to forward the message. If it is not pre-existing but `VID_q0` is public, `P` can resolve it and establish a new `<VID_p0, VID_q0>` or `(VID_p0, VID_q0)` relationship using normal procedures specified in [Section 3](#messages). `P` then routes the message to `Q` using the following message:
 
 ``` text
-[VID_p0, VID_q0, VID_q1, Payload]
+[VID_p0, VID_q0, VID_b1, Payload]
 ```
 
-Note that the new `VID_sndr` and `VID_rcvr`, and the shortened VID route list (`VID_q1` only).
+Note that the new `VID_sndr` and `VID_rcvr`, and the shortened VID route list (`VID_b1` only).
 
 #### The Destination Endpoint's Intermediary
 
-The destination’s intermediary, `Q`, also decrypts, if it's confidential, the control payload fields to retrieve the remaining route VID list. The next VID in the list, `VID_q1`, is the next hop’s VID. `Q` must attempt to route the carried message to the next hop.
+The destination’s intermediary, `Q`, also decrypts, if it's confidential, the control payload fields to retrieve the remaining route VID list. The next VID in the list, `VID_b1`, is the next hop’s VID. `Q` must attempt to route the carried message to the next hop.
 
-If `VID_q1` is given to endpoint `A` by `B` itself in either an Out-Of-Band Introduction or a TSP control payload message, the `<VID_q1, VID_b1>` or `(VID_q1, VID_b1)` relationship should be pre-existing, and `Q` will know how to forward the message. If that relationship is not found in its local relationship table (ie the relationship hasn't been established), the intermediary `Q` should consider this an error. Otherwise, `Q` forwards this message to endpoint `B` using the following direct message:
+If `VID_b1` is given to endpoint `A` by `B` itself in either an Out-Of-Band Introduction or a TSP control payload message, the `<VID_q1, VID_b1>` or `(VID_q1, VID_b1)` relationship should be pre-existing, and `Q` will know how to forward the message. If that relationship is not found in its local relationship table (ie the relationship hasn't been established), the intermediary `Q` should consider this an error. Otherwise, `Q` forwards this message to endpoint `B` using the following direct message:
 
 ``` text
 [VID_q1, VID_b1, Payload]
@@ -551,7 +553,7 @@ Note that this is a normal direct message as the route VID field is now empty.
 #### The Destination Endpoint
 
 When the destination receives the message it is now a normal direct mode message: `[VID_q1, VID_b1, Payload]`. Note that endpoints are not required to handle routed messages that contain additional next hop VID or VIDs.
-Unlike direct mode messages, this message’s sender `VID_q1` is of the intermediary `Q`, but the source `A`; and its receiver `VID_b1` is associated with the relationship with `Q`, not `A`. This means that the destination endpoint `B` can not be assured of the message’s authenticity, confidentiality, or metadata privacy. To solve these problems, endpoints MUST use additional procedures specified in the following sections.
+Unlike direct mode messages, this message’s sender `VID_q1` is of the intermediary `Q`, but the source is `A`; and its receiver `VID_b1` is associated with the relationship with `Q`, not `A`. This means that the destination endpoint `B` can not be assured of the message’s authenticity, confidentiality, or metadata privacy. To solve these problems, endpoints MUST use additional procedures specified in the following sections.
 
 ### Endpoint-to-Endpoint Messages
 
@@ -566,12 +568,12 @@ Figure 3: Endpoint-to-Endpoint relationship between endpoints A and B through a 
 
 The source endpoint `A` will create an endpoint-to-endpoint relationship with endpoint `B` using the same procedure specified in [Section 3](#messages). Instead of direct messages as in Section 3, the endpoint `A` will use routed messages defined in [Section 5.3](#direct-neighbor-relationship-and-routing). Recall in Section [5.3.1](#the-source-endpoint), endpoint `A` sends the following message to intermediary `P` en route to eventual destination `B`:
 ``` text
-[VID_a1, VID_p1, VID_q0, VID_q1, Payload]
+[VID_a1, VID_p1, VID_q0, VID_b1, Payload]
 ```
 To create an endpoint-to-endpoint relationship between `A` and `B`, Endpoint `A` will encapsulate its [relationship forming message](#control-messages) with endpoint `B` as follows:
 
 ``` text
-[VID_a1, VID_p1, VID_q0, VID_q1, [VID_a2, VID_b2, Payload_e2e]]
+[VID_a1, VID_p1, VID_q0, VID_b1, [VID_a2, VID_b2, Payload_e2e]]
 ```
 
 Because this is the first layer where endpoint-to-endpoint communication takes place, the source MUST use its own encryption and signing and not opt out as described in [Section 4](#nested-messages).
@@ -609,7 +611,7 @@ Figure 4: Nested endpoint-toendpoint relationship between endpoints A and B thro
 Using procedures defined in Sections [4](#nested-messages) and [5](#routed-messages-through-intermediaries), endpoints `A` and `B` choose `VID_a3` and `VID_b3` respectively for the private contextual relationship. The source `A` then sends its message to `B` using a message described in the previous section as follows:
 
 ``` text
-[VID_a1, VID_p1, VID_q0, VID_q1, [VID_a2, VID_b2, Payload_e2e]]
+[VID_a1, VID_p1, VID_q0, VID_b1, [VID_a2, VID_b2, Payload_e2e]]
 ```
 
 The nested inner message is then embedded into the `Payload_e2e`:
