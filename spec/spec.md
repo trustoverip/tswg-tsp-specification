@@ -1479,6 +1479,21 @@ A TSP message can be printed, for example as a QR code, and transferred physical
 
 ## Security and Privacy Considerations
 
+TSP assures the authenticity of every message and, at the sender's choice, its confidentiality. Both are properties of the message itself, established by the sender's keys and verified against the receiver's, and they hold whatever transport carried the message and whatever systems relayed it. The construction that provides them is described in [Cryptographic Algorithms](#cryptographic-algorithms).
+
+Where endpoints use nested or routed messages, TSP additionally limits what third parties and intermediaries can observe. What it limits, and what it does not, is described below.
+
+Properties beyond these belong to the layers above and below TSP. An application requiring ordering, delivery, or freshness of its own obtains them from the layer that understands what its messages mean; a deployment requiring properties of the path obtains them from the transport it selects.
+
+### Binding of identifiers
+The construction in [Cryptographic Algorithms](#cryptographic-algorithms) binds the verifiable identifiers (VIDs) of both parties into each message. The VIDs in turn bind with their public keys and key states.
+
+For the sender's identity, carried within the confidential payload, this indirection is an overall improvement: the binding is to an identifier whose key material may change, so it continues to hold across a rotation.
+
+For the receiver's identity, covered by the signature, the basis differs. ESSR relies on the receiver's public key being fixed at the moment of signing, so that a receiver cannot afterwards assert that a message was addressed under some other key. A VID is fixed in the same way, but what it resolves to is not, and TSP provides no means to establish which key state was current when a signature was made.
+
+The property is retained because the two bindings compose. To assert that a different message was received, a receiver would have to produce a plaintext and a key pair reproducing the ciphertext the sender signed, and that plaintext would itself have to be a well-formed payload naming the sender's VID, since a verifier checks that field against the envelope and the signature. No scheme specified here admits a collision meeting that constraint. An endpoint substituting other schemes should satisfy itself that the same holds.
+
 ### Key Compromise and Recovery
 A VID has keys with distinct roles: a signing key, a decryption key, and the authority to change them. What can be recovered depends on which is compromised, and claims about recovery should be considered in that context. TSP requires that rotation authority be separate from the signing key ([VID General Requirements](#vid-general-requirements)).
 
@@ -1555,6 +1570,24 @@ The properties that require no judgement about an operator are authenticity and 
 
 #### Measures Available to An Endpoint
 An endpoint that does not wish to rely on such trust has measures of its own. Carrying a relationship in a nested relationship inside the endpoint-to-endpoint one removes its VIDs from what any intermediary sees, leaving them identifiers that can be changed freely. The padding field and padding messages obscure the size and timing that would otherwise be observable. Using several intermediaries, rather than routing all traffic through one, prevents any single one from accumulating a complete record; using different intermediaries with different correspondents fragments it further, so that reconstructing the whole requires those operators to combine what they hold. None of these requires an intermediary to behave in any particular way — they reduce what any one of them is in a position to observe.
+
+### Introductions
+An endpoint learns a VID before it can communicate with its controller, and [Out of Band Introductions](#out-of-band-introductions) states that information so obtained must not be assumed authentic. The consequence is easily overlooked: an introduction conveys a VID and nothing more. Trust in that VID begins when the endpoint verifies it.
+
+What verification establishes is that the party communicating controls the keys bound to that VID, and therefore that messages within the relationship come from the same party throughout. It does not establish who that party is. A verified VID is an identifier that can be relied upon consistently, not an identity.
+
+Associating a VID with an identity — a person, an organization, a role, an entitlement — is done by other means, and after the relationship exists rather than before it. Verifiable credentials and similar attestations serve this purpose, and the relationship itself provides an authentic and confidential channel over which they can be exchanged and corroborated. What such an association is worth depends on the issuer of the attestation and on the endpoint's reasons for trusting it, neither of which is within the scope of this specification. Such attestation protocols are considered as examples of Trust Tasks on top of the TSP layer.
+
+Where an introduction arrives over a channel with no authenticity of its own, a party able to interfere with that channel could substitute a VID of its own, and the resulting relationship would be entirely valid with the wrong counterparty. This is why a TSP relationship is a better channel for an introduction than one without authenticity, and why an endpoint that has established one has gained a place to begin rather than a conclusion.
+
+### Implementation
+Several requirements elsewhere in this specification exist for reasons that are not evident from the requirement alone.
+
+TSP digests and signatures are computed over encoded bytes rather than over the values those bytes represent. An implementation that accepts a primitive whose padding is not canonical therefore admits two distinct byte sequences for the same value, with different digests and different signature inputs. This is why a receiver rejects them rather than normalizing them.
+
+A receiver that fails to verify or validate a message discards it silently and does not respond. Any response — an error, a different timing, a change in subsequent behavior — is information available to a party that has not authenticated itself.
+
+TSP sets no maximum message size, and the sizes an encoding permits are large. An implementation that allocates according to a declared length before it has verified anything can be made to exhaust its memory by a sender that declares one. Bounding what it will accept, and validating as it reads, are matters for the implementation rather than the protocol.
 
 ## References
 
