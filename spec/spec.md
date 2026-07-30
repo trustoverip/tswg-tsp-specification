@@ -106,6 +106,8 @@ In TSP, these properties are defined within the context of a directional [[ref: 
 
 TSP messages always assure authenticity, optionally confidentiality, and if utilized, metadata privacy. The authenticity and confidentiality goals are achieved by a scheme combining public key authenticated encryption (PKAE) and a signature. The metadata privacy protections are achieved by nested TSP messages and routed messages through intermediaries.
 
+The authenticity TSP assures binds both parties: a message attests not only that it was composed by the controller of the sender's VID, but that it was composed for the controller of the receiver's VID. It can therefore neither be attributed to a sender who did not compose it, nor claimed by a receiver to whom it was not addressed, nor disowned by the sender who did.
+
 ### Use of Formats
 
 TSP specifies message types that will have varying formats or representations during their lifecycle, both within systems that process or store them and networks that transport them. Additionally, for purposes such as debugging, documentation, or logging, these messages may need to be represented in a text format that is more accessible for human interpretation or better accepted for legal and administrative treatments.
@@ -950,6 +952,12 @@ The overall design and use of self-framed encoding allows TSP easy adaptability 
 TSP combines public-key authenticated encryption (PKAE) with public-key signatures. This combination is necessary for several reasons:
 - In TSP, authenticity (both the identity of the sender and integrity of the message) is required for all messages while confidentiality is optional.
 - PKAE schemes have weaknesses, such as Post Compromise Impersonation (PCI) attacks, which TSP aims to guard against in order to support its wider use cases.
+
+No naive composition of public-key encryption and signature achieves authenticated encryption in the public-key setting. [[ref:ESSR]] separates unforgeability against a third party from unforgeability against the receiver, the latter being the stronger requirement since a receiver can decrypt and so has capabilities a third party does not, and shows that Encrypt-and-Sign, Sign-then-Encrypt, and Encrypt-then-Sign each fail at least one of these notions. Two attacks illustrate why. An adversary that strips a signature from a ciphertext and applies its own can claim authorship of a message whose content it never learned. And a receiver able to construct a second message and key pair yielding the same ciphertext can assert that the sender addressed that message to it.
+
+TSP therefore follows the construction ESSR proposes — Encrypt Sender-key then Sign Receiver-key — carrying the sender's identity within the confidential payload and covering the receiver's identity by the signature. The first binding defeats substitution of the signature, since the sender identity found within the ciphertext contradicts it; the second prevents a receiver from altering, after the fact, what the signature was taken over. TSP binds VIDs where ESSR binds public keys. The substitution is sound because a VID is bound to its keys by the requirements of [VID General Requirements](#vid-general-requirements).
+
+Together these give the authenticity TSP requires of every message. A message cannot be attributed to a sender that did not compose it, cannot be claimed by a receiver to which it was not addressed, and cannot be disowned by the sender that did compose it — the last being the sense in which TSP's authenticity is closely related to non-repudiation. It also follows that a party holding a receiver's key cannot produce a message that appears to come from a legitimate sender, since that would require the sender's signing key; Post Compromise Impersonation by an adversary that has obtained a receiver's key is precluded for this reason. (Note that compromise of a sender's own signing key is a different matter, discussed in [Key Compromise and Recovery](#key-compromise-and-recovery).)
 
 ### Public-Key Signatures
 `Ed25519` is an EdDSA signature algorithm using `Curve-25519` and `SHA2-512` as defined in IETF [[spec-norm:RFC8032]]. 
