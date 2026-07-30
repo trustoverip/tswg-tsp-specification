@@ -9,7 +9,7 @@ Trust Spanning Protocol (TSP) Specification
 
 **Authors:**
 
-- [Wenjing Chu](https://github.com/wenjingchu), [Futurewei Technologies, Inc.](https://futurewei.com)
+- [Wenjing Chu](https://github.com/wenjing), [Futurewei Technologies, Inc.](https://futurewei.com)
 - [Samuel Smith](https://github.com/SmithSamuelM), [ProSapien LLC](https://prosapien.com)
 
 **Contributors:**
