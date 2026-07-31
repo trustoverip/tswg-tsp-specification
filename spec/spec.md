@@ -53,7 +53,7 @@ TSP stands as the spanning layer protocol within the Trust over IP technology ar
 
 ### Terminology
 
-The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14 [[spec-norm:RFC2119]] [[spec-norm:RFC8174]] when, and only when, they appear in all capitals, as shown here.
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14 [[ref:RFC2119]] [[ref:RFC8174]] when, and only when, they appear in all capitals, as shown here.
 
 [[def: Verifiable Identifier, Verifiable Identifiers, VID, VIDs]]
 ~ A Verifiable Identifier is a category of digital identifier that meets the requirements set forth in [Section 2](#verifiable-identifiers) of the Trust Spanning Protocol Specification. The requirements include cryptographic verification and assessment of governance as well as the associated [[ref: Support Systems]]. It does not itself define a digital identifier scheme. It is not restricted to a particular type of identifier class such as, centralized, federated, or decentralized identifier trust-based ecosystems.
@@ -155,7 +155,7 @@ For example, if an adversary observes VIDs `VID_a0` of endpoint `A` and `VID_b0`
 
 #### VID Syntax
 
-TSP tries not to impose any additional syntax requirements beyond what any VID type already mandates. But easier interoperability, we require that the VID format be either compliant DID format [[ref:DID]] or compliant URN format [[spec-norm:RFC8141]].
+TSP tries not to impose any additional syntax requirements beyond what any VID type already mandates. But easier interoperability, we require that the VID format be either compliant DID format [[ref:DID]] or compliant URN format [[ref:RFC8141]].
 
 #### Resolution to Transport Address
 
@@ -244,7 +244,7 @@ TSP_Envelope = {TSP_Tag, TSP_Version, VID_sndr, VID_rcvr | NULL}
 
 The current experimental draft's version is `0.0.1`. When this specification is officially released, the first version is to be `1.0.0`.
 
-VIDs in TSP are encoded with a variable length VID_String that consists of length followed by a bytestring of that length. Two types of identifier syntaxes, DID [[ref:DID]] and URN [[spec-norm:RFC8141]], MUST be supported. Implementations MAY support additional syntaxes beyond these two types.
+VIDs in TSP are encoded with a variable length VID_String that consists of length followed by a bytestring of that length. Two types of identifier syntaxes, DID [[ref:DID]] and URN [[ref:RFC8141]], MUST be supported. Implementations MAY support additional syntaxes beyond these two types.
 
 The DID specification allows various DID Methods. The URN specification allows various URN namespaces. This specification does not mandate any particular DID Methods or URN namespaces but would benefit from such standardizations elsewhere. In all variations, if a TSP implementation does not support any type of VIDs, it SHOULD discard the TSP message.
 
@@ -960,7 +960,7 @@ TSP therefore follows the construction ESSR proposes — Encrypt Sender-key then
 Together these give the authenticity TSP requires of every message. A message cannot be attributed to a sender that did not compose it, cannot be claimed by a receiver to which it was not addressed, and cannot be disowned by the sender that did compose it — the last being the sense in which TSP's authenticity is closely related to non-repudiation. It also follows that a party holding a receiver's key cannot produce a message that appears to come from a legitimate sender, since that would require the sender's signing key; Post Compromise Impersonation by an adversary that has obtained a receiver's key is precluded for this reason. (Note that compromise of a sender's own signing key is a different matter, discussed in [Key Compromise and Recovery](#key-compromise-and-recovery).)
 
 ### Public-Key Signatures
-`Ed25519` is an EdDSA signature algorithm using `Curve-25519` and `SHA2-512` as defined in IETF [[spec-norm:RFC8032]]. 
+`Ed25519` is an EdDSA signature algorithm using `Curve-25519` and `SHA2-512` as defined in IETF [[ref:RFC8032]]. 
 
 Ed25519 supports a stronger sense of unforgeability, namely SUF-CMA (Strong UnForgeability under Chosen Message Attack).
 
@@ -987,7 +987,7 @@ This section specifies all PKAE schemes that TSP implementations MUST or optiona
 
 #### Hybrid Public Key Encryption (HPKE) 
 
-HPKE is a draft standard defined in IETF [[ref:HPKE]] which formalizes and generalizes similar schemes and implementations that support encryption of messages for a receiver with a public-private key pair. [[ref:HPKE]] defines a framework from which we specify a subset of concrete configuration to best meet TSP requirements. HPKE uses modern cryptographic algorithms and has been studied with proofs of IND-CCA2 security. The HPKE base mode does not use sender authentication in the HPKE itself. The algorithms in a HPKE suite are KEM (Key Exchange Mechanism), KDF (Key Derivation Function), and AEAD (Authenticated Encryption with Associated Data function). Schemes that follow [[ref:HPKE]] have seen adoption in Messaging Layer Security [[spec-inform:RFC9420]] and TLS Encrypted ClientHello [[spec-inform:RFC9849]].
+HPKE is a draft standard defined in IETF [[ref:HPKE]] which formalizes and generalizes similar schemes and implementations that support encryption of messages for a receiver with a public-private key pair. [[ref:HPKE]] defines a framework from which we specify a subset of concrete configuration to best meet TSP requirements. HPKE uses modern cryptographic algorithms and has been studied with proofs of IND-CCA2 security. The HPKE base mode does not use sender authentication in the HPKE itself. The algorithms in a HPKE suite are KEM (Key Exchange Mechanism), KDF (Key Derivation Function), and AEAD (Authenticated Encryption with Associated Data function). Schemes that follow [[ref:HPKE]] have seen adoption in Messaging Layer Security [[ref:RFC9420]] and TLS Encrypted ClientHello [[ref:RFC9849]].
 
 TSP implementations MUST support HPKE-Base mode as defined in this document.
 
@@ -1113,9 +1113,9 @@ Per [[ref:libsodium]] documentation, the sealed box API leverages the `crypto_bo
 
 All TSP implementations MUST support the following secure hash and digest functions. They can be used for nonce and digest constructions as the operator TSP_DIGEST.
 
-- SHA2-256 [[spec-norm:RFC6234]]
+- SHA2-256 [[def-FIPS180-4]]
 
-- Blake2b [[spec-norm:RFC7693]]
+- Blake2b [[ref:RFC7693]]
 
 ## Serialization and Encoding
 
@@ -1606,9 +1606,24 @@ TSP sets no maximum message size, and the sizes an encoding permits are large. A
 
 **[[def:HPKE-PQ]]**: Post-Quantum and Post-Quantum/Traditional Hybrid Algorithms for HPKE, 6 July 2026, https://www.ietf.org/archive/id/draft-ietf-hpke-pq-05.txt
 
-**[[def:FIPS203]]**. Module-Lattice-Based Key-Encapsulation Mechanism Standard, National Institute of Standards and Technology (U.S.), DOI 10.6028/nist.fips.203, August 2024, https://doi.org/10.6028/nist.fips.203.
+**[[def:FIPS180-4]]**. Secure Hash Standard (SHS), National Institute of Standards and Technology (U.S.), August 2015, https://doi.org/10.6028/NIST.FIPS.180-4.
 
-**[[def:FIPS204]]**. Module-Lattice-Based Digital Signature Standard, National Institute of Standards and Technology (U.S.), DOI 10.6028/nist.fips.204, August 2024, https://doi.org/10.6028/NIST.FIPS.204.
+**[[def:FIPS203]]**. Module-Lattice-Based Key-Encapsulation Mechanism Standard, National Institute of Standards and Technology (U.S.), August 2024, https://doi.org/10.6028/nist.fips.203.
+
+**[[def:FIPS204]]**. Module-Lattice-Based Digital Signature Standard, National Institute of Standards and Technology (U.S.), August 2024, https://doi.org/10.6028/NIST.FIPS.204.
+
+**[[def:RFC2119]]**. Key words for use in RFCs to Indicate Requirement Levels, *S. Bradner*, March 1997, https://datatracker.ietf.org/doc/html/rfc2119.
+
+**[[def:RFC7693]]**. The BLAKE2 Cryptographic Hash and Message Authentication Code (MAC), *M-J. Saarinen, Ed., J-P. Aumasson*, November 2015, https://datatracker.ietf.org/doc/html/rfc7693.html.
+
+**[[def:RFC8032]]**. Edwards-Curve Digital Signature Algorithm (EdDSA), *S. Josefsson, I. Liusvaara*, January 2017, https://datatracker.ietf.org/doc/html/rfc8032.
+
+**[[def:RFC8141]]**. Uniform Resource Names (URNs), *P. Saint-Andre, J. Klensin*, April 2017, https://datatracker.ietf.org/doc/html/rfc8141.
+
+**[[def:RFC8174]]**. Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words, *B. Leiba*, May 2017, https://datatracker.ietf.org/doc/html/rfc8174.
+
+
+
 
 ### Informational References
 
@@ -1633,6 +1648,10 @@ TSP sets no maximum message size, and the sizes an encoding permits are large. A
 **[[def:JWE-HPKE]]**. Use of Hybrid Public Key Encryption (HPKE) with JSON Web Encryption (JWE), *T. Reddy, H. Tschofenig, A. Banerjee, O. Steele, M. Jones*, draft-ietf-jose-hpke-encrypt-22, 6 July 2026, https://www.ietf.org/archive/id/draft-ietf-jose-hpke-encrypt-22.txt.
                     
 **[[def:COSE-HPKE]]**. Use of Hybrid Public-Key Encryption (HPKE) with CBOR Object Signing and Encryption (COSE), *H. Tschofenig, B. Moran*, draft-ietf-cose-hpke-26, 4 July, 2026. https://www.ietf.org/archive/id/draft-ietf-cose-hpke-26.txt. 
+
+**[[def:RFC9420]]**. The Messaging Layer Security (MLS) Protocol, *R. Barnes, B. Beurdouche, R. Robert, J. Millican, E. Omara, K. Cohn-Gordon*, July 2023, https://www.rfc-editor.org/rfc/rfc9420.txt.
+
+**[[def.RFC9849]]**. TLS Encrypted Client Hello, *E. Rescorla, 奥 一穂 (K. Oku), N. Sullivan, C. A. Wood*, March 2026, https://www.rfc-editor.org/rfc/rfc9849.txt.
 
 ## Appendix A: Test Vectors
 
