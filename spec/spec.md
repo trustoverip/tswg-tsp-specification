@@ -1651,7 +1651,7 @@ TSP sets no maximum message size, and the sizes an encoding permits are large. A
 
 **[[def:RFC9420]]**. The Messaging Layer Security (MLS) Protocol, *R. Barnes, B. Beurdouche, R. Robert, J. Millican, E. Omara, K. Cohn-Gordon*, July 2023, https://www.rfc-editor.org/rfc/rfc9420.txt.
 
-**[[def.RFC9849]]**. TLS Encrypted Client Hello, *E. Rescorla, 奥 一穂 (K. Oku), N. Sullivan, C. A. Wood*, March 2026, https://www.rfc-editor.org/rfc/rfc9849.txt.
+**[[def:RFC9849]]**. TLS Encrypted Client Hello, *E. Rescorla, 奥 一穂 (K. Oku), N. Sullivan, C. A. Wood*, March 2026, https://www.rfc-editor.org/rfc/rfc9849.txt.
 
 ## Appendix A: Test Vectors
 
