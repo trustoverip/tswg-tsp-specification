@@ -270,7 +270,7 @@ Higher layer application messages use the general payload type `TSP_GEN`.
 
 Each payload consists of a type and a number of fields determined by the type. They will be defined in the corresponding sections when their functions are defined.
 
-Some payload fields are required by TSP, including the sender VID `VID_sndr` used for ESSR ([[ref:ESSR]]) operations and VID list used in routing mode. When it is necessary to differentiate these fields, we will refer them as Control Fields or Control Payload Fields. These control fields are used for all messages, not just control messages.
+Some payload fields are required by TSP, including the sender VID `VID_sndr` used for ESSR ([[ref:ESSR]]) operations in the *libsodium Sealed Box* ([[ref:libsodium]]) mode and VID list used in routing mode. When it is necessary to differentiate these fields, we will refer them as Control Fields or Control Payload Fields. These control fields are used for all messages, not just control messages.
 
 #### Ciphertext of the Confidential Payloads
 
@@ -282,7 +282,7 @@ TSP_Payload_Ciphertext = TSP_SEAL(TSP_Payload)
 
 The details of the supported PKAE schemes for the `TSP_SEAL` operation are specified in Section [Cryptographic Algorithms](#cryptographic-algorithms).
 
-For PKAE schemes *HPKE-Base* ([[ref:HPKE]]) and *libsodium Sealed Box* ([[ref:libsodium]]), the `VID_sndr` MUST appear as a confidential payload field following the ESSR ([[ref:ESSR]]) scheme. See [Section 8](#cryptographic-algorithms) for the details.
+For the PKAE scheme *libsodium Sealed Box* ([[ref:libsodium]]), the `VID_sndr` MUST appear as a confidential payload field following the ESSR ([[ref:ESSR]]) method. For the PKAE scheme *HPKE-Base* ([[ref:HPKE]]), the `VID_sndr` field is not mandatory in the confidential payload and MAY be encoded as a NULL VID. See [Section 8](#cryptographic-algorithms) for the details.
 
 On the receiving side, the corresponding TSP primitive is `TSP_OPEN`.
 
@@ -363,7 +363,7 @@ If endpoint `B` receives a TSP message of the generic form `{... VID_sndr, VID_r
 - Step 4: Verify, and appraise `VID_sndr` using additional information and processes specific to the VID.
 - Step 5: Verify the `TSP_Signature`.
 - Step 6: Decrypt the `TSP_Payload_Ciphertext`. 
-- Step 7: If the PKAE variant requires, retrieve the sender VID from the decrypted payload plaintext and verify that it matches `VID_sndr`.
+- Step 7: If the PKAE variant is *libsodium Sealed Box*, retrieve the sender VID from the decrypted payload plaintext and verify that it matches `VID_sndr`. If the PKAE variant is *HPKE-Base*, then the sender VID field may contain either NULL or a valid VID; if it is a valid VID, also verify that it matches `VID_sndr`, otherwise no checking is necessary for NULL.
 - Step 8: Process the rest of the control fields.
 - Step 9: Return the payload to the upper layer application.
 
@@ -955,7 +955,7 @@ TSP combines public-key authenticated encryption (PKAE) with public-key signatur
 
 No naive composition of public-key encryption and signature achieves authenticated encryption in the public-key setting. [[ref:ESSR]] separates unforgeability against a third party from unforgeability against the receiver, the latter being the stronger requirement since a receiver can decrypt and so has capabilities a third party does not, and shows that Encrypt-and-Sign, Sign-then-Encrypt, and Encrypt-then-Sign each fail at least one of these notions. Two attacks illustrate why. An adversary that strips a signature from a ciphertext and applies its own can claim authorship of a message whose content it never learned. And a receiver able to construct a second message and key pair yielding the same ciphertext can assert that the sender addressed that message to it.
 
-TSP therefore follows the construction ESSR proposes — Encrypt Sender-key then Sign Receiver-key — carrying the sender's identity within the confidential payload and covering the receiver's identity by the signature. The first binding defeats substitution of the signature, since the sender identity found within the ciphertext contradicts it; the second prevents a receiver from altering, after the fact, what the signature was taken over. TSP binds VIDs where ESSR binds public keys. A VID is bound to its keys by the requirements of [VID General Requirements](#vid-general-requirements), and the substitution is preferable here: a binding to a VID survives rotation of the keys behind it, where a binding to a public key would not.
+TSP therefore follows the construction ESSR proposes — Encrypt Sender-key then Sign Receiver-key — carrying the sender's identity within the confidential payload and covering the receiver's identity by the signature for the *Libsodium sealed box* mode. In the HPKE-Base mode, the binding of the sender identity is achieved through AAD in the HPKE construction, and implementors MAY optionally still carry the sender VID in the confidential payload or the default NULL value. Either way, the first binding defeats substitution of the signature, since the sender identity found within the ciphertext contradicts it, or it will fail to decrypt in HPKE; the second prevents a receiver from altering, after the fact, what the signature was taken over. TSP binds VIDs where ESSR binds public keys. A VID is bound to its keys by the requirements of [VID General Requirements](#vid-general-requirements), and the substitution is preferable here: a binding to a VID survives rotation of the keys behind it, where a binding to a public key would not.
 
 Together these give the authenticity TSP requires of every message. A message cannot be attributed to a sender that did not compose it, cannot be claimed by a receiver to which it was not addressed, and cannot be disowned by the sender that did compose it — the last being the sense in which TSP's authenticity is closely related to non-repudiation. It also follows that a party holding a receiver's key cannot produce a message that appears to come from a legitimate sender, since that would require the sender's signing key; Post Compromise Impersonation by an adversary that has obtained a receiver's key is precluded for this reason. (Note that compromise of a sender's own signing key is a different matter, discussed in [Key Compromise and Recovery](#key-compromise-and-recovery).)
 
@@ -987,7 +987,7 @@ This section specifies all PKAE schemes that TSP implementations MUST or optiona
 
 #### Hybrid Public Key Encryption (HPKE) 
 
-HPKE is a draft standard defined in IETF [[ref:HPKE]] which formalizes and generalizes similar schemes and implementations that support encryption of messages for a receiver with a public-private key pair. [[ref:HPKE]] defines a framework from which we specify a subset of concrete configuration to best meet TSP requirements. HPKE uses modern cryptographic algorithms and has been studied with proofs of IND-CCA2 security. The HPKE base mode does not use sender authentication in the HPKE itself. The algorithms in a HPKE suite are KEM (Key Exchange Mechanism), KDF (Key Derivation Function), and AEAD (Authenticated Encryption with Associated Data function). Schemes that follow [[ref:HPKE]] have seen adoption in Messaging Layer Security [[ref:RFC9420]] and TLS Encrypted ClientHello [[ref:RFC9849]].
+HPKE is a draft standard defined in IETF [[ref:HPKE]] which formalizes and generalizes similar schemes and implementations that support encryption of messages for a receiver with a public-private key pair. [[ref:HPKE]] defines a framework from which we specify a subset of concrete configuration to best meet TSP requirements. HPKE uses modern cryptographic algorithms and has been studied with proofs of IND-CCA2 security. The HPKE-Base mode does not use sender authentication in the HPKE itself. The algorithms in a HPKE suite are KEM (Key Exchange Mechanism), KDF (Key Derivation Function), and AEAD (Authenticated Encryption with Associated Data function). Schemes that follow [[ref:HPKE]] have seen adoption in Messaging Layer Security [[ref:RFC9420]] and TLS Encrypted ClientHello [[ref:RFC9849]].
 
 TSP implementations MUST support HPKE-Base mode as defined in this document.
 
@@ -1004,9 +1004,9 @@ AEAD | 0x0003 | ChaCha20Poly1305
 
 A VID's encryption key type selects the KEM; the KDF and AEAD are the same in both cases.
 
-##### HPKE Base Mode
+##### HPKE-Base Mode
 
-The HPKE-Base mode does not include the authentication mechanism allowing the receiver to verify that the sender possessed a given KEM private key `VID_sndr.SK_e`. Leaving this verification out is intentional choice because TSP has `VID_sndr` in the encrypted payload ciphertext and a separate signature for sender authentication.
+The HPKE-Base mode does not authenticate the sender at the HPKE layer; that is, it does not allow the receiver to verify that the sender possessed a given KEM private key. This omission is intentional. In TSP, sender authentication is provided by the TSP_Signature over the envelope and payload, and the binding of the ciphertext to the sender identity required by the ESSR construction is provided by the associated data `aad`, which includes `VID_sndr` from the envelope. A ciphertext that does not open under the receiver-computed `aad` MUST be rejected. The sender VID MAY additionally be included as the first confidential payload field; when present it MUST match `VID_sndr` in the envelope.
 
 In the HPKE-Base mode, for a TSP message that uses a confidential payload, the ciphertext MUST be generated by the HPKE-Base single-shot API defined in [[ref:HPKE]] as follows:
 
@@ -1014,7 +1014,7 @@ In the HPKE-Base mode, for a TSP message that uses a confidential payload, the c
 def TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Plaintext):
     pkR = VID_rcvr.PK_e
     aad = CONCAT(TSP_Version, VID_sndr, VID_rcvr, Non_Confidential_Fields)
-    info = NULL
+    info = the TSP CESR code `YTSP-`
     pt = Confidential_Fields_Plaintext
     enc, ct = SealBase(pkR, info, aad, pt)
     return CONCAT(enc, ct)
@@ -1030,7 +1030,7 @@ The receiver MUST use the corresponding single-shot API to decrypt:
 def TSP_OPEN(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Ciphertext):
     skR = VID_rcvr.SK_e
     aad = CONCAT(TSP_Version, VID_sndr, VID_rcvr, Non_Confidential_Fields)
-    info = NULL
+    info = the TSP CESR code `YTSP-`
     enc, ct = SPLIT(Confidential_Fields_Ciphertext)
     return OpenBase(enc, skR, info, aad, ct)
 
@@ -1039,11 +1039,10 @@ Plaintext = TSP_OPEN(VID_sndr, VID_rcvr,
                 Confidential_Fields_Ciphertext)
 ```
 
-In HPKE-Base mode, the `VID_sndr` field MUST be present in the confidential control payload (as required by [[ref:ESSR]]).
+In HPKE-Base mode, the `VID_sndr` field SHOULD be NULL (not used) or MAY be present in the confidential control payload (as required by [[ref:ESSR]]). By default, VID_sndr is NULL for HPKE-Base mode.
 
-Note that the 'aad' input is the serialized octet sequence of the cleartext message fields preceding the ciphertext — the version, both VIDs, and the non-confidential payload (if present) — taken exactly as encoded on the wire.
+Note that the 'aad' input is the CESR serialized octet sequence of the cleartext message fields preceding the ciphertext — the version, both VIDs, and the non-confidential payload (if present). The VID_rcvr MUST be taken from the receiver's local value, while other fields are to the received message as encoded on wire. TSP_Tag is not included.
 
-TODO: discuss if 'aad' is useful.
 
 ##### HPKE PQ and PQ/T Algorithms
 
@@ -1103,7 +1102,7 @@ Plaintext = TSP_OPEN(VID_sndr, VID_rcvr,
                 Confidential_Fields_Ciphertext)
 ```
 
-Similar to HPKE-Base mode, the `VID_sndr` field MUST be present in the Confidential Control Fields (as required by [[ref:ESSR]]).
+For *Libsodium Sealed Box*, the `VID_sndr` field MUST be present in the Confidential Control Fields (as required by [[ref:ESSR]]).
 
 ##### Sealed Box Cryptographic Algorithms
 
@@ -1230,12 +1229,12 @@ Sealed Box X25519 Cipher |short length ciphertext | '6C##' | lead pad size 2
 Sealed Box X25519 Cipher |long length ciphertext | '7AAC####' | lead pad size 0
 Sealed Box X25519 Cipher |long length ciphertext | '8AAC####' | lead pad size 1
 Sealed Box X25519 Cipher |long length ciphertext | '9AAC####' | lead pad size 2
-HPKE Base Cipher |short length ciphertext | '4F##' | lead pad size 0
-HPKE Base Cipher |short length ciphertext | '5F##' | lead pad size 1
-HPKE Base Cipher |short length ciphertext | '6F##' | lead pad size 2
-HPKE Base Cipher |long length ciphertext | '7AAF####' | lead pad size 0
-HPKE Base Cipher |long length ciphertext | '8AAF####' | lead pad size 1
-HPKE Base Cipher |long length ciphertext | '9AAF####' | lead pad size 2
+HPKE-Base Cipher |short length ciphertext | '4F##' | lead pad size 0
+HPKE-Base Cipher |short length ciphertext | '5F##' | lead pad size 1
+HPKE-Base Cipher |short length ciphertext | '6F##' | lead pad size 2
+HPKE-Base Cipher |long length ciphertext | '7AAF####' | lead pad size 0
+HPKE-Base Cipher |long length ciphertext | '8AAF####' | lead pad size 1
+HPKE-Base Cipher |long length ciphertext | '9AAF####' | lead pad size 2
 
 The short length `##` counts for ciphertext up to 4095 quadlets/triplets and `#####` for up to 1,073,741,823 quadlets/triplets.
 
@@ -1488,11 +1487,11 @@ Properties beyond these belong to the layers above and below TSP. An application
 ### Binding of identifiers
 The construction in [Cryptographic Algorithms](#cryptographic-algorithms) binds the verifiable identifiers (VIDs) of both parties into each message. The VIDs in turn bind with their public keys and key states.
 
-For the sender's identity, carried within the confidential payload, this indirection is an overall improvement: the binding is to an identifier whose key material may change, so it continues to hold across a rotation.
+For the sender's identity, bound to the ciphertext through the associated data in *HPKE-Base* and carried within the confidential payload in *Sealed Box*, this indirection is an overall improvement: the binding is to an identifier whose key material may change, so it continues to hold across a rotation.
 
 For the receiver's identity, covered by the signature, the basis differs. ESSR, which binds public keys directly, relies on the receiver's public key being fixed at the moment of signing, so that a receiver cannot afterwards assert that a message was addressed under some other key. A VID is fixed in the same way, but what it resolves to is not, and TSP provides no means to establish which key state was current when a signature was made.
 
-The property — receiver unforgeability, in the terms of [[ref:ESSR]] —  is retained because the two bindings compose. To assert that a different message was received, a receiver would have to produce a plaintext and a key pair reproducing the ciphertext the sender signed, and that plaintext would itself have to be a well-formed payload naming the sender's VID, since a verifier checks that field against the envelope and the signature. No scheme specified here admits a collision meeting that constraint. An endpoint substituting other schemes should satisfy itself that the same holds.
+The property — receiver unforgeability, in the terms of [[ref:ESSR]] — is retained because the two bindings compose. To assert that a different message was received, a receiver would have to produce a plaintext and a key pair reproducing the ciphertext the sender signed. In HPKE-Base that ciphertext verifies only under associated data naming the sender's and receiver's VIDs as they appear in the envelope, so any such plaintext would be bound to the same two parties. In Sealed Box the plaintext would itself have to be a well-formed payload naming the sender's VID, since a verifier checks that field against the envelope and the signature. No scheme specified here admits a collision meeting these constraints. Where the sender's VID is also carried in the confidential payload under HPKE-Base, the two bindings are independent, and an implementation that does not wish to rely on the associated-data handling of a newer HPKE implementation obtains the same property from the payload check alone.
 
 ### Key Compromise and Recovery
 A VID has keys with distinct roles: a signing key, a decryption key, and the authority to change them. What can be recovered depends on which is compromised, and claims about recovery should be considered in that context. TSP requires that rotation authority be separate from the signing key ([VID General Requirements](#vid-general-requirements)).
