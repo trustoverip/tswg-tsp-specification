@@ -49,7 +49,7 @@ Beyond offering enhanced trust properties when compared to previous solutions an
 
 TSP messages can traverse various transport mechanisms without making prior assumptions about their trustworthiness although users may opt for specific underlying transport protocols for TSP based on various factors such as additional operational or security considerations. TSP messages can be transported directly between endpoints (Direct Mode) or routed via intermediaries (Routed Mode). We first describe the Direct Mode in [Section 3](#messages), followed by the routing mechanism in [Section 5](#routed-messages-through-intermediaries).
 
-TSP stands as the spanning layer protocol within the Trust over IP technology architecture [[ref:TOIP-TAS]]. It occupies a pivotal role, facilitating the twin goals of robust trustworthiness and universal interoperability across the Trust over IP stack. For additional details on the reference architecture, please see [Section 1.2](#reference-architecture).
+TSP stands as the spanning layer protocol within the Trust over IP technology architecture. It occupies a pivotal role, facilitating the twin goals of robust trustworthiness and universal interoperability across the Trust over IP stack. For additional details on the reference architecture, please see [Section 1.2](#reference-architecture).
 
 ### Terminology
 
@@ -1645,8 +1645,6 @@ TSP sets no maximum message size, and the sizes an encoding permits are large. A
 **[[def:ESSR]]**. Authenticated Encryption in the Public-Key Setting: Security Notations and Analyses, *Jee Hea An*, Cryptology ePrint Archive, Paper 2001/079. https://eprint.iacr.org/2001/079.
 
 **[[def:NaCl]]**. The security impact of a new cryptographic library, *D. J. Bernstein, Tanja Lange, Peter Schwabe*, LATINCRYPT 2012. https://nacl.cr.yp.to/.
-
-**[[def:TOIP-TAS]]**. ToIP Technology Architecture Specification (DRAFT). https://github.com/trustoverip/TechArch/blob/main/spec.md
 
 **[[def:JWE-HPKE]]**. Use of Hybrid Public Key Encryption (HPKE) with JSON Web Encryption (JWE), *T. Reddy, H. Tschofenig, A. Banerjee, O. Steele, M. Jones*, draft-ietf-jose-hpke-encrypt-22, 6 July 2026, https://www.ietf.org/archive/id/draft-ietf-jose-hpke-encrypt-22.txt.
                     
