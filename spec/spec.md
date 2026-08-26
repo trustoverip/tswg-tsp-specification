@@ -1138,7 +1138,7 @@ VID_String | short VID with lead pad size 0 | `4B##` | The VID string is in a va
  ^ | long VID with lead pad size 1 | `8AAB####` | ^ 
  ^ | long VID with lead pad size 2 | `9AAB####` | ^ 
 
-The TSP protocol code is `YTSP-` which is unique in the CESR code and is used in HPKE-Base mode `Info` input parameter.
+The TSP protocol code is `YTSP-` which is unique in the CESR code and is used in HPKE-Base mode `info` input parameter.
 
 The NULL VID is encoded as `4BAA`.
 
