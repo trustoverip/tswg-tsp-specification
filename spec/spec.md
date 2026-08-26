@@ -203,7 +203,7 @@ An endpoint that needs to change a private VID MAY establishe a new one rather t
 
 The following are examples of identifier types suitable for use as VIDs. They are informative and neither exhaustive nor privileged.
 
-- KERI AID: An Autonomic Identifier (AID) is self-certifying: it is derived from its own inception key state, and its key event log records every subsequent change. Rotation and pre-rotation are native to the log, which provides the verifiable provenance of the current key state from inception. An AID supports multiple signing keys with weighted signing thresholds. An AID is not a DID; it is used directly, and is also the basis of the `did:webs` and `did:webvh` methods below. See [[ref:KERI]].
+- KERI AID: An Autonomic Identifier (AID) is self-certifying: it is derived from its own inception key state, and its key event log records every subsequent change. Rotation and pre-rotation are native to the log, which provides the verifiable provenance of the current key state from inception. An AID supports multiple signing keys with weighted signing thresholds. An AID is not a DID; it is used directly, and is also the basis of the `did:webs` method below. See [[ref:KERI]].
 
 - `did:webs`: Binds a KERI AID to a web-published DID document. Discovery and transport addresses come from the web location; key state, rotation, and provenance continue to be verified against the AID's key event log. See [[ref:DID-WEBS]].
 
