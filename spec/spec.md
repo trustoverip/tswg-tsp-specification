@@ -1041,7 +1041,7 @@ Plaintext = TSP_OPEN(VID_sndr, VID_rcvr,
 
 In HPKE-Base mode the VID_sndr confidential field is NULL VID by default. It MAY carry the sender VID; when it does, it MUST equal VID_sndr in the envelope.
 
-Note that the 'aad' input is the CESR serialized octet sequence of the cleartext message fields preceding the ciphertext — the version, both VIDs, and the non-confidential payload (if present). The sender computes `aad` from the values it places in the envelope and payload. On the receiver side, the `VID_rcvr` MUST be taken from the receiver's local value, while the other fields are taken from the received message as encoded on the wire. `TSP_Tag` is not included.
+Note that the 'aad' input is the CESR serialized octet sequence of the cleartext message fields preceding the ciphertext — the version, both VIDs, and the non-confidential payload (if present). The sender computes `aad` from the values it places in the envelope and payload. On the receiver side, the `VID_rcvr` MUST be taken from the receiver's local value, while the other fields are taken from the received message as encoded on the wire. The `VID_sndr` in `aad` MUST also match the VID used in the signature verification. `TSP_Tag` is not included in `aad`.
 
 
 ##### HPKE PQ and PQ/T Algorithms
