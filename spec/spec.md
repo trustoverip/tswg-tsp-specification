@@ -1144,7 +1144,7 @@ CESR uses a unit of 4 Base64 letters (Quadlet) to represent an equivalent unit o
 :::
 
 ### TSP Payload Encoding
-TSP payload consists of a `TSP_Payload_Tag`, a number of `Payload_Field`, followed by `Confidential_Payload_Ciphertext` as specified in [TSP Payload](#tsp-payload). We first describe the encoding of this simple structure then the encodings of [Nested Messages](#nested-messages) and [Routed Messages](#routed-messages).
+TSP payload consists of a `TSP_Payload_Tag`, a payload field type, and payload fields required for the type, as specified in [TSP Payload](#tsp-payload). For confidential ciphertext, the cleartext is encoded first, then produce the ciphertext using the cleartext (in its entirety, including the tag) and encoded as a ciphertext. We first describe the encoding of this simple structure then the encodings of [Nested Messages](#nested-messages) and [Routed Messages](#routed-messages).
 
 The payload fields include *control fields* that are required for the correct operations of TSP. Encodings of all required control fields are defined below. Higher layer application *data fields* may use broader CESR encoding mechanisms including interleaving JSON, CBOR or MsgPak encodings.
 
