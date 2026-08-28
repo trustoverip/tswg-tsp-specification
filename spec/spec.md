@@ -254,7 +254,7 @@ Please see Section [TSP Envelope Encoding](#tsp-envelope-encoding) for further i
 
 ### TSP Payload
 
-The TSP payload is where application data goes. It is either control message payload used by TSP itself or application message payload used by the higher layer. It is structured uniformly with a payload type followed by a series of data fields that is dictated by the type. The payload may be encrypted and encoded as a single ciphertext. The payload field definitions are all described in plaintext in this specification. When it is helpful, we may use affix `_ciphertext` or the adjective confidential to indicate that the data therein is actually encrypted ciphertext of what is being presented.
+The TSP payload is either control message payload used by TSP itself or application message payload used by the higher layer. It is structured uniformly with a payload type followed by a series of data fields that is dictated by the type. The payload may be encrypted and encoded as a single ciphertext (entirely confidential), or entirely non-confidential (signed only), but never mixed. The payload field definitions are all described in plaintext in this specification. When it is helpful, we may use affix `_ciphertext` or the adjective confidential to indicate that the data therein is actually encrypted ciphertext of what is being presented.
 
 The TSP payload may be recursively nested where a payload field may itself be a TSP message. See [Nested Messages](#nested-messages). The terms of payload and payload field therefore must only be understood as relative within the current level of payload structure being referenced.
 
@@ -279,6 +279,7 @@ If TSP_Payload is confidential, the corresponding ciphertext is produced as:
 ```text
 TSP_Payload_Ciphertext = TSP_SEAL(TSP_Payload)
 ```
+It is this ciphertext that is encoded and sent on the wire.
 
 The details of the supported PKAE schemes for the `TSP_SEAL` operation are specified in Section [Cryptographic Algorithms](#cryptographic-algorithms).
 
@@ -408,7 +409,7 @@ Nested_Message = {Envelope_0, Control_Fields_0, TSP_SEAL_0(Inner_Message), Signa
 ```
 `TSP_SEAL_0` indicates that the `TSP_SEAL` operation uses the outer message sender's keys. `Control_Fields_0` indicates the control fields of the outer message payload.
 
-In this scheme, the inner message MUST use the confidential payload of the outer message in order to achieve the protection of the inner message metadata. Other than that, we do not restrict the structures of inner and outer messages. For example, if the endpoints do not find the need for additional encryption of the inner message, they MAY choose to use the non-confidential payload for the inner message payload data. Applications should be aware that the confidentiality assurances would only be extended to the outer relationship if the inner message is embedded in the non-confidential field of the outer message.
+In this scheme, the outer message MUST be confidential: the inner message is carried in the outer message's encrypted payload, and it is this outer encryption that conceals the inner message's metadata. We do not otherwise restrict the structures of the inner and outer messages. In particular, the inner message itself MAY be a non-confidential (signed-only) message, since the outer encryption already protects its contents in transit. Applications should note that in that case the confidentiality of the inner payload derives entirely from the outer relationship — it is protected under the outer relationship's keys, not the inner relationship's.
 
 ### Nested Relationships
 
@@ -578,7 +579,7 @@ To create an endpoint-to-endpoint relationship between `A` and `B`, Endpoint `A`
 [VID_a1, VID_p1, VID_q0, VID_b1, [VID_a2, VID_b2, Payload_e2e]]
 ```
 
-Because this is the first layer at which endpoint-to-endpoint communication takes place, a source that requires confidentiality with respect to the intermediaries MUST encrypt at this layer, and MUST NOT rely on the protection provided by the direct neighbor relationships as permitted in [Section 4](#nested-messages). Where the source does not require confidentiality — for example where the payload is intended to be public — it MAY use the non-confidential payload, and the intermediaries will be able to read it. Signing at this layer is required in either case, as it is for all TSP messages.
+Because this is the first layer at which endpoint-to-endpoint communication takes place, a source that requires confidentiality with respect to the intermediaries MUST encrypt at this layer, and MUST NOT rely on the protection provided by the direct neighbor relationships as permitted in [Section 4](#nested-messages). Where the source does not require confidentiality — for example where the payload is intended to be public — it MAY send the endpoint-to-endpoint message as a non-confidential (signed-only) message, and the intermediaries will be able to read it. Signing at this layer is required in either case, as it is for all TSP messages.
 
 #### The Destination Endpoint
 
@@ -979,7 +980,7 @@ TSP uses strong public key encryption schemes that supports IND-CCA2 (Indistingu
 TSP defines a standard way to encrypt a single TSP message to a receiver's public key. The operations use the following `seal` and `open` primitives.
 
 ``` text
-Ciphertext = TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Fields, Plaintext)
+Ciphertext = TSP_SEAL(VID_sndr, VID_rcvr, Plaintext)
 Plaintext = TSP_OPEN(VID_sndr, VID_rcvr, Ciphertext)
 ```
 
@@ -1011,37 +1012,35 @@ The HPKE-Base mode does not authenticate the sender at the HPKE layer; that is, 
 In the HPKE-Base mode, for a TSP message that uses a confidential payload, the ciphertext MUST be generated by the HPKE-Base single-shot API defined in [[ref:HPKE]] as follows:
 
 ``` text
-def TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Plaintext):
+def TSP_SEAL(VID_sndr, VID_rcvr, Confidential_Fields_Plaintext):
     pkR = VID_rcvr.PK_e
-    aad = CONCAT(TSP_Version, VID_sndr, VID_rcvr, Non_Confidential_Fields)
+    aad = CONCAT(TSP_Version, VID_sndr, VID_rcvr)
     info = the TSP CESR code `YTSP-`
     pt = Confidential_Fields_Plaintext
     enc, ct = SealBase(pkR, info, aad, pt)
     return CONCAT(enc, ct)
 
-Ciphertext = TSP_SEAL(VID_sndr, VID_rcvr,
-                Non_Confidential_Fields, 
+Ciphertext = TSP_SEAL(VID_sndr, VID_rcvr, 
                 Confidential_Fields_Plaintext)
 
 ```
 The receiver MUST use the corresponding single-shot API to decrypt:
 
 ``` text
-def TSP_OPEN(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Ciphertext):
+def TSP_OPEN(VID_sndr, VID_rcvr, Confidential_Fields_Ciphertext):
     skR = VID_rcvr.SK_e
-    aad = CONCAT(TSP_Version, VID_sndr, VID_rcvr, Non_Confidential_Fields)
+    aad = CONCAT(TSP_Version, VID_sndr, VID_rcvr)
     info = the TSP CESR code `YTSP-`
     enc, ct = SPLIT(Confidential_Fields_Ciphertext)
     return OpenBase(enc, skR, info, aad, ct)
 
-Plaintext = TSP_OPEN(VID_sndr, VID_rcvr, 
-                Non_Confidential_Fields, 
+Plaintext = TSP_OPEN(VID_sndr, VID_rcvr,  
                 Confidential_Fields_Ciphertext)
 ```
 
 In HPKE-Base mode the VID_sndr confidential field is NULL VID by default. It MAY carry the sender VID; when it does, it MUST equal VID_sndr in the envelope.
 
-Note that the 'aad' input is the CESR serialized octet sequence of the cleartext message fields preceding the ciphertext — the version, both VIDs, and the non-confidential payload (if present). The sender computes `aad` from the values it places in the envelope and payload. On the receiver side, the `VID_rcvr` MUST be taken from the receiver's local value, while the other fields are taken from the received message as encoded on the wire. The `VID_sndr` in `aad` MUST also match the VID used in the signature verification. `TSP_Tag` is not included in `aad`.
+Note that the 'aad' input is the CESR serialized octet sequence of the cleartext message fields preceding the ciphertext — the version, both VIDs. The sender computes `aad` from the values it places in the envelope and payload. On the receiver side, the `VID_rcvr` MUST be taken from the receiver's local value, while the other fields are taken from the received message as encoded on the wire. The `VID_sndr` in `aad` MUST also match the VID used in the signature verification. `TSP_Tag` is not included in `aad`.
 
 
 ##### HPKE PQ and PQ/T Algorithms
@@ -1074,7 +1073,7 @@ int crypto_box_seal_open(unsigned char *m, const unsigned char *c,
 To use sealed box as the PKAE in TSP, for TSP message that uses confidential payload, the ciphertext MUST generated by `crypto_box_seal()` API as follows (in pseudocode) or an equivalent procedure:
 
 ``` text
-def TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Plaintext):
+def TSP_SEAL(VID_sndr, VID_rcvr, Confidential_Fields_Plaintext):
     pkR = VID_rcvr.PK_e
     pt = Confidential_Fields_Plaintext
     mlen = Length(pt)
@@ -1082,14 +1081,13 @@ def TSP_SEAL(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Pl
     return ciphertext
 
 Ciphertext = TSP_SEAL(VID_sndr, VID_rcvr,
-                Non_Confidential_Fields, 
                 Confidential_Fields_Plaintext)
 ```
 
 The receiver MUST use the corresponding `crypto_box_seal_open()` API procedure or an equivalent to decrypt:
 
 ``` text
-def TSP_OPEN(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Ciphertext):
+def TSP_OPEN(VID_sndr, VID_rcvr, Confidential_Fields_Ciphertext):
     pkR = VID_rcvr.PK_e
     skR = VID_rcvr.SK_e
     ct = Confidential_Fields_Ciphertext
@@ -1097,8 +1095,7 @@ def TSP_OPEN(VID_sndr, VID_rcvr, Non_Confidential_Fields, Confidential_Fields_Ci
     output = crypto_box_seal_open(ct, clen, pkR, skR)
     return output
 
-Plaintext = TSP_OPEN(VID_sndr, VID_rcvr, 
-                Non_Confidential_Fields, 
+Plaintext = TSP_OPEN(VID_sndr, VID_rcvr,  
                 Confidential_Fields_Ciphertext)
 ```
 
