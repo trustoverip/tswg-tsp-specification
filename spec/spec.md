@@ -1175,7 +1175,7 @@ The generic CESR stream MUST use the CESR count code `-A##` (for shorter length)
 The overall higher layer payload is as follows:
 
 ``` text
--Z## | -0Z#####, XSCS, VID_sndr, Padding_field, -A## | -0A#####, higher-layer-interleaved-payload-stream
+-Z## | -0Z#####, XSCS, VID_sndr, Padding_field, -A## | -0A#####, higher-layer-payload-stream
 ```
 where, ## or #### stands for a 2 or 4, respectively, character code of the length of the payload. All counts start immediately after the count code, not including the count code itself. The encoding of `VID_sndr` is specified in [TSP Envelope Encoding](#tsp-envelope-encoding). The encoding of the padding field is specified in [Padding Field](#padding-field).
 
