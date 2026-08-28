@@ -1040,7 +1040,7 @@ Plaintext = TSP_OPEN(VID_sndr, VID_rcvr,
 
 In HPKE-Base mode the VID_sndr confidential field is NULL VID by default. It MAY carry the sender VID; when it does, it MUST equal VID_sndr in the envelope.
 
-Note that the 'aad' input is the CESR serialized octet sequence of the cleartext message fields preceding the ciphertext — the version, both VIDs. The sender computes `aad` from the values it places in the envelope and payload. On the receiver side, the `VID_rcvr` MUST be taken from the receiver's local value, while the other fields are taken from the received message as encoded on the wire. The `VID_sndr` in `aad` MUST also match the VID used in the signature verification. `TSP_Tag` is not included in `aad`.
+Note that the 'aad' input is the CESR serialized octet sequence of the cleartext message fields preceding the ciphertext — the version, both VIDs. The sender computes `aad` from the values it places in the envelope. On the receiver side, the `VID_rcvr` MUST be taken from the receiver's local value or checked for equality with the value in the received message, while the other fields are taken from the received message as encoded on the wire. The `VID_sndr` in `aad` MUST also match the VID used in the signature verification. `TSP_Tag` is not included in `aad`.
 
 
 ##### HPKE PQ and PQ/T Algorithms
@@ -1144,7 +1144,7 @@ CESR uses a unit of 4 Base64 letters (Quadlet) to represent an equivalent unit o
 :::
 
 ### TSP Payload Encoding
-TSP payload consists of a `TSP_Payload_Tag`, a payload field type, and payload fields required for the type, as specified in [TSP Payload](#tsp-payload). For confidential ciphertext, the cleartext is encoded first, then produce the ciphertext using the cleartext (in its entirety, including the tag) and encoded as a ciphertext. We first describe the encoding of this simple structure then the encodings of [Nested Messages](#nested-messages) and [Routed Messages](#routed-messages).
+TSP payload consists of a `TSP_Payload_Tag`, a payload field type, and payload fields required for the type, as specified in [TSP Payload](#tsp-payload). For a confidential payload, the cleartext structure is encoded first; the ciphertext is then produced over that encoding in its entirety, including the tag, and carried as the ciphertext field. We first describe the encoding of this simple structure then the encodings of [Nested Messages](#nested-messages) and [Routed Messages](#routed-messages).
 
 The payload fields include *control fields* that are required for the correct operations of TSP. Encodings of all required control fields are defined below. Higher layer application *data fields* may use broader CESR encoding mechanisms including interleaving JSON, CBOR or MsgPak encodings.
 
@@ -1388,7 +1388,7 @@ For nested or routed relationships, the same message is encoded as an inner mess
 A TSP generic control message uses the `XCTL` code in the CESR code table and its payload can be any conformant stream, including interleaving JSON, CBOR, or MsgPak encodings.
 
 ```text
--Z## | -0Z#####, XCTL, VID_sndr, Padding_field, -A## | -0A#####, higher-layer-interleaved-payload-stream
+-Z## | -0Z#####, XCTL, VID_sndr, Padding_field, -A## | -0A#####, higher-layer-payload-stream
 ```
 ##### Padding Message
 
