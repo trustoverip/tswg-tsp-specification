@@ -488,7 +488,7 @@ TSP routed messages have the same TSP Envelope as TSP messages sent in direct mo
 ``` text
 Control_Payload_Fields = {VID_sndr, VID_hop2, ..., VID_hopk, VID_exit}
 ```
-The first field `VID_sndr` MUST be the sender VID required by ESSR ([[ref:ESSR]]) PKAE schemes. This field is mandatory in all TSP messages.
+The first field `VID_sndr` is the sender VID required by ESSR ([[ref:ESSR]]) PKAE schemes. This field is always present in every TSP payload; its value MAY be the NULL VID `4BAA` where the PKAE variant permits, as specified in [Ciphertext of the Confidential Payloads](#ciphertext-of-the-confidential-payloads) and [Receiver Procedure](#receiver-procedure).
 
 The VIDs following the first `VID_sndr` is an ordered list of next hop VIDs of intermediary systems and the last VID represents the destination endpoint. The list can vary in length from 1, 2, to k > 2, and should be interpreted as an ordered routing path with the `VID_hop2` coming first, followed by `VID_hop3`, `VID_hop4` etc... Note that the first hop is already identified as the `VID_rcvr`.
 
@@ -689,7 +689,7 @@ TSP Digest is calculated and contained in the message that it is based on. In a 
 
 For the message that contains it, its TSP_Digest is computed over the binary serialization of that message's own TSP_Version, VID_sndr, VID_rcvr, and Payload fields (the plaintext payload, before encryption), with these rules:
 
- - The -E## framing tag and the Padding_field are excluded from the computation.
+ - The `-E##` (or `--E#####`) and `-Z##` (or `--Z#####`) framing tags and the Padding_Field are excluded from the computation; the payload type code is included. `Signature_new` is excluded because it is produced after the digest and signs it.
  - During derivation, the digest field's own slot is filled with the dummy byte 0x23 over its full length (e.g. 33 bytes for a 256-bit digest), then the digest is computed and its CESR-encoded value replaces the dummy.
  - The hash function is identified by the digest's own CESR derivation code (e.g. I = SHA2-256, F = Blake2b-256), from [Secure Hash and Digest Functions](#secure-hash-and-digest-functions).
  - In a nested message, "the message" means the innermost message that carries the digest, not any outer routing envelope. A digest that is echoed from a prior message (e.g. the Digest copied into a TSP_RFA) is copied verbatim, not recomputed. Verification reverses the derivation.
@@ -745,9 +745,9 @@ The relationship forming message = [VID_a, VID_b, …, VID_hopk, VID_exit, Paylo
 
 Payload fields:
     - Type = TSP_RFI
-    - Reply_Path = ..., VID_rhopk, VID_rexit
     - Digest = TSP_DIGEST
     - Nonce_Field = Nonce
+    - Reply_Path = ..., VID_rhopk, VID_rexit
 ```
 
 Endpoint `B` retrieves and verifies `VID_a`, and if agrees, replies with the following:
@@ -779,16 +779,16 @@ we omitted the optional route path VID list so this can either a Direct or Route
 
 Payload fields:
     - Type = TSP_RFI
-    - New_VID = VID_a1
+    - VID_new = VID_a1
     - Reply_Path = VID_list | NULL
     - Digest = TSP_DIGEST
     - Nonce_Field = Nonce
-    - New_Signature = TSP_SIGN(the preceding payload) by New_VID
+    - Signature_new = TSP_SIGN(the preceding payload) by VID_new
 ```
 
 In this procedure, `VID_a1` is the new VID for endpoint `A`. If endpoint `B` picks `VID_b1` and replies with `TSP_RFA`, then the new relationship `(VID_a1, VID_b1)` is parallel to `(VID_a0, VID_b0)` in endpoint `A`, and similarly in `B`.
 
-If the `VID_List` is present, then `B` MUST use the routed path specified by `VID_List` to send the `TSP_RFA` message to endpoint `A` as defined in the previous section [Relationship over a Routed Path](#relationship-over-a-routed-path).
+If the `Reply_Path` is present, then `B` MUST use the routed path specified by `Reply_Path` to send the `TSP_RFA` message to endpoint `A` as defined in the previous section [Relationship over a Routed Path](#relationship-over-a-routed-path).
 
 ``` text
 Return message: [VID_b1, VID_a1, …, Payload]
@@ -843,11 +843,11 @@ we omitted the optional route path VID list so this can either a Direct or Route
 
 Payload fields:
     - Type = TSP_RFI
-    - New_VID = VID_a2
+    - VID_new = VID_a2
     - Reply_Path = VID_list | NULL
     - Digest = TSP_DIGEST
     - Nonce_Field = Nonce
-    - New_Signature = TSP_SIGN(the preceding payload) by New_VID
+    - Signature_new = TSP_SIGN(the preceding payload) by VID_new
 ```
 And endpoint `B` replies with:
 
@@ -876,10 +876,8 @@ When `A` initiates the cancellation, `A` sends a control message with the follow
 Message: [VID_a, VID_b, Payload]
 Control payload fields:
     - Type = TSP_RFD
-    - Digest = the previously received Digest or Reply_Digest, NULL if there is none
-    - Nonce_field = Nonce
+    - Digest = the previously received Digest or Reply_Digest
 ```
-Note that the Nonce is added here to prevent easy attacks when the Digest is NULL.
 
 When `B` Receives a cancellation:
 
@@ -896,7 +894,6 @@ Message: [VID_b, VID_a, Payload]
 Payload fields:
     - Type = TSP_RFD
     - Digest = Digest from the corresponding `TSP_RFI`
-    - Nonce_field = Nonce
 ```
 ### Relationship Events
 
@@ -910,8 +907,8 @@ If endpoint `A` chooses to send a padding message to `B`, the message will be as
 Message: [VID_a, VID_b, Payload]
 Payload fields:
     - Type = TSP_PAD
-    - Nonce_field = Nonce
-    - Padding_field = Padding
+    - Nonce_Field = Nonce
+    - Padding_Field = Padding
 ```
 
 The receiver SHOULD silently discard padding messages.
@@ -1126,7 +1123,7 @@ The TSP Envelope consists of four objects: TSP_Tag, TSP_Version, VID_sndr, VID_r
 
 Object | Description | Code | Note
 ----:|----:|--------:|--------:
-TSP_Tag | Indicating the start of a TSP envelope | `-E##` or `-0E#####`| Use `-E##` for signable data up to 4095 quadlets/triplets, `-0E#####` for signable data up to 1,073,741,823 quadlets/triplets. The length does not include signature part.
+TSP_Tag | Indicating the start of a TSP envelope | `-E##` or `--E#####`| Use `-E##` for signable data up to 4095 quadlets/triplets, `--E#####` for signable data up to 1,073,741,823 quadlets/triplets. The length does not include signature part.
 TSP_Version | TSP protocol version | `YTSP-###` | The first version is `YTSP-AAB`. The three `###` characters should represent MAJOR, MINOR, PATCH version as in semver 2.0.0 scheme.
 VID_String | short VID with lead pad size 0 | `4B##` | The VID string is in a variable length of either 2 Base64 size characters limited to 4095 quadlets/triplets (short VID) or 4 Base64 characters limited to 16,777,215 quadlets/triplets (long VID). In each case, there are 3 variations depending on the lead pad size of 0, 1, or 2.
  ^ | short VID with lead pad size 1 | `5B##` | ^ 
@@ -1140,7 +1137,7 @@ The TSP protocol code is `YTSP-` which is unique in the CESR code and is used in
 The NULL VID is encoded as `4BAA`.
 
 ::: note
-CESR uses a unit of 4 Base64 letters (Quadlet) to represent an equivalent unit of 3 bytes in binary (Triplet). Therefore, a two letter count code `0E##` in text domain provides a value in range of 0 to 4095 (`64 x 64 - 1`) where each unit is a quadlet/triplet. The corresponding value in actual bytes in binary is 12,285 (`4095 x 3`). Similarly, `-0E#####` provides 0 to 1,073,741,823 (`64^5 - 1`) quadlets/triplets which corresponds to 3,221,225,469 bytes in binary.
+CESR uses a unit of 4 Base64 letters (Quadlet) to represent an equivalent unit of 3 bytes in binary (Triplet). Therefore, a two letter count code `0E##` in text domain provides a value in range of 0 to 4095 (`64 x 64 - 1`) where each unit is a quadlet/triplet. The corresponding value in actual bytes in binary is 12,285 (`4095 x 3`). Similarly, `--E#####` provides 0 to 1,073,741,823 (`64^5 - 1`) quadlets/triplets which corresponds to 3,221,225,469 bytes in binary.
 :::
 
 ### TSP Payload Encoding
@@ -1151,7 +1148,7 @@ The payload fields include *control fields* that are required for the correct op
 #### TSP Payload Tag
 Object | Description | Code | Note
 ----:|----:|--------:|--------:
-TSP Payload | short or long TSP payload | `-Z##` or `-0Z#####` | Use `-Z##` for payloads up to 4095 quadlets/triplets, `-0Z#####` for up to 1,073,741,823 quadlets/triplets
+TSP Payload | short or long TSP payload | `-Z##` or `--Z#####` | Use `-Z##` for payloads up to 4095 quadlets/triplets, `--Z#####` for up to 1,073,741,823 quadlets/triplets
 
 #### Payload Field Types
 Following the Payload Tag is a number of payload fields. Each field is encoded with a payload type and additional data depending on the type. The top level TSP payload field types consist of the following CESR codes using the three character code table starting with `X` as defined in CESR [[ref:CESR]] version 2.0 (master code table for `-_AAACAA`).
@@ -1170,12 +1167,12 @@ RFD | relationship forming decline | `XRFD` | Declining a new TSP relationship i
 
 Higher layer application payload (Type = `TSP_GEN`) MUST use type encoding `XSCS` followed by a generic CESR stream including supported interleaving of JSON, CBOR, and MsgPak encoded data. 
 
-The generic CESR stream MUST use the CESR count code `-A##` (for shorter length) or `-0A#####` (for longer length).
+The generic CESR stream MUST use the CESR count code `-A##` (for shorter length) or `--A#####` (for longer length).
 
 The overall higher layer payload is as follows:
 
 ``` text
--Z## | -0Z#####, XSCS, VID_sndr, Padding_field, -A## | -0A#####, higher-layer-payload-stream
+-Z## | --Z#####, XSCS, VID_sndr | `4BAA`, Padding_Field, -A## | --A#####, higher-layer-payload-stream
 ```
 where, ## or #### stands for a 2 or 4, respectively, character code of the length of the payload. All counts start immediately after the count code, not including the count code itself. The encoding of `VID_sndr` is specified in [TSP Envelope Encoding](#tsp-envelope-encoding). The encoding of the padding field is specified in [Padding Field](#padding-field).
 
@@ -1203,9 +1200,17 @@ To avoid confusion, the term padding or padding field means the payload field it
 The VID hop list field can appear in various messages. It is encoded as follows:
 
 ``` text
--J## | -0J#####, VID_0, VID_1, ... 
+-J## | --J#####, VID_0, VID_1, ... 
 ```
 Here both ## and #### still represent counts of length of the string that follows which is the concatenation of VIDs, not the number of VIDs. The encoding of each VID is specified in [TSP Envelope Encoding](#tsp-envelope-encoding).
+
+#### Reply_Path Field
+
+`Reply_Path` carries the route over which the replying endpoint is to send its `TSP_RFA`, as described in [Relationship over a Routed Path](#relationship-over-a-routed-path). It is a VID hop list, encoded as specified in [VID Hop List Field](#vid-hop-list-field), and is `-JAA` when the reply is to be sent directly.
+
+#### Referral Field
+
+`Referral_Field` carries a new VID introduced over an existing relationship, together with that VID's own signature. It is a generic list, `-J## | --J#####`, containing `VID_new` followed by `Signature_new`, and is `-JAA` when the message is not a referral. `Signature_new` is encoded as specified in [TSP Signature Encoding](#tsp-signature-encoding).
 
 #### Nonce
 
@@ -1281,12 +1286,12 @@ See [[ref:CESR]] on X25519 Sealed Box cipher bytes encoding.
 
 An application payload (type XSCS) or control payload (type XCTL) is a generic CESR stream for the upper layer. It may contain native CESR and/or non-native serializations — JSON, CBOR, or MsgPak. TSP carries this payload opaquely; the upper layer parses its content. TSP itself does not interpret it.
 
-Because the payload sits inside TSP messages, a non-native serialization cannot be free-interleaved. Per [[ref:CESR]], it MUST be encoded as a CESR primitive and enclosed in the non-native message group -H## (or -0H#####). TSP uses the Bytes primitive (4B/5B/6B, chosen by length for lead-byte alignment) in the binary domain to carry the serialization bytes.
+Because the payload sits inside TSP messages, a non-native serialization cannot be free-interleaved. Per [[ref:CESR]], it MUST be encoded as a CESR primitive and enclosed in the non-native message group -H## (or --H#####). TSP uses the Bytes primitive (4B/5B/6B, chosen by length for lead-byte alignment) in the binary domain to carry the serialization bytes.
 
-A payload may contain one or more such -H## (or -0H#####) groups in sequence, alongside native CESR — for example a JSON object followed by a CBOR map. This sequencing is the interleaving.
+A payload may contain one or more such -H## (or --H#####) groups in sequence, alongside native CESR — for example a JSON object followed by a CBOR map. This sequencing is the interleaving.
 
 ```text
--A## | -0A#####, ( -H## | -0H##### (4B|5B|6B)## <serialization bytes> ) + [and/or native CESR]
+-A## | --A#####, ( -H## | --H##### (4B|5B|6B)## <serialization bytes> ) + [and/or native CESR]
 ```
 
 #### Nested Payload
@@ -1295,7 +1300,7 @@ In TSP Nested Mode, the inner TSP message is carried inside a payload field of t
 The outer message MUST be encoded with payload type `XHOP`. If this is a direct relationship nested message, the overall message payload is as follows:
 
 ``` text
--Z## | -0Z#####, XHOP, VID_sndr, -JAA, Padding_field, Encoded_TSP_Message
+-Z## | --Z#####, XHOP, VID_sndr | `4BAA`, -JAA, Padding_Field, Encoded_TSP_Message
 ```
 Because this is a message between direct neighbors, the VID hop list field is empty which is encoded as `-JAA`. The inner message can be any correctly encoded TSP message including its envelope, payload and signature. The starting payload length must count the nested message. 
 
@@ -1303,83 +1308,64 @@ Because this is a message between direct neighbors, the VID hop list field is em
 Routed payload is encoded as a nested payload with a non-empty routing hop list.
 
 ``` text
--Z## | -0Z#####, XHOP, VID_sndr, -J## | -0J#####, VID_1, ..., Padding_field, Encoded_TSP_Message
+-Z## | --Z#####, XHOP, VID_sndr | `4BAA`, -J## | --J#####, VID_1, ..., Padding_Field, Encoded_TSP_Message
 ```
 The hop list field encoding is specified in [VID Hop List Field](#vid-hop-list-field). The rest is identical to nested payload.
 
 #### Control Message Encoding
 Control messages are composition of payload fields that are used for TSP's own control mechanisms. The following sections define these payload fields in its plaintext text mode. The actual final encoding will be in ciphertext format as described in [Confidential Payload Ciphertext](#confidential-payload-ciphertext).
 
+In every payload layout below, `VID_sndr` is the ESSR sender field. It is always present and MAY be the NULL VID `4BAA` under HPKE-Base; under Libsodium Sealed Box it MUST carry the sender's VID. See [Receiver Procedure](#receiver-procedure).
+
 ##### TSP_RFI
 
 The TSP_RFI payload is specified in [Direct Relationship Forming](#direct-relationship-forming).
 
 ```text
--Z## | -0Z#####, XRFI, VID_sndr, Digest, Nonce, `4BAA`, Padding_field
+-Z## | --Z#####, XRFI, VID_sndr | `4BAA`, Digest, Nonce, Reply_Path, Referral_Field, Padding_Field
 ```
-where `4BAA` is an empty VID. This VID is `4BAA` to indicate that we are *not* signaling a *new* VID from an existing relationship. For the latter case, please see [TSP_RFI in Referral](#tsp_rfi-in-referral).
+
+A direct invite has `Reply_Path` = `-JAA` and `Referral_Field` = `-JAA`. An invite that asks for a routed reply carries a non-empty `Reply_Path`. An invite that introduces a new VID over an existing relationship, as in [Parallel Relationship Forming](#parallel-relationship-forming), carries a populated `Referral_Field` and MAY carry either form of `Reply_Path`.
+
+`Signature_new` within the `Referral_Field` is made by `VID_new`'s key over {`XRFI`, `VID_sndr | 4BAA`, `Digest`, `Nonce`, `Reply_Path`, `VID_new`}. The referral field's own code and count are not covered; the message signature covers them.
 
 ##### TSP_RFA
 
 The TSP_RFA payload is specified in [Direct Relationship Forming](#direct-relationship-forming).
 
 ```text
--Z## | -0Z#####, XRFA, VID_sndr, Digest, Reply_Digest, Padding_field
+-Z## | --Z#####, XRFA, VID_sndr | `4BAA`, Digest, Reply_Digest, Padding_Field
 ```
 
-##### TSP_RFI in Referral
+An accept has one form. Where it accepts a referral, the accepting endpoint's new VID is the sender of the message rather than a payload field, so its control of that VID is proven by the message signature; see [Parallel Relationship Forming](#parallel-relationship-forming).
 
-```text
--Z## | -0Z#####, XRFI, VID_sndr, Digest, Nonce, VID_new, Signature_new, Padding_field
-```
-The `Signature_new` field is a signature signed by the VID_new's key over the fields that precedes it: {XRFI,  VID_sndr, Digest, Nonce, VID_new}. It is then encoded in the same way as specified in [TSP Signature Encoding](#tsp-signature-encoding).
-
-##### TSP_RFA in Referral
-
-```text
--Z## | -0Z#####, XRFA, VID_sndr, Digest, Reply_Digest, VID_new, Signature_new, Padding_field
-```
-The `Signature_new` field is a signature signed by the VID_new's key over the fields that precedes it: {XRFA,  VID_sndr, Digest, Reply_Digest, VID_new}. It is then encoded in the same way as specified in [TSP Signature Encoding](#tsp-signature-encoding).
 
 ##### TSP_RFI Nested
-The TSP_RFI message can be constructed by composing a TSP_RFI inside a nested outer message:
 
-``` text
--Z## | -0Z#####, XHOP, VID_sndr, -J## | -0J#####, VID_HOP_1, ..., Padding_field, Encoded_TSP_Message
-```
-The `Encoded_TSP_Message` is in fact the `TSP_RFI` message as follows:
+A `TSP_RFI` is nested by composing it inside a nested outer message:
 
 ```text
-TSP_Tag, TSP_Version, VID_sndr_new, `4BAA`, -Z## | -0Z#####, XRFI, VID_sndr_new, Digest, Nonce, Padding_field, Signature_new
+-Z## | --Z#####, XHOP, VID_sndr | `4BAA`, -J## | --J#####, VID_HOP_1, ..., Padding_Field, Encoded_TSP_Message
 ```
-In the nested `TSP_RFI` message, the Signature_new is the signature of the new `VID_sndr_new`.
 
-Note that the hop list will be encoded as `-JAA` if this message is nested over a direct relationship without intermediary.
-
-The same method can be applied to nest TSP_RFI in Referral messages.
+The `Encoded_TSP_Message` is an ordinary TSP message — envelope, payload and signature — whose payload is a `TSP_RFI` exactly as specified above. Its envelope sender is the new VID, so the message's own signature is made by that VID, and it is that signature which authenticates the new VID; the payload's `Referral_Field` is `-JAA` unless the nested exchange is itself a referral, as in [Nested Relationship Forming](#nested-relationship-forming). The hop list is `-JAA` when the outer relationship is direct.
 
 ##### TSP_RFA Nested
 
-The TSP_RFA message can be constructed by composing a TSP_RFA inside a nested outer message:
-
-``` text
--Z## | -0Z#####, XHOP, VID_sndr, -J## | -0J#####, VID_HOP_1, ..., Padding_field, Encoded_TSP_Message
-```
-The `Encoded_TSP_Message` is in fact the `TSP_RFA` message as follows:
+A `TSP_RFA` is nested by composing it inside a nested outer message:
 
 ```text
-TSP_Tag, TSP_Version, VID_sndr_new, VID_rcvr_new, -Z## | -0Z#####, XRFA, VID_sndr_new, Digest, Reply_Digest, Padding_field, Signature
+-Z## | --Z#####, XHOP, VID_sndr | `4BAA`, -J## | --J#####, VID_HOP_1, ..., Padding_Field, Encoded_TSP_Message
 ```
-Note that the hop list will be encoded as `-JAA` if this message is nested over a direct relationship without intermediary.
 
-The same method can be applied to nest TSP_RFA in Referral messages.
+The `Encoded_TSP_Message` is an ordinary TSP message — envelope, payload and signature — whose payload is a `TSP_RFA` exactly as specified above. Its envelope sender is the accepting endpoint's new VID and its receiver is the inviting endpoint's new VID, so the message's own signature is made by the accepting endpoint's new VID, and it is that signature which authenticates it. The hop list is `-JAA` when the outer relationship is direct.
 
 ##### TSP_RFD
 
 The `TSP_RFD` message can be constructed as follows in a direct relationship,
 
 ```text
--Z## | -0Z#####, XRFD, VID_sndr, Nonce, Digest, Padding_field
+-Z## | --Z#####, XRFD, VID_sndr | `4BAA`, Digest, Padding_Field
 ```
 For nested or routed relationships, the same message is encoded as an inner message in the nested or routed outer message. The `Digest` field MUST reference the corresponding relationship formation `XRFI` or `XRFA` message's digest, respectively.
 
@@ -1388,22 +1374,22 @@ For nested or routed relationships, the same message is encoded as an inner mess
 A TSP generic control message uses the `XCTL` code in the CESR code table and its payload can be any conformant stream, including interleaving JSON, CBOR, or MsgPak encodings.
 
 ```text
--Z## | -0Z#####, XCTL, VID_sndr, Padding_field, -A## | -0A#####, higher-layer-payload-stream
+-Z## | --Z#####, XCTL, VID_sndr | `4BAA`, Padding_Field, -A## | --A#####, higher-layer-payload-stream
 ```
 ##### Padding Message
 
 A TSP padding message uses the `XPAD` code in the CESR code table. 
 
 ```text
--Z## | -0Z#####, XPAD, VID_sndr, Nonce, Padding_field
+-Z## | --Z#####, XPAD, VID_sndr | `4BAA`, Nonce, Padding_Field
 ```
 
 ### TSP Signature Encoding
 The TSP Signature is encoded as an attachment group in CESR. TSP allows multiple signatures. The general structure is the attachment group code, followed by the indexed signature group code, then 1 or more signatures of supported types.
 
-- Attachment group: `-C##` or `-0C#####` (Attachment length up to 4,095 quadlets/triplets for `-C##` or up to 1,073,741,823 quadlets/triplets for `-0C#####`)
+- Attachment group: `-C##` or `--C#####` (Attachment length up to 4,095 quadlets/triplets for `-C##` or up to 1,073,741,823 quadlets/triplets for `--C#####`)
 
-- Indexed signature group: `-K##` or `-0K#####` (Indexed signature group up to 4,095 quadlets/tripletsfor `-K##` or up to 1,073,741,823 quadlets/triplets for `-0K#####`)
+- Indexed signature group: `-K##` or `--K#####` (Indexed signature group up to 4,095 quadlets/tripletsfor `-K##` or up to 1,073,741,823 quadlets/triplets for `--K#####`)
 
 #### Ed25519 Signature
 
