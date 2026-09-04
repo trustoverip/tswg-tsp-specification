@@ -19,12 +19,12 @@
       "description": "Ed25519 signing: short ASCII message",
       "algorithm": "Ed25519",
       "inputs": {
-        "private_key_seed_hex": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae3d55",
+        "private_key_seed_hex": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",
         "message_hex": "68656c6c6f20545350"
       },
       "outputs": {
-        "public_key_hex": "700e2ce7c4b674427eab27ba820bcf6f0faebe68e09fe8564292114e41dc6a41",
-        "signature_hex": "e33213c6037c1aa0b13c9e0903e44d7eb2681aad07abfc511a5cabe28f9125e000eb929d8345fc192c3f18f78e06cbc6561c90e6281ecc41f6ab87aadfc8430b"
+        "public_key_hex": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "signature_hex": "d48ec1dee4412a48aeee1b77b33f569bd1cd4124d0c0aead0ace086b17bfa39876158c0841b79a9a7c6e870c411a9e484ab5ad3a02736d0eb3e0895251426605"
       },
       "notes": "Signature covers the message bytes directly. In TSP, the signed data is {TSP_Envelope || TSP_Payload} per Section 3.3 of the specification."
     },
@@ -32,12 +32,12 @@
       "description": "Ed25519 signing: TSP envelope bytes (32-byte payload)",
       "algorithm": "Ed25519",
       "inputs": {
-        "private_key_seed_hex": "4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4d0bd6f4",
+        "private_key_seed_hex": "4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb",
         "message_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
       },
       "outputs": {
-        "public_key_hex": "9f71b850219db38702ab2e7e93aaf7411fc832496bb11e79d4da44e5cacbc42b",
-        "signature_hex": "f5c4f3a67fc70fa787656bac2e24598d03886a55c34487eebec581d6cc94d9c01a324b21c09f8b365d8b93d7c84211479334606443bf3da9e9f17e02e5d6cd03"
+        "public_key_hex": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+        "signature_hex": "ed19931f49cf7559f1474199dfbcce36cef99ed8c2faf414550fa01c8699bc99ca097b6e4764712829214b328f593b8f1db93ef2965b838d9770663b36882105"
       },
       "notes": "Signature covers the message bytes directly. In TSP, the signed data is {TSP_Envelope || TSP_Payload} per Section 3.3 of the specification."
     }

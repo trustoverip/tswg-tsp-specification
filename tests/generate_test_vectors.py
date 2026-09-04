@@ -244,12 +244,12 @@ def gen_ed25519_vectors() -> list[dict]:
         },
         {
             "description": "Ed25519 signing: short ASCII message",
-            "seed_hex": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae3d55",
+            "seed_hex": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",
             "message_hex": bytes(b"hello TSP").hex(),
         },
         {
             "description": "Ed25519 signing: TSP envelope bytes (32-byte payload)",
-            "seed_hex": "4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4d0bd6f4",
+            "seed_hex": "4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb",
             "message_hex": bytes(range(32)).hex(),
         },
     ]
