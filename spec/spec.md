@@ -966,7 +966,7 @@ TSP implementations MUST support Ed25519.
 
 #### Post-Quantum Signatures
 
-TSP supports post-quantum digital signatures using ML-DSA-65 (Module-Lattice-Based Digital Signature Algorithm, security category 3), as defined in [[FIPS204]] (also known as CRYSTALS-Dilithium). An endpoint uses ML-DSA-65 or Ed25519 according to the signature key type of its VID. The signature encoding is specified in [ML-DSA-65 Signature](#ml-dsa-65-signature).
+TSP supports post-quantum digital signatures using ML-DSA-65 (Module-Lattice-Based Digital Signature Algorithm, security category 3), as defined in [[ref:FIPS204]] (also known as CRYSTALS-Dilithium). An endpoint uses ML-DSA-65 or Ed25519 according to the signature key type of its VID. The signature encoding is specified in [ML-DSA-65 Signature](#ml-dsa-65-signature).
 
 ### Public-Key Authenticated Encryption
 
@@ -996,7 +996,7 @@ HPKE configuration(s) supported by TSP:
 Primitive | Code | Description
 ----:|----:|--------:
 KEM | 0x0020 | DHKEM(X25519, HKDF-SHA256)
-KEM | 0x647a | X25519MLKEM768 (PQ/T hybrid)
+KEM | 0x647a | MLKEM768-X25519 (PQ/T hybrid)
 KDF | 0x0001 | HKDF-SHA256
 AEAD | 0x0003 | ChaCha20Poly1305
 
@@ -1042,7 +1042,7 @@ Note that the 'aad' input is the CESR serialized octet sequence of the cleartext
 
 ##### HPKE PQ and PQ/T Algorithms
 
-Post-quantum support in TSP is not a separate mode — it is HPKE-Base with the post-quantum/traditional hybrid KEM X25519MLKEM768 (0x647a), as defined in [[ref:HPKE-PQ]]. The KEM is selected by the recipient VID's encryption key type; all other HPKE-Base processing, framing, and AAD are unchanged. Note that [[ref:HPKE-PQ]] is an active Internet-Draft; this reference is to be updated to the RFC on publication. 
+Post-quantum support in TSP is not a separate mode — it is HPKE-Base with the post-quantum/traditional hybrid KEM MLKEM768-X25519 (0x647a), as defined in [[ref:HPKE-PQ]], which combines ML-KEM-768 [[ref:FIPS203]] with X25519. The KEM is selected by the recipient VID's encryption key type; all other HPKE-Base processing, framing, and AAD are unchanged. Note that [[ref:HPKE-PQ]] is an active Internet-Draft; this reference is to be updated to the RFC on publication. 
 
 #### Libsodium Sealed Box
 
@@ -1106,7 +1106,7 @@ Per [[ref:libsodium]] documentation, the sealed box API leverages the `crypto_bo
 
 All TSP implementations MUST support the following secure hash and digest functions. They can be used for nonce and digest constructions as the operator TSP_DIGEST.
 
-- SHA2-256 [[def-FIPS180-4]]
+- SHA2-256 [[ref:FIPS180-4]]
 
 - Blake2b [[ref:RFC7693]]
 
@@ -1267,7 +1267,7 @@ The ID values that MUST be supported by TSP:
 Primitive | Code | Description
 ----:|----:|--------:
 KEM | 0x0020 | DHKEM(X25519, HKDF-SHA256)
-KEM | 0x647a | X25519MLKEM768 (PQ/T hybrid)
+KEM | 0x647a | MLKEM768-X25519 (PQ/T hybrid)
 KDF | 0x0001 | HKDF-SHA256
 AEAD | 0x0003 | ChaCha20Poly1305
 
@@ -2543,7 +2543,7 @@ skE        CDZNS-gKPeJMsblGZC33c-6rrv-JsuuVfitTnkg6wnw
 
 #### direct-hpke-base-pq
 
-The same message as direct-hpke-base, to endpoints whose VIDs declare post-quantum key types. Post-quantum support is not a separate mode: this is HPKE-Base with the X25519MLKEM768 hybrid KEM, selected by the recipient VID's encryption key type, and the ciphertext code is the same 4F as any other HPKE-Base message. What changes is size — the encapsulation is 1120 bytes rather than 32 — and the signature, which is ML-DSA-65 under the code 1AAQ rather than an indexed Ed25519 signature. There is no sealed-box counterpart to this vector; that suite has no post-quantum option. This is the one vector with no published ephemeral value: the hybrid KEM derives no ephemeral keypair, drawing encapsulation randomness instead, so there is nothing of that shape to publish and check. Its bytes reproduce from the recorded seed. See [Section 9](#tsp-encoding) §8.2, 8.3, 9.2.8.
+The same message as direct-hpke-base, to endpoints whose VIDs declare post-quantum key types. Post-quantum support is not a separate mode: this is HPKE-Base with the MLKEM768-X25519 hybrid KEM, selected by the recipient VID's encryption key type, and the ciphertext code is the same 4F as any other HPKE-Base message. What changes is size — the encapsulation is 1120 bytes rather than 32 — and the signature, which is ML-DSA-65 under the code 1AAQ rather than an indexed Ed25519 signature. There is no sealed-box counterpart to this vector; that suite has no post-quantum option. This is the one vector with no published ephemeral value: the hybrid KEM derives no ephemeral keypair, drawing encapsulation randomness instead, so there is nothing of that shape to publish and check. Its bytes reproduce from the recorded seed. See [Section 9](#tsp-encoding) §8.2, 8.3, 9.2.8.
 
 ``` text
 sender     pq_alice
