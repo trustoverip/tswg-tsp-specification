@@ -211,7 +211,7 @@ The following are examples of identifier types suitable for use as VIDs. They ar
 
 - `did:peer`: A pairwise identifier requiring no public infrastructure, generated and exchanged directly between two endpoints. It is intended for private use in nested relationships, and does not meet the requirements for public VIDs. *Numalgo 4* is suitable: its short form is a digest over the DID document, exchanged once in long form and referenced thereafter. See [[ref:DID-PEER]] and [[ref:DID-PEER-4]].
 
-- `urn:said`: A Self-Addressing Identifier is a digest over the document that contains it, expressed as a URN. Verification consists of recomputing the digest over the identified document. A `urn:said` may identify a document held in an authoritative store rather than a decentralized one, which makes it an example of a VID that is verifiable without being decentralized. See [[ref:SAID-URN]].
+- `urn:said`: A Self-Addressing Identifier is a digest over the document that contains it, expressed as a URN. See [[ref:SAID-URN]]. For example, a VID type could use a urn:said to identify a content-addressed VID document. The SAID provides cryptographically verifiable identification of the document, independent of where the document is stored or obtained. The VID type would define how the identified document represents the TSP signing and encryption keys and their key state, and how VID.VERIFY establishes control of the corresponding secret key.
 
 Several of these are constructed the same way: an AID, a SAID, and the short form of a did:peer:4 are each derived as a digest over the content or key state they identify, and each is - at least in part - verified by recomputing that digest. The identifier syntax differs; the construct does not.
 
