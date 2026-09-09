@@ -732,6 +732,8 @@ Other actions that endpoint B may take MAY be application specific and are left 
 
 In all of the above cases, the responding party (endpoint `B`) should be careful about privacy leaks if it chooses to respond to an incoming message. The most private option is to remain silent.
 
+How long A retains an outstanding TSP_RFI is a local policy choice; endpoints need not agree on it and it is not communicated.
+
 #### Race Condition of TSP_RFI
 
 It is possible that two endpoints `A` and `B` may initiate a TSP_RFI message to each other at roughly same time with the same pair of `VID_a` and `VID_b`. Under such a race condition, endpoint `A` may have sent an TSP_RFI for <VID_a, VID_b>, and while it is waiting for a TSP_RFA, receives a TSP_RFI for <VID_b, VID_a>. The endpoints MUST break this race condition based on the Digest field in the TSP_RFI. The rule is that both endpoints keep the TSP_RFI whose Digest is lower by lexicographical comparison, and discard the other.
@@ -759,7 +761,7 @@ Payload fields:
     - Digest = Digest of the corresponding `TSP_RFI`
     - Reply_Digest = TSP_DIGEST
 ```
-In the above illustration, endpoint `A` has chosen at least its direct intermediary {`VID_rhopk`, `VID_rexit`}. If endpoint `B` sends the reply message to its direct intermediary and that intermediary knows how to route to `A`'s intermediary `VID_rhopk`, then all is good. Optionally, endpoint `B` may also add additional hops, illustrated above as `...` hop list. The minimal required condition is that the last intermediary in `B`'s hop list knows how to reach the first hop in `A`'s list. 
+In the above illustration, endpoint `A` has chosen at least its direct intermediary {`VID_rhopk`, `VID_rexit`}. If endpoint `B` sends the reply message to its direct intermediary and that intermediary knows how to route to `A`'s intermediary `VID_rhopk`, then all is good. Optionally, endpoint `B` may also add additional hops, illustrated above as `...` hop list. The minimal required condition is that the last intermediary in `B`'s hop list knows how to reach the first hop in `A`'s list. B's obligation ends with delivery of the TSP_RFA to its own first hop; it cannot observe whether the path beyond completes.
 
 In common cases, intermediaries MAY use well-known public VIDs and know how to reach each other.
 
