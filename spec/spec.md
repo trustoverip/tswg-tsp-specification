@@ -1126,7 +1126,7 @@ The TSP Envelope consists of four objects: TSP_Tag, TSP_Version, VID_sndr, VID_r
 Object | Description | Code | Note
 ----:|----:|--------:|--------:
 TSP_Tag | Indicating the start of a TSP envelope | `-E##` or `--E#####`| Use `-E##` for signable data up to 4095 quadlets/triplets, `--E#####` for signable data up to 1,073,741,823 quadlets/triplets. The length does not include signature part.
-TSP_Version | TSP protocol version | `YTSP-###` | The current version is `YTSP-AAC` (0.2). The three `###` characters should represent MAJOR (the first `#`) and MINOR (the following `##`) version numbers.
+TSP_Version | TSP protocol version | `YTSP-###` | The current version is `YTSP-AAC` (0.2). The three `###` characters should represent MAJOR (the first `#`) and MINOR (the following `##` calculated as `64 * the second # + the third #`) version numbers.
 VID_String | short VID with lead pad size 0 | `4B##` | The VID string is in a variable length of either 2 Base64 size characters limited to 4095 quadlets/triplets (short VID) or 4 Base64 characters limited to 16,777,215 quadlets/triplets (long VID). In each case, there are 3 variations depending on the lead pad size of 0, 1, or 2.
  ^ | short VID with lead pad size 1 | `5B##` | ^ 
  ^ | short VID with lead pad size 2 | `6B##` | ^ 
