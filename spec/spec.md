@@ -1,7 +1,7 @@
 Trust Spanning Protocol (TSP) Specification
 ==================
 
-**Specification Status**: Experimental Implementor's Draft Rev 3 (Editor's Draft in progress)
+**Specification Status**: Experimental Implementor's Draft Rev 3
 
 **Latest Draft:**
 
@@ -240,9 +240,9 @@ TSP_Envelope = {TSP_Tag, TSP_Version, VID_sndr, VID_rcvr | NULL}
 ```
 
 - TSP_Tag: A unique code that unambigously flags the start of a TSP envelope.
-- TSP_Version: The version of Trust Spanning Protocol. The TSP version should follow semantic versioning practices with three numbers representing MAJOR, MINOR, PATCH. MAJOR version signals backward compatibility MAY not be maintained with previous versions.
+- TSP_Version: The version of Trust Spanning Protocol. The TSP version consists of two numbers representing MAJOR and MINOR revisions. MAJOR version signals backward compatibility MAY not be maintained with previous versions.
 
-The current experimental draft's version is `0.1.0`. When this specification is officially released, the first version is to be `1.0.0`.
+The current experimental draft's version is `0.2`. When this specification is officially released, the first version is to be `1.0`.
 
 VIDs in TSP are encoded with a variable length VID_String that consists of length followed by a bytestring of that length. Two types of identifier syntaxes, DID [[ref:DID]] and URN [[ref:RFC8141]], MUST be supported. Implementations MAY support additional syntaxes beyond these two types.
 
@@ -1116,7 +1116,7 @@ All TSP implementations MUST support the following secure hash and digest functi
 
 TSP uses CESR [[ref:CESR]] (master code table for `-_AAACAA`) for message serialization and encoding. The TSP payload however may have data encoded in other formats including CBOR, JSON, and MsgPak that are compatible formats to interleave within CESR streams.
 
-This version of TSP uses the CESR code table at genus AAA, Version 2.00, identified by the genus/version code `-_AAACAA`. As the specifications of TSP, CESR, and the CESR code table may evolve without being fully synchronized, we will increment the TSP version (the MINOR version number, for instance) to reflect code table changes and keep track of the mapping.
+This version of TSP uses the CESR code table at genus AAA, Version 2.00, identified by the genus/version code `-_AAACAA`. As the specifications of TSP, CESR, and the CESR code table may evolve without being fully synchronized, we will increment the TSP version to reflect code table changes and keep track of the mapping.
 
 In this section, we describe the relevant CESR codes used in TSP.
 
@@ -1126,7 +1126,7 @@ The TSP Envelope consists of four objects: TSP_Tag, TSP_Version, VID_sndr, VID_r
 Object | Description | Code | Note
 ----:|----:|--------:|--------:
 TSP_Tag | Indicating the start of a TSP envelope | `-E##` or `--E#####`| Use `-E##` for signable data up to 4095 quadlets/triplets, `--E#####` for signable data up to 1,073,741,823 quadlets/triplets. The length does not include signature part.
-TSP_Version | TSP protocol version | `YTSP-###` | The current version is `YTSP-ABA`. The three `###` characters should represent MAJOR, MINOR, PATCH version as in semver 2.0.0 scheme.
+TSP_Version | TSP protocol version | `YTSP-###` | The current version is `YTSP-AAC` (0.2). The three `###` characters should represent MAJOR (the first `#`) and MINOR (the following `##`) version numbers.
 VID_String | short VID with lead pad size 0 | `4B##` | The VID string is in a variable length of either 2 Base64 size characters limited to 4095 quadlets/triplets (short VID) or 4 Base64 characters limited to 16,777,215 quadlets/triplets (long VID). In each case, there are 3 variations depending on the lead pad size of 0, 1, or 2.
  ^ | short VID with lead pad size 1 | `5B##` | ^ 
  ^ | short VID with lead pad size 2 | `6B##` | ^ 
