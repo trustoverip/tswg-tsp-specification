@@ -1174,7 +1174,7 @@ The generic CESR stream MUST use the CESR count code `-A##` (for shorter length)
 The overall higher layer payload is as follows:
 
 ``` text
--Z## | --Z#####, XSCS, VID_sndr | `4BAA`, Padding_Field, -A## | --A#####, higher-layer-payload-stream
+-Z## | --Z#####, XSCS, VID_sndr | `4BAA`, Padding_Field, -A## | --A#####, higher-layer-payload-body
 ```
 where, ## or #### stands for a 2 or 4, respectively, character code of the length of the payload. All counts start immediately after the count code, not including the count code itself. The encoding of `VID_sndr` is specified in [TSP Envelope Encoding](#tsp-envelope-encoding). The encoding of the padding field is specified in [Padding Field](#padding-field).
 
@@ -1373,10 +1373,10 @@ For nested or routed relationships, the same message is encoded as an inner mess
 
 ##### Generic Control Message
 
-A TSP generic control message uses the `XCTL` code in the CESR code table and its payload can be any conformant stream, including interleaving JSON, CBOR, or MsgPak encodings.
+A TSP generic control message uses the `XCTL` code in the CESR code table. Its body is defined in [Higher Layer Payload Body](#higher-layer-payload-body).
 
 ```text
--Z## | --Z#####, XCTL, VID_sndr | `4BAA`, Padding_Field, -A## | --A#####, higher-layer-payload-stream
+-Z## | --Z#####, XCTL, VID_sndr | `4BAA`, Padding_Field, -A## | --A#####, higher-layer-payload-body
 ```
 ##### Padding Message
 
