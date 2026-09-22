@@ -1158,7 +1158,7 @@ Following the Payload Tag is a number of payload fields. Each field is encoded w
 Object | Description | Code | Note
 ----:|----:|--------:|--------:
 CTL | generic control payload field | `XCTL` | The CESR code for 3-character quadlets/triplets is `X`. The `CTL` type allows control messages in unrestricted generic format.
-SCS | upper layer payload | `XSCS` | The acrynym "SCS" stands for `sniffable CESR stream`, which is treated as a single object that the upper layer decides how to process. Upper layer payload should be encoded as an SCS type.
+SCS | upper layer payload | `XSCS` | The acronym "SCS" stands for sniffable CESR stream. The body is a single opaque object that TSP delivers unchanged. Upper layer payloads MUST be encoded as the SCS type.
 HOP | a nested messge that includes a list of VID hops | `XHOP` | This type is used for nested and routed messages
 PAD | variable length padding | `XPAD` | This type is used to generate messages that carry no meaningful information other than its metadata.
 RFI | relationship forming invite | `XRFI` | Invitation to form a new TSP relationship
@@ -1167,7 +1167,7 @@ RFD | relationship forming decline | `XRFD` | Declining a new TSP relationship i
 
 #### Higher Layer Payload
 
-Higher layer application payload (Type = `TSP_GEN`) MUST use type encoding `XSCS` followed by a generic CESR stream including supported interleaving of JSON, CBOR, and MsgPak encoded data. 
+Higher layer application payload (Type = `TSP_GEN`) MUST use type encoding `XSCS` followed by the payload body defined in [Higher Layer Payload Body](#higher-layer-payload-body). The body carries the upper layer's content in whatever serialization or combination of serializations the upper layer chooses, including JSON, CBOR, MsgPack and native CESR.
 
 The generic CESR stream MUST use the CESR count code `-A##` (for shorter length) or `--A#####` (for longer length).
 
@@ -1284,17 +1284,17 @@ The post-quantum ciphertext uses the same encoding as HPKE-Base — the `4F/5F/6
 ##### Libsodium Sealed Box Encoding
 See [[ref:CESR]] on X25519 Sealed Box cipher bytes encoding.
 
-#### Interleaved JSON, CBOR or MsgPak Payload
+#### Higher Layer Payload Body
 
-An application payload (type XSCS) or control payload (type XCTL) is a generic CESR stream for the upper layer. It may contain native CESR and/or non-native serializations — JSON, CBOR, or MsgPak. TSP carries this payload opaquely; the upper layer parses its content. TSP itself does not interpret it.
-
-Because the payload sits inside TSP messages, a non-native serialization cannot be free-interleaved. Per [[ref:CESR]], it MUST be encoded as a CESR primitive and enclosed in the non-native message group -H## (or --H#####). TSP uses the Bytes primitive (4B/5B/6B, chosen by length for lead-byte alignment) in the binary domain to carry the serialization bytes.
-
-A payload may contain one or more such -H## (or --H#####) groups in sequence, alongside native CESR — for example a JSON object followed by a CBOR map. This sequencing is the interleaving.
+The body of an application payload (type XSCS) or a generic control payload (type XCTL) is a CESR group with count code -A## (or --A#####) that contains exactly one Bytes primitive (4B, 5B or 6B, or 7AAB, 8AAB or 9AAB for the long forms; the variant is chosen by length for lead-byte alignment).
 
 ```text
--A## | --A#####, ( -H## | --H##### (4B|5B|6B)## <serialization bytes> ) + [and/or native CESR]
+-A## | --A#####, ((4B|5B|6B)##)|((7AAB|8AAB|9AAB)####) <upper-layer octets>
 ```
+
+The content of the Bytes primitive is an opaque octet string defined by the upper layer. TSP carries it without interpretation. It may carry a sniffable CESR stream [[ref:CESR]], including interleaved JSON, CBOR or MsgPack, or any other content the upper layer defines.
+
+The count of the -A## (or --A#####) group MUST equal the encoded length of the enclosed Bytes primitive. A receiver MUST reject a message whose -A## (or --A#####) group does not contain exactly one Bytes primitive with a matching count.
 
 #### Nested Payload
 In TSP Nested Mode, the inner TSP message is carried inside a payload field of the outer TSP message. When the outer message is being parsed, the message may carry a simple application payload or a nested TSP message which will require additional processing.
