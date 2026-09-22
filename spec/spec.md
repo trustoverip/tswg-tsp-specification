@@ -690,6 +690,7 @@ TSP Digest is calculated and contained in the message that it is based on. In a 
 For the message that contains it, its TSP_Digest is computed over the binary serialization of that message's own TSP_Version, VID_sndr, VID_rcvr, and Payload fields (the plaintext payload, before encryption), with these rules:
 
  - The `-E##` (or `--E#####`) and `-Z##` (or `--Z#####`) framing tags and the Padding_Field are excluded from the computation; the payload type code is included. `Signature_new` is excluded because it is produced after the digest and signs it.
+ - For the Referral_Field (see [Referral Field](#referral-field): when it is populated, the input is VID_new alone, without the field's `-J##` (or `--J#####`) code and count and without Signature_new; when it is empty, the input is `-JAA`. The Reply_Path contributes its full encoding, including its code and count.
  - During derivation, the digest field's own slot is filled with the dummy byte 0x23 over its full length (e.g. 33 bytes for a 256-bit digest), then the digest is computed and its CESR-encoded value replaces the dummy.
  - The hash function is identified by the digest's own CESR derivation code (e.g. I = SHA2-256, F = Blake2b-256), from [Secure Hash and Digest Functions](#secure-hash-and-digest-functions).
  - In a nested message, "the message" means the innermost message that carries the digest, not any outer routing envelope. A digest that is echoed from a prior message (e.g. the Digest copied into a TSP_RFA) is copied verbatim, not recomputed. Verification reverses the derivation.
