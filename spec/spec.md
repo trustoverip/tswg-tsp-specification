@@ -364,7 +364,7 @@ If endpoint `B` receives a TSP message of the generic form `{... VID_sndr, VID_r
 - Step 4: Verify, and appraise `VID_sndr` using additional information and processes specific to the VID.
 - Step 5: Verify the `TSP_Signature`.
 - Step 6: Decrypt the `TSP_Payload_Ciphertext`. A decryption failure is also a verification failure.
-- Step 7: If the PKAE variant is *Libsodium Sealed Box*, retrieve the sender VID from the decrypted payload plaintext and verify that it matches `VID_sndr`. If the PKAE variant is *HPKE-Base*, then the sender VID field may contain either NULL or a valid VID; if it is a valid VID, also verify that it matches `VID_sndr`, otherwise no checking is necessary for NULL.
+- Step 7: If the PKAE variant is *Libsodium Sealed Box*, retrieve the sender VID from the decrypted payload plaintext and verify that it matches `VID_sndr`. If the PKAE variant is *HPKE-Base*, then the sender VID field may contain either NULL or a valid VID; if it is a valid VID, also verify that it matches `VID_sndr`, otherwise no checking is necessary for NULL. If the payload is non-confidential, the sender VID field MAY be NULL; if it is not NULL, verify that it matches VID_sndr.
 - Step 8: Process the rest of the control fields.
 - Step 9: Return the payload to the upper layer application.
 
@@ -1317,7 +1317,7 @@ The hop list field encoding is specified in [VID Hop List Field](#vid-hop-list-f
 #### Control Message Encoding
 Control messages are composition of payload fields that are used for TSP's own control mechanisms. The following sections define these payload fields in its plaintext text mode. The actual final encoding will be in ciphertext format as described in [Confidential Payload Ciphertext](#confidential-payload-ciphertext).
 
-In every payload layout below, `VID_sndr` is the ESSR sender field. It is always present and MAY be the NULL VID `4BAA` under HPKE-Base; under Libsodium Sealed Box it MUST carry the sender's VID. See [Receiver Procedure](#receiver-procedure).
+In every payload layout below, `VID_sndr` is the ESSR sender field. It is always present and MAY be the NULL VID `4BAA` under HPKE-Base and in a non-confidential payload; under Libsodium Sealed Box it MUST carry the sender's VID. See [Receiver Procedure](#receiver-procedure).
 
 ##### TSP_RFI
 
