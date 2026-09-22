@@ -698,7 +698,7 @@ Note that the SAID calculation for TSP messages is in binary domain, so is its r
 
 In describing this digest field, we will use TSP_DIGEST in the context of the message that it is identifying and it should be interpreted as the result of the above self referential calculation.
 
-The sender and receiver of these TSP digests SHOULD save them as part of the relationship state if they wish to use them as a thread identifier or to validate the relationship formation process in the future.
+The sender and receiver of these TSP digests MUST record both the Digest and the Reply_Digest as part of the relationship state for any relationship they keep, so that a later TSP_RFD can be recognized (see [Relationship Forming Decline or Cancel](#relationship-forming-decline-or-cancel)). They MAY also use them as a thread identifier or to validate the relationship formation process.
 
 #### Direct Relationship Forming
 When an endpoint `A` learns  the VID for another endpoint `B`, say `VID_b`, through an Out-Of-Band Introduction method, the endpoint `A` MUST use the following message type to form a direct relationship with `B`. Suppose the source VID that endpoint `A` uses is `VID_a`, then the relationship A and B establishes is `(VID_a, VID_b)`.
@@ -720,7 +720,7 @@ Payload fields:
     - Digest = Digest of the corresponding `TSP_RFI`
     - Reply_Digest = TSP_DIGEST
 ```
-The result is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` and `(VID_b, VID_a)` in endpoint `B`. The Digest is recorded by both endpoints and can be used in future messages in `<VID_a, VID_b>`, and similarly Reply_Digest for `<VID_b, VID_a>`.
+The result is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` and `(VID_b, VID_a)` in endpoint `B`. Both endpoints record the Digest and the Reply_Digest; either may be used as a thread identifier in future messages of the relationship.
 
 If endpoint `B` fails to verify `VID_a`, it SHOULD silently drop the message and MAY direct the transport layer to disconnect or otherwise block or filter out further incoming messages from `VID_a` for a period of time.
 
@@ -878,7 +878,7 @@ When `A` initiates the cancellation, `A` sends a control message with the follow
 Message: [VID_a, VID_b, Payload]
 Control payload fields:
     - Type = TSP_RFD
-    - Digest = the previously received Digest or Reply_Digest
+    - Digest = the Digest of the TSP_RFI that formed the relationship
 ```
 
 When `B` Receives a cancellation:
@@ -887,7 +887,7 @@ If the relationship is `(VID_b, VID_a)` in `B`: `B` should reply with `TSP_RFD` 
 
 If the relationship is `<VID_a, VID_b>` in `B`: `B` should remove the relationship but does not need to send a reply.
 
-If the relationship does not exist or is not recognized: `B` should ignore the cancellation request.
+A receiver MUST recognize a TSP_RFD whose Digest equals either the Digest or the Reply_Digest of the relationship. If the Digest matches neither, or the relationship does not exist, B should ignore the cancellation request.
 
 When `B` is declining a `TSP_RFI` from `A`, and chooses to send an explicit message, then `B`'s `TSP_RFD` is as follows:
 
@@ -1369,7 +1369,7 @@ The `TSP_RFD` message can be constructed as follows in a direct relationship,
 ```text
 -Z## | --Z#####, XRFD, VID_sndr | `4BAA`, Digest, Padding_Field
 ```
-For nested or routed relationships, the same message is encoded as an inner message in the nested or routed outer message. The `Digest` field MUST reference the corresponding relationship formation `XRFI` or `XRFA` message's digest, respectively.
+For nested or routed relationships, the same message is encoded as an inner message in the nested or routed outer message. The value of the Digest field is specified in [Relationship Forming Decline or Cancel](#relationship-forming-decline-or-cancel).
 
 ##### Generic Control Message
 
