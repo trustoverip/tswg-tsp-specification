@@ -364,11 +364,11 @@ If endpoint `B` receives a TSP message of the generic form `{... VID_sndr, VID_r
 - Step 4: Verify, and appraise `VID_sndr` using additional information and processes specific to the VID.
 - Step 5: Verify the `TSP_Signature`.
 - Step 6: Decrypt the `TSP_Payload_Ciphertext`. A decryption failure is also a verification failure.
-- Step 7: If the PKAE variant is *Libsodium Sealed Box*, retrieve the sender VID from the decrypted payload plaintext and verify that it matches `VID_sndr`. If the PKAE variant is *HPKE-Base*, then the sender VID field may contain either NULL or a valid VID; if it is a valid VID, also verify that it matches `VID_sndr`, otherwise no checking is necessary for NULL. If the payload is non-confidential, the sender VID field MAY be NULL; if it is not NULL, verify that it matches VID_sndr.
+- Step 7: If the PKAE variant is *Libsodium Sealed Box*, retrieve the sender VID from the decrypted payload plaintext and verify that it matches `VID_sndr`. If the PKAE variant is *HPKE-Base*, then the sender VID field may contain either NULL or a valid VID; if it is a valid VID, also verify that it matches `VID_sndr`, otherwise no checking is necessary for NULL. If the payload is non-confidential, the sender VID field MAY be NULL; if it is not NULL, verify that it matches `VID_sndr`.
 - Step 8: Process the rest of the control fields.
 - Step 9: Return the payload to the upper layer application.
 
-CESR primitives are canonically encoded: lead bytes and pad bits are zero. A receiver MUST reject a message containing a primitive whose lead bytes or pad bits are non-zero. Because TSP digests and signatures are computed over exact encoded bytes, accepting a non-canonical encoding would admit distinct byte sequences for the same value. A TSP message ends with its TSP_Signature attachment group. The message delivered by TSP_TRANSPORT_RECEIVE MUST consist of exactly one TSP message; a receiver MUST reject it if further octets follow the attachment group. A transport binding that carries more than one TSP message in one transport-level unit is responsible for delimiting them before delivery.
+CESR primitives are canonically encoded: lead bytes and pad bits are zero. A receiver MUST reject a message containing a primitive whose lead bytes or pad bits are non-zero. Because TSP digests and signatures are computed over exact encoded bytes, accepting a non-canonical encoding would admit distinct byte sequences for the same value. A TSP message ends with its `TSP_Signature` attachment group. The message delivered by `TSP_TRANSPORT_RECEIVE` MUST consist of exactly one TSP message; a receiver MUST reject it if further octets follow the attachment group. A transport binding that carries more than one TSP message in one transport-level unit is responsible for delimiting them before delivery.
 
 If a message fails any verification or validation step, the receiving endpoint SHOULD silently discard it. Where the message is from a VID with which the endpoint has an established relationship, and the endpoint is responsible for resolving that VID's key state itself (rather than relying on the VID type to do so outside of TSP operations), it SHOULD first re-resolve and retry the verification once, as described in [Key Update](#key-update).
 
@@ -690,7 +690,7 @@ TSP Digest is calculated and contained in the message that it is based on. In a 
 For the message that contains it, its TSP_Digest is computed over the binary serialization of that message's own TSP_Version, VID_sndr, VID_rcvr, and Payload fields (the plaintext payload, before encryption), with these rules:
 
  - The `-E##` (or `--E#####`) and `-Z##` (or `--Z#####`) framing tags and the Padding_Field are excluded from the computation; the payload type code is included. `Signature_new` is excluded because it is produced after the digest and signs it.
- - For the Referral_Field (see [Referral Field](#referral-field): when it is populated, the input is VID_new alone, without the field's `-J##` (or `--J#####`) code and count and without Signature_new; when it is empty, the input is `-JAA`. The Reply_Path contributes its full encoding, including its code and count.
+ - For the Referral_Field (see [Referral Field](#referral-field)): when it is populated, the input is VID_new alone, without the field's `-J##` (or `--J#####`) code and count and without Signature_new; when it is empty, the input is `-JAA`. The Reply_Path contributes its full encoding, including its code and count.
  - During derivation, the digest field's own slot is filled with the dummy byte 0x23 over its full length (e.g. 33 bytes for a 256-bit digest), then the digest is computed and its CESR-encoded value replaces the dummy.
  - The hash function is identified by the digest's own CESR derivation code (e.g. I = SHA2-256, F = Blake2b-256), from [Secure Hash and Digest Functions](#secure-hash-and-digest-functions).
  - In a nested message, "the message" means the innermost message that carries the digest, not any outer routing envelope. A digest that is echoed from a prior message (e.g. the Digest copied into a TSP_RFA) is copied verbatim, not recomputed. Verification reverses the derivation.
@@ -888,7 +888,7 @@ If the relationship is `(VID_b, VID_a)` in `B`: `B` should reply with `TSP_RFD` 
 
 If the relationship is `<VID_a, VID_b>` in `B`: `B` should remove the relationship but does not need to send a reply.
 
-A receiver MUST recognize a TSP_RFD whose Digest equals either the Digest or the Reply_Digest of the relationship. If the Digest matches neither, or the relationship does not exist, B should ignore the cancellation request.
+A receiver MUST recognize a `TSP_RFD` whose Digest equals either the Digest or the Reply_Digest of the relationship. If the Digest matches neither, or the relationship does not exist, `B` should ignore the cancellation request.
 
 When `B` is declining a `TSP_RFI` from `A`, and chooses to send an explicit message, then `B`'s `TSP_RFD` is as follows:
 
@@ -1115,7 +1115,7 @@ All TSP implementations MUST support the following secure hash and digest functi
 
 ## Serialization and Encoding
 
-TSP uses CESR [[ref:CESR]] (master code table for `-_AAACAA`) for message serialization and encoding. The TSP payload however may have data encoded in other formats including CBOR, JSON, and MsgPak that are compatible formats to interleave within CESR streams.
+TSP uses CESR [[ref:CESR]] (master code table for `-_AAACAA`) for message serialization and encoding. The TSP payload however may carry data in any format the upper layer defines, including CBOR, JSON, MsgPack or CESR streams.
 
 This version of TSP uses the CESR code table at genus AAA, Version 2.00, identified by the genus/version code `-_AAACAA`. As the specifications of TSP, CESR, and the CESR code table may evolve without being fully synchronized, we will increment the TSP version to reflect code table changes and keep track of the mapping.
 
@@ -1146,7 +1146,7 @@ CESR uses a unit of 4 Base64 letters (Quadlet) to represent an equivalent unit o
 ### TSP Payload Encoding
 TSP payload consists of a `TSP_Payload_Tag`, a payload field type, and payload fields required for the type, as specified in [TSP Payload](#tsp-payload). For a confidential payload, the cleartext structure is encoded first; the ciphertext is then produced over that encoding in its entirety, including the tag, and carried as the ciphertext field. We first describe the encoding of this simple structure then the encodings of [Nested Messages](#nested-messages) and [Routed Messages](#routed-messages).
 
-The payload fields include *control fields* that are required for the correct operations of TSP. Encodings of all required control fields are defined below. Higher layer application *data fields* may use broader CESR encoding mechanisms including interleaving JSON, CBOR or MsgPak encodings.
+The payload fields include *control fields* that are required for the correct operations of TSP. Encodings of all required control fields are defined below. Higher layer application *data fields* may be opaque to TSP and may use any encoding the upper layer defines, including CBOR, JSON, MsgPack or CESR streams.
 
 #### TSP Payload Tag
 Object | Description | Code | Note
@@ -1169,8 +1169,6 @@ RFD | relationship forming decline | `XRFD` | Declining a new TSP relationship i
 #### Higher Layer Payload
 
 Higher layer application payload (Type = `TSP_GEN`) MUST use type encoding `XSCS` followed by the payload body defined in [Higher Layer Payload Body](#higher-layer-payload-body). The body carries the upper layer's content in whatever serialization or combination of serializations the upper layer chooses, including JSON, CBOR, MsgPack and native CESR.
-
-The generic CESR stream MUST use the CESR count code `-A##` (for shorter length) or `--A#####` (for longer length).
 
 The overall higher layer payload is as follows:
 
@@ -1287,7 +1285,7 @@ See [[ref:CESR]] on X25519 Sealed Box cipher bytes encoding.
 
 #### Higher Layer Payload Body
 
-The body of an application payload (type XSCS) or a generic control payload (type XCTL) is a CESR group with count code -A## (or --A#####) that contains exactly one Bytes primitive (4B, 5B or 6B, or 7AAB, 8AAB or 9AAB for the long forms; the variant is chosen by length for lead-byte alignment).
+The body of an application payload (type `XSCS`) or a generic control payload (type `XCTL`) is a CESR group with count code `-A##` (or `--A#####`) that contains exactly one Bytes primitive (`4B`, `5B` or `6B`, or `7AAB`, `8AAB` or `9AAB` for the long forms; the variant is chosen by length for lead-byte alignment).
 
 ```text
 -A## | --A#####, ((4B|5B|6B)##)|((7AAB|8AAB|9AAB)####) <upper-layer octets>
@@ -1295,7 +1293,7 @@ The body of an application payload (type XSCS) or a generic control payload (typ
 
 The content of the Bytes primitive is an opaque octet string defined by the upper layer. TSP carries it without interpretation. It may carry a sniffable CESR stream [[ref:CESR]], including interleaved JSON, CBOR or MsgPack, or any other content the upper layer defines.
 
-The count of the -A## (or --A#####) group MUST equal the encoded length of the enclosed Bytes primitive. A receiver MUST reject a message whose -A## (or --A#####) group does not contain exactly one Bytes primitive with a matching count.
+The count of the `-A##` (or `--A#####`) group MUST equal the encoded length of the enclosed Bytes primitive. A receiver MUST reject a message whose `-A##` (or `--A#####`) group does not contain exactly one Bytes primitive with a matching count.
 
 #### Nested Payload
 In TSP Nested Mode, the inner TSP message is carried inside a payload field of the outer TSP message. When the outer message is being parsed, the message may carry a simple application payload or a nested TSP message which will require additional processing.
