@@ -364,11 +364,11 @@ If endpoint `B` receives a TSP message of the generic form `{... VID_sndr, VID_r
 - Step 4: Verify, and appraise `VID_sndr` using additional information and processes specific to the VID.
 - Step 5: Verify the `TSP_Signature`.
 - Step 6: Decrypt the `TSP_Payload_Ciphertext`. A decryption failure is also a verification failure.
-- Step 7: If the PKAE variant is *Libsodium Sealed Box*, retrieve the sender VID from the decrypted payload plaintext and verify that it matches `VID_sndr`. If the PKAE variant is *HPKE-Base*, then the sender VID field may contain either NULL or a valid VID; if it is a valid VID, also verify that it matches `VID_sndr`, otherwise no checking is necessary for NULL.
+- Step 7: If the PKAE variant is *Libsodium Sealed Box*, retrieve the sender VID from the decrypted payload plaintext and verify that it matches `VID_sndr`. If the PKAE variant is *HPKE-Base*, then the sender VID field may contain either NULL or a valid VID; if it is a valid VID, also verify that it matches `VID_sndr`, otherwise no checking is necessary for NULL. If the payload is non-confidential, the sender VID field MAY be NULL; if it is not NULL, verify that it matches `VID_sndr`.
 - Step 8: Process the rest of the control fields.
 - Step 9: Return the payload to the upper layer application.
 
-CESR primitives are canonically encoded: lead bytes and pad bits are zero. A receiver MUST reject a message containing a primitive whose pad bits are non-zero. Because TSP digests and signatures are computed over exact encoded bytes, accepting a non-canonical encoding would admit distinct byte sequences for the same value.
+CESR primitives are canonically encoded: lead bytes and pad bits are zero. A receiver MUST reject a message containing a primitive whose lead bytes or pad bits are non-zero. Because TSP digests and signatures are computed over exact encoded bytes, accepting a non-canonical encoding would admit distinct byte sequences for the same value. A TSP message ends with its `TSP_Signature` attachment group. The message delivered by `TSP_TRANSPORT_RECEIVE` MUST consist of exactly one TSP message; a receiver MUST reject it if further octets follow the attachment group. A transport binding that carries more than one TSP message in one transport-level unit is responsible for delimiting them before delivery.
 
 If a message fails any verification or validation step, the receiving endpoint SHOULD silently discard it. Where the message is from a VID with which the endpoint has an established relationship, and the endpoint is responsible for resolving that VID's key state itself (rather than relying on the VID type to do so outside of TSP operations), it SHOULD first re-resolve and retry the verification once, as described in [Key Update](#key-update).
 
@@ -690,6 +690,7 @@ TSP Digest is calculated and contained in the message that it is based on. In a 
 For the message that contains it, its TSP_Digest is computed over the binary serialization of that message's own TSP_Version, VID_sndr, VID_rcvr, and Payload fields (the plaintext payload, before encryption), with these rules:
 
  - The `-E##` (or `--E#####`) and `-Z##` (or `--Z#####`) framing tags and the Padding_Field are excluded from the computation; the payload type code is included. `Signature_new` is excluded because it is produced after the digest and signs it.
+ - For the Referral_Field (see [Referral Field](#referral-field)): when it is populated, the input is VID_new alone, without the field's `-J##` (or `--J#####`) code and count and without Signature_new; when it is empty, the input is `-JAA`. The Reply_Path contributes its full encoding, including its code and count.
  - During derivation, the digest field's own slot is filled with the dummy byte 0x23 over its full length (e.g. 33 bytes for a 256-bit digest), then the digest is computed and its CESR-encoded value replaces the dummy.
  - The hash function is identified by the digest's own CESR derivation code (e.g. I = SHA2-256, F = Blake2b-256), from [Secure Hash and Digest Functions](#secure-hash-and-digest-functions).
  - In a nested message, "the message" means the innermost message that carries the digest, not any outer routing envelope. A digest that is echoed from a prior message (e.g. the Digest copied into a TSP_RFA) is copied verbatim, not recomputed. Verification reverses the derivation.
@@ -698,7 +699,7 @@ Note that the SAID calculation for TSP messages is in binary domain, so is its r
 
 In describing this digest field, we will use TSP_DIGEST in the context of the message that it is identifying and it should be interpreted as the result of the above self referential calculation.
 
-The sender and receiver of these TSP digests SHOULD save them as part of the relationship state if they wish to use them as a thread identifier or to validate the relationship formation process in the future.
+The sender and receiver of these TSP digests MUST record both the Digest and the Reply_Digest as part of the relationship state for any relationship they keep, so that a later TSP_RFD can be recognized (see [Relationship Forming Decline or Cancel](#relationship-forming-decline-or-cancel)). They MAY also use them as a thread identifier or to validate the relationship formation process.
 
 #### Direct Relationship Forming
 When an endpoint `A` learns  the VID for another endpoint `B`, say `VID_b`, through an Out-Of-Band Introduction method, the endpoint `A` MUST use the following message type to form a direct relationship with `B`. Suppose the source VID that endpoint `A` uses is `VID_a`, then the relationship A and B establishes is `(VID_a, VID_b)`.
@@ -720,7 +721,7 @@ Payload fields:
     - Digest = Digest of the corresponding `TSP_RFI`
     - Reply_Digest = TSP_DIGEST
 ```
-The result is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` and `(VID_b, VID_a)` in endpoint `B`. The Digest is recorded by both endpoints and can be used in future messages in `<VID_a, VID_b>`, and similarly Reply_Digest for `<VID_b, VID_a>`.
+The result is a bi-directional relationship `(VID_a, VID_b)` in endpoint `A` and `(VID_b, VID_a)` in endpoint `B`. Both endpoints record the Digest and the Reply_Digest; either may be used as a thread identifier in future messages of the relationship.
 
 If endpoint `B` fails to verify `VID_a`, it SHOULD silently drop the message and MAY direct the transport layer to disconnect or otherwise block or filter out further incoming messages from `VID_a` for a period of time.
 
@@ -736,7 +737,7 @@ How long A retains an outstanding TSP_RFI is a local policy choice; endpoints ne
 
 #### Race Condition of TSP_RFI
 
-It is possible that two endpoints `A` and `B` may initiate a TSP_RFI message to each other at roughly same time with the same pair of `VID_a` and `VID_b`. Under such a race condition, endpoint `A` may have sent an TSP_RFI for <VID_a, VID_b>, and while it is waiting for a TSP_RFA, receives a TSP_RFI for <VID_b, VID_a>. The endpoints MUST break this race condition based on the Digest field in the TSP_RFI. The rule is that both endpoints keep the TSP_RFI whose Digest is lower by lexicographical comparison, and discard the other.
+It is possible that two endpoints `A` and `B` may initiate a TSP_RFI message to each other at roughly same time with the same pair of `VID_a` and `VID_b`. Under such a race condition, endpoint `A` may have sent an TSP_RFI for <VID_a, VID_b>, and while it is waiting for a TSP_RFA, receives a TSP_RFI for <VID_b, VID_a>. The endpoints MUST break this race condition based on the Digest field in the TSP_RFI. Both endpoints MUST compare the two Digest values as unsigned byte strings over the raw digest bytes, excluding the CESR derivation code and any text-domain encoding, and keep the TSP_RFI whose Digest is lower; the other TSP_RFI is discarded. If one digest is a proper prefix of the other, the shorter one is lower. The endpoint whose TSP_RFI was discarded then proceeds as the receiver of the kept TSP_RFI and responds with a TSP_RFA (or TSP_RFD) as specified above; the endpoint whose TSP_RFI was kept continues to wait for that reply.
 
 #### Relationship over a Routed Path
 Suppose endpoint `A` learns from another endpoint `B` through an Out-Of-Band Introduction method the VID for `B`, say `VID_b`, together with a routing path, `{ …, VID_hopk, VID_exit}`. Endpoint `A` MUST use the following control message to form a relationship with `B`. Suppose the source VID that endpoint `A` uses is `VID_a`, and optionally endpoint `A` specifies a reply path `{ …,  VID_rhopk, VID_rexit}`, then the relationship `A` and `B` establishes is `(VID_a, VID_b)`.
@@ -878,7 +879,7 @@ When `A` initiates the cancellation, `A` sends a control message with the follow
 Message: [VID_a, VID_b, Payload]
 Control payload fields:
     - Type = TSP_RFD
-    - Digest = the previously received Digest or Reply_Digest
+    - Digest = the Digest of the TSP_RFI that formed the relationship
 ```
 
 When `B` Receives a cancellation:
@@ -887,7 +888,7 @@ If the relationship is `(VID_b, VID_a)` in `B`: `B` should reply with `TSP_RFD` 
 
 If the relationship is `<VID_a, VID_b>` in `B`: `B` should remove the relationship but does not need to send a reply.
 
-If the relationship does not exist or is not recognized: `B` should ignore the cancellation request.
+A receiver MUST recognize a `TSP_RFD` whose Digest equals either the Digest or the Reply_Digest of the relationship. If the Digest matches neither, or the relationship does not exist, `B` should ignore the cancellation request.
 
 When `B` is declining a `TSP_RFI` from `A`, and chooses to send an explicit message, then `B`'s `TSP_RFD` is as follows:
 
@@ -1114,7 +1115,7 @@ All TSP implementations MUST support the following secure hash and digest functi
 
 ## Serialization and Encoding
 
-TSP uses CESR [[ref:CESR]] (master code table for `-_AAACAA`) for message serialization and encoding. The TSP payload however may have data encoded in other formats including CBOR, JSON, and MsgPak that are compatible formats to interleave within CESR streams.
+TSP uses CESR [[ref:CESR]] (master code table for `-_AAACAA`) for message serialization and encoding. The TSP payload however may carry data in any format the upper layer defines, including CBOR, JSON, MsgPack or CESR streams.
 
 This version of TSP uses the CESR code table at genus AAA, Version 2.00, identified by the genus/version code `-_AAACAA`. As the specifications of TSP, CESR, and the CESR code table may evolve without being fully synchronized, we will increment the TSP version to reflect code table changes and keep track of the mapping.
 
@@ -1145,7 +1146,7 @@ CESR uses a unit of 4 Base64 letters (Quadlet) to represent an equivalent unit o
 ### TSP Payload Encoding
 TSP payload consists of a `TSP_Payload_Tag`, a payload field type, and payload fields required for the type, as specified in [TSP Payload](#tsp-payload). For a confidential payload, the cleartext structure is encoded first; the ciphertext is then produced over that encoding in its entirety, including the tag, and carried as the ciphertext field. We first describe the encoding of this simple structure then the encodings of [Nested Messages](#nested-messages) and [Routed Messages](#routed-messages).
 
-The payload fields include *control fields* that are required for the correct operations of TSP. Encodings of all required control fields are defined below. Higher layer application *data fields* may use broader CESR encoding mechanisms including interleaving JSON, CBOR or MsgPak encodings.
+The payload fields include *control fields* that are required for the correct operations of TSP. Encodings of all required control fields are defined below. Higher layer application *data fields* may be opaque to TSP and may use any encoding the upper layer defines, including CBOR, JSON, MsgPack or CESR streams.
 
 #### TSP Payload Tag
 Object | Description | Code | Note
@@ -1158,7 +1159,7 @@ Following the Payload Tag is a number of payload fields. Each field is encoded w
 Object | Description | Code | Note
 ----:|----:|--------:|--------:
 CTL | generic control payload field | `XCTL` | The CESR code for 3-character quadlets/triplets is `X`. The `CTL` type allows control messages in unrestricted generic format.
-SCS | upper layer payload | `XSCS` | The acrynym "SCS" stands for `sniffable CESR stream`, which is treated as a single object that the upper layer decides how to process. Upper layer payload should be encoded as an SCS type.
+SCS | upper layer payload | `XSCS` | The acronym "SCS" stands for sniffable CESR stream. The body is a single opaque object that TSP delivers unchanged. Upper layer payloads MUST be encoded as the SCS type.
 HOP | a nested messge that includes a list of VID hops | `XHOP` | This type is used for nested and routed messages
 PAD | variable length padding | `XPAD` | This type is used to generate messages that carry no meaningful information other than its metadata.
 RFI | relationship forming invite | `XRFI` | Invitation to form a new TSP relationship
@@ -1167,14 +1168,12 @@ RFD | relationship forming decline | `XRFD` | Declining a new TSP relationship i
 
 #### Higher Layer Payload
 
-Higher layer application payload (Type = `TSP_GEN`) MUST use type encoding `XSCS` followed by a generic CESR stream including supported interleaving of JSON, CBOR, and MsgPak encoded data. 
-
-The generic CESR stream MUST use the CESR count code `-A##` (for shorter length) or `--A#####` (for longer length).
+Higher layer application payload (Type = `TSP_GEN`) MUST use type encoding `XSCS` followed by the payload body defined in [Higher Layer Payload Body](#higher-layer-payload-body). The body carries the upper layer's content in whatever serialization or combination of serializations the upper layer chooses, including JSON, CBOR, MsgPack and native CESR.
 
 The overall higher layer payload is as follows:
 
 ``` text
--Z## | --Z#####, XSCS, VID_sndr | `4BAA`, Padding_Field, -A## | --A#####, higher-layer-payload-stream
+-Z## | --Z#####, XSCS, VID_sndr | `4BAA`, Padding_Field, -A## | --A#####, higher-layer-payload-body
 ```
 where, ## or #### stands for a 2 or 4, respectively, character code of the length of the payload. All counts start immediately after the count code, not including the count code itself. The encoding of `VID_sndr` is specified in [TSP Envelope Encoding](#tsp-envelope-encoding). The encoding of the padding field is specified in [Padding Field](#padding-field).
 
@@ -1284,17 +1283,17 @@ The post-quantum ciphertext uses the same encoding as HPKE-Base — the `4F/5F/6
 ##### Libsodium Sealed Box Encoding
 See [[ref:CESR]] on X25519 Sealed Box cipher bytes encoding.
 
-#### Interleaved JSON, CBOR or MsgPak Payload
+#### Higher Layer Payload Body
 
-An application payload (type XSCS) or control payload (type XCTL) is a generic CESR stream for the upper layer. It may contain native CESR and/or non-native serializations — JSON, CBOR, or MsgPak. TSP carries this payload opaquely; the upper layer parses its content. TSP itself does not interpret it.
-
-Because the payload sits inside TSP messages, a non-native serialization cannot be free-interleaved. Per [[ref:CESR]], it MUST be encoded as a CESR primitive and enclosed in the non-native message group -H## (or --H#####). TSP uses the Bytes primitive (4B/5B/6B, chosen by length for lead-byte alignment) in the binary domain to carry the serialization bytes.
-
-A payload may contain one or more such -H## (or --H#####) groups in sequence, alongside native CESR — for example a JSON object followed by a CBOR map. This sequencing is the interleaving.
+The body of an application payload (type `XSCS`) or a generic control payload (type `XCTL`) is a CESR group with count code `-A##` (or `--A#####`) that contains exactly one Bytes primitive (`4B`, `5B` or `6B`, or `7AAB`, `8AAB` or `9AAB` for the long forms; the variant is chosen by length for lead-byte alignment).
 
 ```text
--A## | --A#####, ( -H## | --H##### (4B|5B|6B)## <serialization bytes> ) + [and/or native CESR]
+-A## | --A#####, ((4B|5B|6B)##)|((7AAB|8AAB|9AAB)####) <upper-layer octets>
 ```
+
+The content of the Bytes primitive is an opaque octet string defined by the upper layer. TSP carries it without interpretation. It may carry a sniffable CESR stream [[ref:CESR]], including interleaved JSON, CBOR or MsgPack, or any other content the upper layer defines.
+
+The count of the `-A##` (or `--A#####`) group MUST equal the encoded length of the enclosed Bytes primitive. A receiver MUST reject a message whose `-A##` (or `--A#####`) group does not contain exactly one Bytes primitive with a matching count.
 
 #### Nested Payload
 In TSP Nested Mode, the inner TSP message is carried inside a payload field of the outer TSP message. When the outer message is being parsed, the message may carry a simple application payload or a nested TSP message which will require additional processing.
@@ -1317,7 +1316,7 @@ The hop list field encoding is specified in [VID Hop List Field](#vid-hop-list-f
 #### Control Message Encoding
 Control messages are composition of payload fields that are used for TSP's own control mechanisms. The following sections define these payload fields in its plaintext text mode. The actual final encoding will be in ciphertext format as described in [Confidential Payload Ciphertext](#confidential-payload-ciphertext).
 
-In every payload layout below, `VID_sndr` is the ESSR sender field. It is always present and MAY be the NULL VID `4BAA` under HPKE-Base; under Libsodium Sealed Box it MUST carry the sender's VID. See [Receiver Procedure](#receiver-procedure).
+In every payload layout below, `VID_sndr` is the ESSR sender field. It is always present and MAY be the NULL VID `4BAA` under HPKE-Base and in a non-confidential payload; under Libsodium Sealed Box it MUST carry the sender's VID. See [Receiver Procedure](#receiver-procedure).
 
 ##### TSP_RFI
 
@@ -1369,14 +1368,14 @@ The `TSP_RFD` message can be constructed as follows in a direct relationship,
 ```text
 -Z## | --Z#####, XRFD, VID_sndr | `4BAA`, Digest, Padding_Field
 ```
-For nested or routed relationships, the same message is encoded as an inner message in the nested or routed outer message. The `Digest` field MUST reference the corresponding relationship formation `XRFI` or `XRFA` message's digest, respectively.
+For nested or routed relationships, the same message is encoded as an inner message in the nested or routed outer message. The value of the Digest field is specified in [Relationship Forming Decline or Cancel](#relationship-forming-decline-or-cancel).
 
 ##### Generic Control Message
 
-A TSP generic control message uses the `XCTL` code in the CESR code table and its payload can be any conformant stream, including interleaving JSON, CBOR, or MsgPak encodings.
+A TSP generic control message uses the `XCTL` code in the CESR code table. Its body is defined in [Higher Layer Payload Body](#higher-layer-payload-body).
 
 ```text
--Z## | --Z#####, XCTL, VID_sndr | `4BAA`, Padding_Field, -A## | --A#####, higher-layer-payload-stream
+-Z## | --Z#####, XCTL, VID_sndr | `4BAA`, Padding_Field, -A## | --A#####, higher-layer-payload-body
 ```
 ##### Padding Message
 
@@ -1791,6 +1790,29 @@ pkE        M5Qk6RSrDUckHiQlmduCMbu9HW6AZbJCfkQEQqWShSI
 skE        GHZ-LhpY_K1f_PvDW6loXWLvFIcc6majVAR8_jWgL4c
 ```
 
+`alice_referred`
+
+``` text
+id         did:peer:4zQmRFRNUTarZmMebvvqNyADP7rkUgh5NFFhxqWvx3eqqgS3
+longForm
+  did:peer:4zQmRFRNUTarZmMebvvqNyADP7rkUgh5NFFhxqWvx3eqqgS3:z25NRJMKpQ
+  KwnUm6k9FbTSp1eqANorDtFimHW9nGdLSgAbN1UhsQANFAnhij8VXrrwnDDG5Rb7HGrY
+  pBGZRy3EbgmxirqJi3WuNfiajavps6kAfnvk9ykxGqcxH4u7P2TJohfbvigGMTMGxAhq
+  kU4JDkWYi1sBp266n8tzTzD3DfRU9FbvHS99WbQ3rd6KbNqFfoUzchbb9bU8CCfwNrF8
+  Z1diU8mdjbfbQXkzsau4aexTFxBgCcbEeMUs6fcMABJqQmX7Dzb3HdME9efPvQRQH3JX
+  HvL2jkbPuBpj2nqG3juyRWvothcQuwUaoc1Crp19Yvxw8w2mTiV1y2xiAutpg4RbEu5g
+  N94cFRF4wEWUwhYFgzFYoLWwqMGJmLbTA95V7jAfYAATnUEtWKFcwg2bYYaM2QmFV67B
+  mi43aGvQMY8qJCXcRDPFZtEuxefQAm916V6DF9JB6oTRajzx7vJvG6VgUKv8hncTrCaM
+  NmvV22upbfU5duZK4qBTrXo1crJShNem547Fg92FHvadwHULk49ZsVBMbPETQpEEatkj
+  BtgNg
+sigKeyType Ed25519
+pkS        TkDQONscMVauhQQE0TfgAhXQSoG_SGVNLOlz6VFapoc
+skS        pA42dzrFSFimN_v0W5yx9gZJHYbEAOH5VKy2cLftzIk
+encKeyType X25519
+pkE        Ql8Xuy4ejZdHGWrfehc5aTtCGF0fY1jUlh_NPY0DiQg
+skE        lDy7QQoN-PR0PhyZAthCSZ8OvOZ1oqiaQfDHr0F6DWk
+```
+
 ### Test Vectors for Direct Mode TSP Message
 
 #### direct-sealed-box
@@ -1954,6 +1976,97 @@ payload
   -ZApXRFI4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3JoRnNL
   S1BvNlRyQ21oTTNkZnBxFCAm2-rAs9Ae4dJYRGoAzEhQMvYDNDqdqfjZW7CD8cjB0AAR
   ERERERERERERERERERER-JAA-JAA4BAA
+```
+
+#### control-rfi-referral
+
+A TSP_RFI introducing a new VID over an existing relationship. The Referral_Field is populated: -J## covering VID_new and Signature_new. Signature_new is made by the new VID's own key, which is what proves control of it. Into the TSP Digest the field contributes VID_new alone, without its -J## code and count and without Signature_new; an empty field would contribute -JAA instead. The Reply_Path is empty and contributes its full encoding, -JAA. See [Section 9](#tsp-encoding) §7.2.1, 7.2.5, 9.4.1.
+
+``` text
+sender     alice
+receiver   bob
+ikmE       WZWlZqGZoqjRKMM35-_QVQyC-s46a7F4uOgaQcn-E7o
+pkEm       -RSFKGq436VjiepfHhVnCCTFmsruYqlGoi6kbkIKqU8
+
+message
+  -EE5YTSP-AAC4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
+  RnNLS1BvNlRyQ21oTTNkZnBx4BATZGlkOnBlZXI6NHpRbVptQ0FzRzdqMWV3VGpYanRk
+  ZHd1amlrMzNDRTJjTWJZU1BhZ3BNaVludDFB4FEO-RSFKGq436VjiepfHhVnCCTFmsru
+  YqlGoi6kbkIKqU8V0M_vVgpSNrrjwBLnXeYQmKsJtapjeG6oqRjZ5D_tuLgeugnAcU-L
+  C592RFq11nnYSDHVhiGGLXCA1Io6TmVIFr4_0Zij8ANtcdJ5ztC-6dIvQaa54aHihImT
+  fA2OcJrW46XmG4Nw-JiQVV0TCnr5SJKS8UVj2Klpb1w1uBWj2V5aTbvJWi8Bz0ujPcgy
+  PR24VZubZ4d8BGbx7LPHb6VoTcJqmRv3hRKfey_U8kYZK29sE0guJ9cGoW8hKvo59E43
+  zL005VQL6VyngtAO_IZkImoEhGwb75wRbihsc711na0haU7i8QzbyKB9Y_-rNP-UBf-S
+  NSTPJ9DuQE1M9zdPf39ckWfyf2Z4vd0CT8HwKUMCkFCB9wPpQtFj59GUwilPjic0wZcK
+  EuOzM-Mkz_xrnBkKqD0pGdPh_LBcYvXZ8gNj5Q8mfBvdL618uz0UB2otOKZyatoqJVrg
+  9Sm1SjoO-LN9PDJ_mnllkrgA5qpiksqTTmpTo2D3jewFhSV-fQS0psC0CnB_DPC5rmOO
+  a3TrYHokDpFHUaFota2Bt_TO27LSMce1p8k6SQ-ywEAWGoSXGy2DjYdTffQJhyMZsDCB
+  H2GFzYXGsg4L633e0h8YAb72bBF9LDKmKEeATzmo_-d_kGkILZM98mhS3kYfnOq8QoFc
+  8R7LZBYy2R0RKdFU176v1fMNN3aCRSjc868SQxc5hP2LKzaLuHvapCFtBu8Q8mXdWjYZ
+  qhFAG_OBrrvHxVNcyGrxCVbS2LfFhmu-T5YsbFrbQrutmO8GiGzg_4Zi6gHhGCFCsF-d
+  SACWC_UGWeW73LZhdXqlE6IF11lgx1bb1BmuBJHlN7kS3ZKWDXdJRKJVCmbmWKRdj7TU
+  obmR4_cryQJsdIcV_nY4JO4Sq95wX2FTgoATnxuupcwp75spTNGjy4OZYd1T_ktZmrQj
+  KJpmMEO8L969IrWR7CpROEqFP8qNRXQg0aICvJ-rfzn7cMqma9m1WH7MysEglh1YpNuO
+  riMTFiTu85GeD9QzGQqmcoo936DAaZtw-CAX-KAWBABPeezGVsjfnjw_5CdV6hpAWWqP
+  Kt7Zk3_LFp8qP2x0gIcOL8m0EV5qcWCFAeXfiYh53AfNB_zYTuX-ZSYlMNMK
+
+payload
+  -ZD9XRFI4BAAICUKu4Pa0HuSHnoFiHkIbL-DZvkv_z-lfne0HF6Z1j940AARERERERER
+  ERERERERERER-JAA-JDn5BDOAGRpZDpwZWVyOjR6UW1SRlJOVVRhclptTWVidnZxTnlB
+  RFA3cmtVZ2g1TkZGaHhxV3Z4M2VxcWdTMzp6MjVOUkpNS3BRS3duVW02azlGYlRTcDFl
+  cUFOb3JEdEZpbUhXOW5HZExTZ0FiTjFVaHNRQU5GQW5oaWo4VlhycnduRERHNVJiN0hH
+  cllwQkdaUnkzRWJnbXhpcnFKaTNXdU5maWFqYXZwczZrQWZudms5eWt4R3FjeEg0dTdQ
+  MlRKb2hmYnZpZ0dNVE1HeEFocWtVNEpEa1dZaTFzQnAyNjZuOHR6VHpEM0RmUlU5RmJ2
+  SFM5OVdiUTNyZDZLYk5xRmZvVXpjaGJiOWJVOENDZndOckY4WjFkaVU4bWRqYmZiUVhr
+  enNhdTRhZXhURnhCZ0NjYkVlTVVzNmZjTUFCSnFRbVg3RHpiM0hkTUU5ZWZQdlFSUUgz
+  SlhIdkwyamtiUHVCcGoybnFHM2p1eVJXdm90aGNRdXdVYW9jMUNycDE5WXZ4dzh3Mm1U
+  aVYxeTJ4aUF1dHBnNFJiRXU1Z045NGNGUkY0d0VXVXdoWUZnekZZb0xXd3FNR0ptTGJU
+  QTk1VjdqQWZZQUFUblVFdFdLRmN3ZzJiWVlhTTJRbUZWNjdCbWk0M2FHdlFNWThxSkNY
+  Y1JEUEZadEV1eGVmUUFtOTE2VjZERjlKQjZvVFJhanp4N3ZKdkc2VmdVS3Y4aG5jVHJD
+  YU1ObXZWMjJ1cGJmVTVkdVpLNHFCVHJYbzFjckpTaE5lbTU0N0ZnOTJGSHZhZHdIVUxr
+  NDlac1ZCTWJQRVRRcEVFYXRrakJ0Z05n-CAX-KAWBABVUVsWmVSDym8skkXr_1tUwfW8
+  GaomfMYn40_wY6PvgFouF3_MFWwfvE1IJBrXqrcVX-gbPLFeb4qH7liNRQ0O4BAA
+
+digestInput
+  YTSP-AAC4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3JoRnNL
+  S1BvNlRyQ21oTTNkZnBx4BATZGlkOnBlZXI6NHpRbVptQ0FzRzdqMWV3VGpYanRkZHd1
+  amlrMzNDRTJjTWJZU1BhZ3BNaVludDFBXRFI4BAAIyMjIyMjIyMjIyMjIyMjIyMjIyMj
+  IyMjIyMjIyMjIyMj0AARERERERERERERERERERER-JAA5BDOAGRpZDpwZWVyOjR6UW1S
+  RlJOVVRhclptTWVidnZxTnlBRFA3cmtVZ2g1TkZGaHhxV3Z4M2VxcWdTMzp6MjVOUkpN
+  S3BRS3duVW02azlGYlRTcDFlcUFOb3JEdEZpbUhXOW5HZExTZ0FiTjFVaHNRQU5GQW5o
+  aWo4VlhycnduRERHNVJiN0hHcllwQkdaUnkzRWJnbXhpcnFKaTNXdU5maWFqYXZwczZr
+  QWZudms5eWt4R3FjeEg0dTdQMlRKb2hmYnZpZ0dNVE1HeEFocWtVNEpEa1dZaTFzQnAy
+  NjZuOHR6VHpEM0RmUlU5RmJ2SFM5OVdiUTNyZDZLYk5xRmZvVXpjaGJiOWJVOENDZndO
+  ckY4WjFkaVU4bWRqYmZiUVhrenNhdTRhZXhURnhCZ0NjYkVlTVVzNmZjTUFCSnFRbVg3
+  RHpiM0hkTUU5ZWZQdlFSUUgzSlhIdkwyamtiUHVCcGoybnFHM2p1eVJXdm90aGNRdXdV
+  YW9jMUNycDE5WXZ4dzh3Mm1UaVYxeTJ4aUF1dHBnNFJiRXU1Z045NGNGUkY0d0VXVXdo
+  WUZnekZZb0xXd3FNR0ptTGJUQTk1VjdqQWZZQUFUblVFdFdLRmN3ZzJiWVlhTTJRbUZW
+  NjdCbWk0M2FHdlFNWThxSkNYY1JEUEZadEV1eGVmUUFtOTE2VjZERjlKQjZvVFJhanp4
+  N3ZKdkc2VmdVS3Y4aG5jVHJDYU1ObXZWMjJ1cGJmVTVkdVpLNHFCVHJYbzFjckpTaE5l
+  bTU0N0ZnOTJGSHZhZHdIVUxrNDlac1ZCTWJQRVRRcEVFYXRrakJ0Z05n
+
+digest
+  JQq7g9rQe5IeegWIeQhsv4Nm-S__P6V-d7QcXpnWP3g
+
+sigNewInput
+  XRFI4BAAICUKu4Pa0HuSHnoFiHkIbL-DZvkv_z-lfne0HF6Z1j940AARERERERERERER
+  ERERERER-JAA5BDOAGRpZDpwZWVyOjR6UW1SRlJOVVRhclptTWVidnZxTnlBRFA3cmtV
+  Z2g1TkZGaHhxV3Z4M2VxcWdTMzp6MjVOUkpNS3BRS3duVW02azlGYlRTcDFlcUFOb3JE
+  dEZpbUhXOW5HZExTZ0FiTjFVaHNRQU5GQW5oaWo4VlhycnduRERHNVJiN0hHcllwQkda
+  UnkzRWJnbXhpcnFKaTNXdU5maWFqYXZwczZrQWZudms5eWt4R3FjeEg0dTdQMlRKb2hm
+  YnZpZ0dNVE1HeEFocWtVNEpEa1dZaTFzQnAyNjZuOHR6VHpEM0RmUlU5RmJ2SFM5OVdi
+  UTNyZDZLYk5xRmZvVXpjaGJiOWJVOENDZndOckY4WjFkaVU4bWRqYmZiUVhrenNhdTRh
+  ZXhURnhCZ0NjYkVlTVVzNmZjTUFCSnFRbVg3RHpiM0hkTUU5ZWZQdlFSUUgzSlhIdkwy
+  amtiUHVCcGoybnFHM2p1eVJXdm90aGNRdXdVYW9jMUNycDE5WXZ4dzh3Mm1UaVYxeTJ4
+  aUF1dHBnNFJiRXU1Z045NGNGUkY0d0VXVXdoWUZnekZZb0xXd3FNR0ptTGJUQTk1Vjdq
+  QWZZQUFUblVFdFdLRmN3ZzJiWVlhTTJRbUZWNjdCbWk0M2FHdlFNWThxSkNYY1JEUEZa
+  dEV1eGVmUUFtOTE2VjZERjlKQjZvVFJhanp4N3ZKdkc2VmdVS3Y4aG5jVHJDYU1ObXZW
+  MjJ1cGJmVTVkdVpLNHFCVHJYbzFjckpTaE5lbTU0N0ZnOTJGSHZhZHdIVUxrNDlac1ZC
+  TWJQRVRRcEVFYXRrakJ0Z05n
+
+sigNew
+  VVFbFplUg8pvLJJF6_9bVMH1vBmqJnzGJ-NP8GOj74BaLhd_zBVsH7xNSCQa16q3FV_o
+  GzyxXm-Kh-5YjUUNDg
 ```
 
 ### Test Vectors for Direct Mode Nested TSP Message
