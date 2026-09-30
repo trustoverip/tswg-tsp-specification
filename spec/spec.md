@@ -1,7 +1,7 @@
 Trust Spanning Protocol (TSP) Specification
 ==================
 
-**Specification Status**: Experimental Implementor's Draft Rev 3
+**Specification Status**: Experimental Implementor's Draft Rev 3 with Errata (September 30, 2026)
 
 **Latest Draft:**
 
