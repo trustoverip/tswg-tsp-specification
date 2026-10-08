@@ -145,7 +145,7 @@ A VID intended for public use MUST support key rotation, and MUST support verifi
 
 A VID intended for private use between endpoints that already have an established TSP relationship need not meet these requirements. Such VIDs are verified within the existing relationship rather than by public resolution, and MAY be simple and static; an endpoint that wishes to change such a VID discards it and establishes a new one.
 
-TSP requires that a VID be verifiable; it does not require that it be implemented in a specific decentralized, centralized or federated ways.
+TSP requires that a VID be verifiable; it does not require that it be implemented in a specific decentralized, centralized or federated ways. TSP verifiability requires two parts. Cryptographic verification establishes by computation that the VID maps to its keys and that the controlling endpoint holds the secret key corresponding to VID.PK_s, as VID.VERIFY requires. Appraisal is the assessing endpoint’s evaluation of the records a VID type publishes, such as its inception record and its rotation and pre-rotation events, and for instance, additional evidence from witnesses, against the endpoint’s own policy; the term is used in the sense of [[ref:RFC9334]] and [[ref:TCG-AF]].
 
 #### Cryptographic Non-Correlation
 
@@ -1617,6 +1617,10 @@ TSP sets no maximum message size, and the sizes an encoding permits are large. A
 **[[def:KERI]]**. Key Event Receipt Infrastructure (KERI), Trust over IP Foundation. https://trustoverip.github.io/kswg-keri-specification/.
 
 **[[def:SAID-URN]]**. Namespace Registration for Self-Addressing Identifiers (SAID), IANA, urn:said, 2026. https://www.iana.org/assignments/urn-formal/said.
+
+**[[def:RFC9334]]**. Remote ATtestation procedureS (RATS) Architecture, *H. Birkholz, D. Thaler, M. Richardson, N. Smith, W. Pan*, January 2023, https://datatracker.ietf.org/doc/html/rfc9334.
+
+**[[def:TCG-AF]]**. TCG Attestation Framework, Part 1: Terminology, Concepts, and Requirements, Version 1.0, *Trusted Computing Group*, November 2025, https://trustedcomputinggroup.org/wp-content/uploads/TCG-Attestation-Framework-Part-1_pub.pdf.
 
 **[[def:DID-WEBS]]**. did:webs Method Specification, Trust over IP Foundation. https://trustoverip.github.io/kswg-did-method-webs-specification/.
 
