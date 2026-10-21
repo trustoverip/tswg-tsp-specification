@@ -1,7 +1,7 @@
 Trust Spanning Protocol (TSP) Specification
 ==================
 
-**Specification Status**: Experimental Implementor's Draft Rev 3 with Errata (September 30, 2026)
+**Specification Status**: Release 1.0
 
 **Latest Draft:**
 
@@ -242,7 +242,7 @@ TSP_Envelope = {TSP_Tag, TSP_Version, VID_sndr, VID_rcvr | NULL}
 - TSP_Tag: A unique code that unambigously flags the start of a TSP envelope.
 - TSP_Version: The version of Trust Spanning Protocol. The TSP version consists of two numbers representing MAJOR and MINOR revisions. MAJOR version signals backward compatibility MAY not be maintained with previous versions.
 
-The current experimental draft's version is `0.2`. When this specification is officially released, the first version is to be `1.0`.
+The current version is `1.0`.
 
 VIDs in TSP are encoded with a variable length VID_String that consists of length followed by a bytestring of that length. Two types of identifier syntaxes, DID [[ref:DID]] and URN [[ref:RFC8141]], MUST be supported. Implementations MAY support additional syntaxes beyond these two types.
 
@@ -270,7 +270,7 @@ Higher layer application messages use the general payload type `TSP_GEN`.
 
 Each payload consists of a type and a number of fields determined by the type. They will be defined in the corresponding sections when their functions are defined.
 
-Some payload fields are required by TSP, including the sender VID `VID_sndr` used for ESSR ([[ref:ESSR]]) operations in the *Libsodium Sealed Box* ([[ref:libsodium]]) mode and VID list used in routing mode. When it is necessary to differentiate these fields, we will refer them as Control Fields or Control Payload Fields. These control fields are used for all messages, not just control messages.
+Some payload fields are required by TSP, including the sender VID `VID_sndr` used for ESSR ([[ref:ESSR]]) operations and VID list used in routing mode. When it is necessary to differentiate these fields, we will refer them as Control Fields or Control Payload Fields. These control fields are used for all messages, not just control messages.
 
 #### Ciphertext of the Confidential Payloads
 
@@ -283,7 +283,7 @@ It is this ciphertext that is encoded and sent on the wire.
 
 The details of the supported PKAE schemes for the `TSP_SEAL` operation are specified in Section [Cryptographic Algorithms](#cryptographic-algorithms).
 
-For the PKAE scheme *Libsodium Sealed Box* ([[ref:libsodium]]), the `VID_sndr` MUST appear as a confidential payload field following the ESSR ([[ref:ESSR]]) method. For the PKAE scheme *HPKE-Base* ([[ref:HPKE]]), the `VID_sndr` field is not mandatory in the confidential payload and MAY be encoded as a NULL VID. See [Section 8](#cryptographic-algorithms) for the details.
+For all PKAE schemes, the `VID_sndr` MUST appear as a confidential payload field following the ESSR ([[ref:ESSR]]) method. See [Section 8](#cryptographic-algorithms) for the details.
 
 On the receiving side, the corresponding TSP primitive is `TSP_OPEN`.
 
@@ -364,7 +364,7 @@ If endpoint `B` receives a TSP message of the generic form `{... VID_sndr, VID_r
 - Step 4: Verify, and appraise `VID_sndr` using additional information and processes specific to the VID.
 - Step 5: Verify the `TSP_Signature`.
 - Step 6: Decrypt the `TSP_Payload_Ciphertext`. A decryption failure is also a verification failure.
-- Step 7: If the PKAE variant is *Libsodium Sealed Box*, retrieve the sender VID from the decrypted payload plaintext and verify that it matches `VID_sndr`. If the PKAE variant is *HPKE-Base*, then the sender VID field may contain either NULL or a valid VID; if it is a valid VID, also verify that it matches `VID_sndr`, otherwise no checking is necessary for NULL. If the payload is non-confidential, the sender VID field MAY be NULL; if it is not NULL, verify that it matches `VID_sndr`.
+- Step 7: For both PKAE variants, retrieve the sender VID from the decrypted payload plaintext and verify that it matches `VID_sndr`. If the payload is non-confidential, the sender VID field MAY be NULL; if it is not NULL, verify that it matches `VID_sndr`.
 - Step 8: Process the rest of the control fields.
 - Step 9: Return the payload to the upper layer application.
 
@@ -488,7 +488,7 @@ TSP routed messages have the same TSP Envelope as TSP messages sent in direct mo
 ``` text
 Control_Payload_Fields = {VID_sndr, VID_hop2, ..., VID_hopk, VID_exit}
 ```
-The first field `VID_sndr` is the sender VID required by ESSR ([[ref:ESSR]]) PKAE schemes. This field is always present in every TSP payload; its value MAY be the NULL VID `4BAA` where the PKAE variant permits, as specified in [Ciphertext of the Confidential Payloads](#ciphertext-of-the-confidential-payloads) and [Receiver Procedure](#receiver-procedure).
+The first field `VID_sndr` is the sender VID required by ESSR ([[ref:ESSR]]) PKAE schemes. This field is always present in every TSP confidential payload and MUST carry the sender's VID, as specified in [Ciphertext of the Confidential Payloads](#ciphertext-of-the-confidential-payloads) and [Receiver Procedure](#receiver-procedure).
 
 The VIDs following the first `VID_sndr` is an ordered list of next hop VIDs of intermediary systems and the last VID represents the destination endpoint. The list can vary in length from 1, 2, to k > 2, and should be interpreted as an ordered routing path with the `VID_hop2` coming first, followed by `VID_hop3`, `VID_hop4` etc... Note that the first hop is already identified as the `VID_rcvr`.
 
@@ -956,7 +956,7 @@ TSP combines public-key authenticated encryption (PKAE) with public-key signatur
 
 No naive composition of public-key encryption and signature achieves authenticated encryption in the public-key setting. [[ref:ESSR]] separates unforgeability against a third party from unforgeability against the receiver, the latter being the stronger requirement since a receiver can decrypt and so has capabilities a third party does not, and shows that Encrypt-and-Sign, Sign-then-Encrypt, and Encrypt-then-Sign each fail at least one of these notions. Two attacks illustrate why. An adversary that strips a signature from a ciphertext and applies its own can claim authorship of a message whose content it never learned. And a receiver able to construct a second message and key pair yielding the same ciphertext can assert that the sender addressed that message to it.
 
-TSP therefore follows the construction ESSR proposes — Encrypt Sender-key then Sign Receiver-key — carrying the sender's identity within the confidential payload and covering the receiver's identity by the signature for the *Libsodium Sealed Box* mode. In the HPKE-Base mode, the binding of the sender identity is achieved through AAD in the HPKE construction, and implementors MAY optionally still carry the sender VID in the confidential payload or the default NULL value. Either way, the first binding defeats substitution of the signature, since the sender identity found within the ciphertext contradicts it, or it will fail to decrypt in HPKE; the second prevents a receiver from altering, after the fact, what the signature was taken over. TSP binds VIDs where ESSR binds public keys. A VID is bound to its keys by the requirements of [VID General Requirements](#vid-general-requirements), and the substitution is preferable here: a binding to a VID survives rotation of the keys behind it, where a binding to a public key would not.
+TSP therefore follows the construction ESSR proposes — Encrypt Sender-key then Sign Receiver-key — carrying the sender's identity within the confidential payload and covering the receiver's identity by the signature. In the HPKE-Base mode, the binding of the sender identity is additionally achieved through AAD in the HPKE construction. The first binding defeats substitution of the signature, since the sender identity found within the ciphertext contradicts it, or it will fail to decrypt in HPKE; the second prevents a receiver from altering, after the fact, what the signature was taken over. TSP binds VIDs where ESSR binds public keys. A VID is bound to its keys by the requirements of [VID General Requirements](#vid-general-requirements), and the substitution is preferable here: a binding to a VID survives rotation of the keys behind it, where a binding to a public key would not.
 
 Together these give the authenticity TSP requires of every message. A message cannot be attributed to a sender that did not compose it, cannot be claimed by a receiver to which it was not addressed, and cannot be disowned by the sender that did compose it — the last being the sense in which TSP's authenticity is closely related to non-repudiation. It also follows that a party holding a receiver's key cannot produce a message that appears to come from a legitimate sender, since that would require the sender's signing key; Post Compromise Impersonation by an adversary that has obtained a receiver's key is precluded for this reason. (Note that compromise of a sender's own signing key is a different matter, discussed in [Key Compromise and Recovery](#key-compromise-and-recovery).)
 
@@ -1007,7 +1007,7 @@ A VID's encryption key type selects the KEM; the KDF and AEAD are the same in bo
 
 ##### HPKE-Base Mode
 
-The HPKE-Base mode does not authenticate the sender at the HPKE layer; that is, it does not allow the receiver to verify that the sender possessed a given KEM private key. This omission is intentional. In TSP, sender authentication is provided by the TSP_Signature over the envelope and payload, and the binding of the ciphertext to the sender identity required by the ESSR construction is provided by the associated data `aad`, which includes `VID_sndr` from the envelope. A ciphertext that does not open under the receiver-computed `aad` MUST be rejected. The sender VID MAY additionally be included as the first confidential payload field; when present it MUST match `VID_sndr` in the envelope.
+The HPKE-Base mode does not authenticate the sender at the HPKE layer; that is, it does not allow the receiver to verify that the sender possessed a given KEM private key. This omission is intentional. In TSP, sender authentication is provided by the TSP_Signature over the envelope and payload, and the binding of the ciphertext to the sender identity required by the ESSR construction is provided by the associated data `aad`, which includes `VID_sndr` from the envelope. A ciphertext that does not open under the receiver-computed `aad` MUST be rejected. The sender VID is additionally carried as the first confidential payload field and MUST match `VID_sndr` in the envelope.
 
 In the HPKE-Base mode, for a TSP message that uses a confidential payload, the ciphertext MUST be generated by the HPKE-Base single-shot API defined in [[ref:HPKE]] as follows:
 
@@ -1038,7 +1038,7 @@ Plaintext = TSP_OPEN(VID_sndr, VID_rcvr,
                 Confidential_Fields_Ciphertext)
 ```
 
-In HPKE-Base mode the VID_sndr confidential field is NULL VID by default. It MAY carry the sender VID; when it does, it MUST equal VID_sndr in the envelope.
+In HPKE-Base mode the VID_sndr confidential field carries the sender VID and MUST equal VID_sndr in the envelope.
 
 Note that the 'aad' input is the CESR serialized octet sequence of the cleartext message fields preceding the ciphertext — the version, both VIDs. The sender computes `aad` from the values it places in the envelope. On the receiver side, the `VID_rcvr` MUST be taken from the receiver's local value or checked for equality with the value in the received message, while the other fields are taken from the received message as encoded on the wire. The `VID_sndr` in `aad` MUST also match the VID used in the signature verification. `TSP_Tag` is not included in `aad`.
 
@@ -1127,7 +1127,7 @@ The TSP Envelope consists of four objects: TSP_Tag, TSP_Version, VID_sndr, VID_r
 Object | Description | Code | Note
 ----:|----:|--------:|--------:
 TSP_Tag | Indicating the start of a TSP envelope | `-E##` or `--E#####`| Use `-E##` for signable data up to 4095 quadlets/triplets, `--E#####` for signable data up to 1,073,741,823 quadlets/triplets. The length does not include signature part.
-TSP_Version | TSP protocol version | `YTSP-###` | The current version is `YTSP-AAC` (0.2). The three `###` characters should represent MAJOR (the first `#`) and MINOR (the following `##` calculated as `64 * the second # + the third #`) version numbers.
+TSP_Version | TSP protocol version | `YTSP-###` | The current version is `YTSP-BAA` (1.0). The three `###` characters should represent MAJOR (the first `#`) and MINOR (the following `##` calculated as `64 * the second # + the third #`) version numbers.
 VID_String | short VID with lead pad size 0 | `4B##` | The VID string is in a variable length of either 2 Base64 size characters limited to 4095 quadlets/triplets (short VID) or 4 Base64 characters limited to 16,777,215 quadlets/triplets (long VID). In each case, there are 3 variations depending on the lead pad size of 0, 1, or 2.
  ^ | short VID with lead pad size 1 | `5B##` | ^ 
  ^ | short VID with lead pad size 2 | `6B##` | ^ 
@@ -1173,7 +1173,7 @@ Higher layer application payload (Type = `TSP_GEN`) MUST use type encoding `XSCS
 The overall higher layer payload is as follows:
 
 ``` text
--Z## | --Z#####, XSCS, VID_sndr | `4BAA`, Padding_Field, -A## | --A#####, higher-layer-payload-body
+-Z## | --Z#####, XSCS, VID_sndr, Padding_Field, -A## | --A#####, higher-layer-payload-body
 ```
 where, ## or #### stands for a 2 or 4, respectively, character code of the length of the payload. All counts start immediately after the count code, not including the count code itself. The encoding of `VID_sndr` is specified in [TSP Envelope Encoding](#tsp-envelope-encoding). The encoding of the padding field is specified in [Padding Field](#padding-field).
 
@@ -1301,7 +1301,7 @@ In TSP Nested Mode, the inner TSP message is carried inside a payload field of t
 The outer message MUST be encoded with payload type `XHOP`. If this is a direct relationship nested message, the overall message payload is as follows:
 
 ``` text
--Z## | --Z#####, XHOP, VID_sndr | `4BAA`, -JAA, Padding_Field, Encoded_TSP_Message
+-Z## | --Z#####, XHOP, VID_sndr, -JAA, Padding_Field, Encoded_TSP_Message
 ```
 Because this is a message between direct neighbors, the VID hop list field is empty which is encoded as `-JAA`. The inner message can be any correctly encoded TSP message including its envelope, payload and signature. The starting payload length must count the nested message. 
 
@@ -1309,33 +1309,33 @@ Because this is a message between direct neighbors, the VID hop list field is em
 Routed payload is encoded as a nested payload with a non-empty routing hop list.
 
 ``` text
--Z## | --Z#####, XHOP, VID_sndr | `4BAA`, -J## | --J#####, VID_1, ..., Padding_Field, Encoded_TSP_Message
+-Z## | --Z#####, XHOP, VID_sndr, -J## | --J#####, VID_1, ..., Padding_Field, Encoded_TSP_Message
 ```
 The hop list field encoding is specified in [VID Hop List Field](#vid-hop-list-field). The rest is identical to nested payload.
 
 #### Control Message Encoding
 Control messages are composition of payload fields that are used for TSP's own control mechanisms. The following sections define these payload fields in its plaintext text mode. The actual final encoding will be in ciphertext format as described in [Confidential Payload Ciphertext](#confidential-payload-ciphertext).
 
-In every payload layout below, `VID_sndr` is the ESSR sender field. It is always present and MAY be the NULL VID `4BAA` under HPKE-Base and in a non-confidential payload; under Libsodium Sealed Box it MUST carry the sender's VID. See [Receiver Procedure](#receiver-procedure).
+In every payload layout below, `VID_sndr` is the ESSR sender field. It is always present and MUST carry the sender's VID in a confidential payload; in a non-confidential payload it MAY be NULL. See [Receiver Procedure](#receiver-procedure).
 
 ##### TSP_RFI
 
 The TSP_RFI payload is specified in [Direct Relationship Forming](#direct-relationship-forming).
 
 ```text
--Z## | --Z#####, XRFI, VID_sndr | `4BAA`, Digest, Nonce, Reply_Path, Referral_Field, Padding_Field
+-Z## | --Z#####, XRFI, VID_sndr, Digest, Nonce, Reply_Path, Referral_Field, Padding_Field
 ```
 
 A direct invite has `Reply_Path` = `-JAA` and `Referral_Field` = `-JAA`. An invite that asks for a routed reply carries a non-empty `Reply_Path`. An invite that introduces a new VID over an existing relationship, as in [Parallel Relationship Forming](#parallel-relationship-forming), carries a populated `Referral_Field` and MAY carry either form of `Reply_Path`.
 
-`Signature_new` within the `Referral_Field` is made by `VID_new`'s key over {`XRFI`, `VID_sndr | 4BAA`, `Digest`, `Nonce`, `Reply_Path`, `VID_new`}. The referral field's own code and count are not covered; the message signature covers them.
+`Signature_new` within the `Referral_Field` is made by `VID_new`'s key over {`XRFI`, `VID_sndr`, `Digest`, `Nonce`, `Reply_Path`, `VID_new`}. The referral field's own code and count are not covered; the message signature covers them.
 
 ##### TSP_RFA
 
 The TSP_RFA payload is specified in [Direct Relationship Forming](#direct-relationship-forming).
 
 ```text
--Z## | --Z#####, XRFA, VID_sndr | `4BAA`, Digest, Reply_Digest, Padding_Field
+-Z## | --Z#####, XRFA, VID_sndr, Digest, Reply_Digest, Padding_Field
 ```
 
 An accept has one form. Where it accepts a referral, the accepting endpoint's new VID is the sender of the message rather than a payload field, so its control of that VID is proven by the message signature; see [Parallel Relationship Forming](#parallel-relationship-forming).
@@ -1346,7 +1346,7 @@ An accept has one form. Where it accepts a referral, the accepting endpoint's ne
 A `TSP_RFI` is nested by composing it inside a nested outer message:
 
 ```text
--Z## | --Z#####, XHOP, VID_sndr | `4BAA`, -J## | --J#####, VID_HOP_1, ..., Padding_Field, Encoded_TSP_Message
+-Z## | --Z#####, XHOP, VID_sndr, -J## | --J#####, VID_HOP_1, ..., Padding_Field, Encoded_TSP_Message
 ```
 
 The `Encoded_TSP_Message` is an ordinary TSP message — envelope, payload and signature — whose payload is a `TSP_RFI` exactly as specified above. Its envelope sender is the new VID, so the message's own signature is made by that VID, and it is that signature which authenticates the new VID; the payload's `Referral_Field` is `-JAA` unless the nested exchange is itself a referral, as in [Nested Relationship Forming](#nested-relationship-forming). The hop list is `-JAA` when the outer relationship is direct.
@@ -1356,7 +1356,7 @@ The `Encoded_TSP_Message` is an ordinary TSP message — envelope, payload and s
 A `TSP_RFA` is nested by composing it inside a nested outer message:
 
 ```text
--Z## | --Z#####, XHOP, VID_sndr | `4BAA`, -J## | --J#####, VID_HOP_1, ..., Padding_Field, Encoded_TSP_Message
+-Z## | --Z#####, XHOP, VID_sndr, -J## | --J#####, VID_HOP_1, ..., Padding_Field, Encoded_TSP_Message
 ```
 
 The `Encoded_TSP_Message` is an ordinary TSP message — envelope, payload and signature — whose payload is a `TSP_RFA` exactly as specified above. Its envelope sender is the accepting endpoint's new VID and its receiver is the inviting endpoint's new VID, so the message's own signature is made by the accepting endpoint's new VID, and it is that signature which authenticates it. The hop list is `-JAA` when the outer relationship is direct.
@@ -1366,7 +1366,7 @@ The `Encoded_TSP_Message` is an ordinary TSP message — envelope, payload and s
 The `TSP_RFD` message can be constructed as follows in a direct relationship,
 
 ```text
--Z## | --Z#####, XRFD, VID_sndr | `4BAA`, Digest, Padding_Field
+-Z## | --Z#####, XRFD, VID_sndr, Digest, Padding_Field
 ```
 For nested or routed relationships, the same message is encoded as an inner message in the nested or routed outer message. The value of the Digest field is specified in [Relationship Forming Decline or Cancel](#relationship-forming-decline-or-cancel).
 
@@ -1375,14 +1375,14 @@ For nested or routed relationships, the same message is encoded as an inner mess
 A TSP generic control message uses the `XCTL` code in the CESR code table. Its body is defined in [Higher Layer Payload Body](#higher-layer-payload-body).
 
 ```text
--Z## | --Z#####, XCTL, VID_sndr | `4BAA`, Padding_Field, -A## | --A#####, higher-layer-payload-body
+-Z## | --Z#####, XCTL, VID_sndr, Padding_Field, -A## | --A#####, higher-layer-payload-body
 ```
 ##### Padding Message
 
 A TSP padding message uses the `XPAD` code in the CESR code table. 
 
 ```text
--Z## | --Z#####, XPAD, VID_sndr | `4BAA`, Nonce, Padding_Field
+-Z## | --Z#####, XPAD, VID_sndr, Nonce, Padding_Field
 ```
 
 ### TSP Signature Encoding
@@ -1475,11 +1475,11 @@ Properties beyond these belong to the layers above and below TSP. An application
 ### Binding of identifiers
 The construction in [Cryptographic Algorithms](#cryptographic-algorithms) binds the verifiable identifiers (VIDs) of both parties into each message. The VIDs in turn bind with their public keys and key states.
 
-For the sender's identity, bound to the ciphertext through the associated data in *HPKE-Base* and carried within the confidential payload in *Sealed Box*, this indirection is an overall improvement: the binding is to an identifier whose key material may change, so it continues to hold across a rotation.
+For the sender's identity, carried within the confidential payload and, in *HPKE-Base*, also bound to the ciphertext through the associated data, this indirection is an overall improvement: the binding is to an identifier whose key material may change, so it continues to hold across a rotation.
 
 For the receiver's identity, covered by the signature, the basis differs. ESSR, which binds public keys directly, relies on the receiver's public key being fixed at the moment of signing, so that a receiver cannot afterwards assert that a message was addressed under some other key. A VID is fixed in the same way, but what it resolves to is not, and TSP provides no means to establish which key state was current when a signature was made.
 
-The property — receiver unforgeability, in the terms of [[ref:ESSR]] — is retained because the two bindings compose. To assert that a different message was received, a receiver would have to produce a plaintext and a key pair reproducing the ciphertext the sender signed. In HPKE-Base that ciphertext verifies only under associated data naming the sender's and receiver's VIDs as they appear in the envelope, so any such plaintext would be bound to the same two parties. In Sealed Box the plaintext would itself have to be a well-formed payload naming the sender's VID, since a verifier checks that field against the envelope and the signature. No scheme specified here admits a collision meeting these constraints. Where the sender's VID is also carried in the confidential payload under HPKE-Base, the two bindings are independent, and an implementation that does not wish to rely on the associated-data handling of a newer HPKE implementation obtains the same property from the payload check alone.
+The property — receiver unforgeability, in the terms of [[ref:ESSR]] — is retained because the two bindings compose. To assert that a different message was received, a receiver would have to produce a plaintext and a key pair reproducing the ciphertext the sender signed. In HPKE-Base that ciphertext verifies only under associated data naming the sender's and receiver's VIDs as they appear in the envelope, so any such plaintext would be bound to the same two parties. In Sealed Box the plaintext would itself have to be a well-formed payload naming the sender's VID, since a verifier checks that field against the envelope and the signature. No scheme specified here admits a collision meeting these constraints. Since the sender's VID is also carried in the confidential payload under HPKE-Base, the two bindings are independent, and an implementation that does not wish to rely on the associated-data handling of a newer HPKE implementation obtains the same property from the payload check alone.
 
 ### Key Compromise and Recovery
 A VID has keys with distinct roles: a signing key, a decryption key, and the authority to change them. What can be recovered depends on which is compromised, and claims about recovery should be considered in that context. TSP requires that rotation authority be separate from the signing key ([VID General Requirements](#vid-general-requirements)).
@@ -1958,7 +1958,7 @@ payload
 
 #### control-rfi-sealed-box
 
-A TSP_RFI under the libsodium sealed box, the suite the specification keeps only for existing implementations. Two payload rules differ from HPKE-Base: the Digest is Blake2b-256, whose CESR code is F rather than I, and VID_sndr MUST carry the sender because the sealed box is anonymous, where HPKE-Base defaults it to the NULL VID. See [Section 9](#tsp-encoding) §7.2.1, 8, 9.4.1.
+A TSP_RFI under the libsodium sealed box, the suite the specification keeps only for existing implementations. Two payload rules differ from HPKE-Base: the Digest is Blake2b-256, whose CESR code is F rather than I. See [Section 9](#tsp-encoding) §7.2.1, 8, 9.4.1.
 
 ``` text
 sender     alice
