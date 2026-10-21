@@ -1,7 +1,7 @@
 Trust Spanning Protocol (TSP) Specification
 ==================
 
-**Specification Status**: Experimental Implementor's Draft Rev 3 with Errata (September 30, 2026)
+**Specification Status**: Release 1.0
 
 **Latest Draft:**
 
@@ -145,7 +145,7 @@ A VID intended for public use MUST support key rotation, and MUST support verifi
 
 A VID intended for private use between endpoints that already have an established TSP relationship need not meet these requirements. Such VIDs are verified within the existing relationship rather than by public resolution, and MAY be simple and static; an endpoint that wishes to change such a VID discards it and establishes a new one.
 
-TSP requires that a VID be verifiable; it does not require that it be implemented in a specific decentralized, centralized or federated ways.
+TSP requires that a VID be verifiable; it does not require that it be implemented in a specific decentralized, centralized or federated ways. TSP verifiability requires two parts. Cryptographic verification establishes by computation that the VID maps to its keys and that the controlling endpoint holds the secret key corresponding to VID.PK_s, as VID.VERIFY requires. Appraisal is the assessing endpoint’s evaluation of the records a VID type publishes, such as its inception record and its rotation and pre-rotation events, and for instance, additional evidence from witnesses, against the endpoint’s own policy; the term is used in the sense of [[ref:RFC9334]] and [[ref:TCG-AF]].
 
 #### Cryptographic Non-Correlation
 
@@ -242,7 +242,7 @@ TSP_Envelope = {TSP_Tag, TSP_Version, VID_sndr, VID_rcvr | NULL}
 - TSP_Tag: A unique code that unambigously flags the start of a TSP envelope.
 - TSP_Version: The version of Trust Spanning Protocol. The TSP version consists of two numbers representing MAJOR and MINOR revisions. MAJOR version signals backward compatibility MAY not be maintained with previous versions.
 
-The current experimental draft's version is `0.2`. When this specification is officially released, the first version is to be `1.0`.
+The current version is `1.0`.
 
 VIDs in TSP are encoded with a variable length VID_String that consists of length followed by a bytestring of that length. Two types of identifier syntaxes, DID [[ref:DID]] and URN [[ref:RFC8141]], MUST be supported. Implementations MAY support additional syntaxes beyond these two types.
 
@@ -270,7 +270,7 @@ Higher layer application messages use the general payload type `TSP_GEN`.
 
 Each payload consists of a type and a number of fields determined by the type. They will be defined in the corresponding sections when their functions are defined.
 
-Some payload fields are required by TSP, including the sender VID `VID_sndr` used for ESSR ([[ref:ESSR]]) operations in the *Libsodium Sealed Box* ([[ref:libsodium]]) mode and VID list used in routing mode. When it is necessary to differentiate these fields, we will refer them as Control Fields or Control Payload Fields. These control fields are used for all messages, not just control messages.
+Some payload fields are required by TSP, including the sender VID `VID_sndr` used for ESSR ([[ref:ESSR]]) operations and VID list used in routing mode. When it is necessary to differentiate these fields, we will refer them as Control Fields or Control Payload Fields. These control fields are used for all messages, not just control messages.
 
 #### Ciphertext of the Confidential Payloads
 
@@ -283,7 +283,7 @@ It is this ciphertext that is encoded and sent on the wire.
 
 The details of the supported PKAE schemes for the `TSP_SEAL` operation are specified in Section [Cryptographic Algorithms](#cryptographic-algorithms).
 
-For the PKAE scheme *Libsodium Sealed Box* ([[ref:libsodium]]), the `VID_sndr` MUST appear as a confidential payload field following the ESSR ([[ref:ESSR]]) method. For the PKAE scheme *HPKE-Base* ([[ref:HPKE]]), the `VID_sndr` field is not mandatory in the confidential payload and MAY be encoded as a NULL VID. See [Section 8](#cryptographic-algorithms) for the details.
+For all PKAE schemes, the `VID_sndr` MUST appear as a confidential payload field following the ESSR ([[ref:ESSR]]) method. See [Section 8](#cryptographic-algorithms) for the details.
 
 On the receiving side, the corresponding TSP primitive is `TSP_OPEN`.
 
@@ -364,7 +364,7 @@ If endpoint `B` receives a TSP message of the generic form `{... VID_sndr, VID_r
 - Step 4: Verify, and appraise `VID_sndr` using additional information and processes specific to the VID.
 - Step 5: Verify the `TSP_Signature`.
 - Step 6: Decrypt the `TSP_Payload_Ciphertext`. A decryption failure is also a verification failure.
-- Step 7: If the PKAE variant is *Libsodium Sealed Box*, retrieve the sender VID from the decrypted payload plaintext and verify that it matches `VID_sndr`. If the PKAE variant is *HPKE-Base*, then the sender VID field may contain either NULL or a valid VID; if it is a valid VID, also verify that it matches `VID_sndr`, otherwise no checking is necessary for NULL. If the payload is non-confidential, the sender VID field MAY be NULL; if it is not NULL, verify that it matches `VID_sndr`.
+- Step 7: For both PKAE variants, retrieve the sender VID from the decrypted payload plaintext and verify that it matches `VID_sndr`. If the payload is non-confidential, the sender VID field MAY be NULL; if it is not NULL, verify that it matches `VID_sndr`.
 - Step 8: Process the rest of the control fields.
 - Step 9: Return the payload to the upper layer application.
 
@@ -488,7 +488,7 @@ TSP routed messages have the same TSP Envelope as TSP messages sent in direct mo
 ``` text
 Control_Payload_Fields = {VID_sndr, VID_hop2, ..., VID_hopk, VID_exit}
 ```
-The first field `VID_sndr` is the sender VID required by ESSR ([[ref:ESSR]]) PKAE schemes. This field is always present in every TSP payload; its value MAY be the NULL VID `4BAA` where the PKAE variant permits, as specified in [Ciphertext of the Confidential Payloads](#ciphertext-of-the-confidential-payloads) and [Receiver Procedure](#receiver-procedure).
+The first field `VID_sndr` is the sender VID required by ESSR ([[ref:ESSR]]) PKAE schemes. This field is always present in every TSP payload and MUST carry the sender's VID in every confidential payload, as specified in [Ciphertext of the Confidential Payloads](#ciphertext-of-the-confidential-payloads) and [Receiver Procedure](#receiver-procedure).
 
 The VIDs following the first `VID_sndr` is an ordered list of next hop VIDs of intermediary systems and the last VID represents the destination endpoint. The list can vary in length from 1, 2, to k > 2, and should be interpreted as an ordered routing path with the `VID_hop2` coming first, followed by `VID_hop3`, `VID_hop4` etc... Note that the first hop is already identified as the `VID_rcvr`.
 
@@ -956,7 +956,7 @@ TSP combines public-key authenticated encryption (PKAE) with public-key signatur
 
 No naive composition of public-key encryption and signature achieves authenticated encryption in the public-key setting. [[ref:ESSR]] separates unforgeability against a third party from unforgeability against the receiver, the latter being the stronger requirement since a receiver can decrypt and so has capabilities a third party does not, and shows that Encrypt-and-Sign, Sign-then-Encrypt, and Encrypt-then-Sign each fail at least one of these notions. Two attacks illustrate why. An adversary that strips a signature from a ciphertext and applies its own can claim authorship of a message whose content it never learned. And a receiver able to construct a second message and key pair yielding the same ciphertext can assert that the sender addressed that message to it.
 
-TSP therefore follows the construction ESSR proposes — Encrypt Sender-key then Sign Receiver-key — carrying the sender's identity within the confidential payload and covering the receiver's identity by the signature for the *Libsodium Sealed Box* mode. In the HPKE-Base mode, the binding of the sender identity is achieved through AAD in the HPKE construction, and implementors MAY optionally still carry the sender VID in the confidential payload or the default NULL value. Either way, the first binding defeats substitution of the signature, since the sender identity found within the ciphertext contradicts it, or it will fail to decrypt in HPKE; the second prevents a receiver from altering, after the fact, what the signature was taken over. TSP binds VIDs where ESSR binds public keys. A VID is bound to its keys by the requirements of [VID General Requirements](#vid-general-requirements), and the substitution is preferable here: a binding to a VID survives rotation of the keys behind it, where a binding to a public key would not.
+TSP therefore follows the construction ESSR proposes — Encrypt Sender-key then Sign Receiver-key — carrying the sender's identity within the confidential payload and covering the receiver's identity by the signature. In the HPKE-Base mode, the binding of the sender identity is additionally achieved through AAD in the HPKE construction. The first binding defeats substitution of the signature, since the sender identity found within the ciphertext contradicts it, or it will fail to decrypt in HPKE; the second prevents a receiver from altering, after the fact, what the signature was taken over. TSP binds VIDs where ESSR binds public keys. A VID is bound to its keys by the requirements of [VID General Requirements](#vid-general-requirements), and the substitution is preferable here: a binding to a VID survives rotation of the keys behind it, where a binding to a public key would not.
 
 Together these give the authenticity TSP requires of every message. A message cannot be attributed to a sender that did not compose it, cannot be claimed by a receiver to which it was not addressed, and cannot be disowned by the sender that did compose it — the last being the sense in which TSP's authenticity is closely related to non-repudiation. It also follows that a party holding a receiver's key cannot produce a message that appears to come from a legitimate sender, since that would require the sender's signing key; Post Compromise Impersonation by an adversary that has obtained a receiver's key is precluded for this reason. (Note that compromise of a sender's own signing key is a different matter, discussed in [Key Compromise and Recovery](#key-compromise-and-recovery).)
 
@@ -1007,7 +1007,7 @@ A VID's encryption key type selects the KEM; the KDF and AEAD are the same in bo
 
 ##### HPKE-Base Mode
 
-The HPKE-Base mode does not authenticate the sender at the HPKE layer; that is, it does not allow the receiver to verify that the sender possessed a given KEM private key. This omission is intentional. In TSP, sender authentication is provided by the TSP_Signature over the envelope and payload, and the binding of the ciphertext to the sender identity required by the ESSR construction is provided by the associated data `aad`, which includes `VID_sndr` from the envelope. A ciphertext that does not open under the receiver-computed `aad` MUST be rejected. The sender VID MAY additionally be included as the first confidential payload field; when present it MUST match `VID_sndr` in the envelope.
+The HPKE-Base mode does not authenticate the sender at the HPKE layer; that is, it does not allow the receiver to verify that the sender possessed a given KEM private key. This omission is intentional. In TSP, sender authentication is provided by the TSP_Signature over the envelope and payload, and the binding of the ciphertext to the sender identity required by the ESSR construction is provided by the associated data `aad`, which includes `VID_sndr` from the envelope. A ciphertext that does not open under the receiver-computed `aad` MUST be rejected. The sender VID is additionally carried as the first confidential payload field and MUST match `VID_sndr` in the envelope.
 
 In the HPKE-Base mode, for a TSP message that uses a confidential payload, the ciphertext MUST be generated by the HPKE-Base single-shot API defined in [[ref:HPKE]] as follows:
 
@@ -1038,7 +1038,7 @@ Plaintext = TSP_OPEN(VID_sndr, VID_rcvr,
                 Confidential_Fields_Ciphertext)
 ```
 
-In HPKE-Base mode the VID_sndr confidential field is NULL VID by default. It MAY carry the sender VID; when it does, it MUST equal VID_sndr in the envelope.
+In HPKE-Base mode the VID_sndr confidential field carries the sender VID and MUST equal VID_sndr in the envelope.
 
 Note that the 'aad' input is the CESR serialized octet sequence of the cleartext message fields preceding the ciphertext — the version, both VIDs. The sender computes `aad` from the values it places in the envelope. On the receiver side, the `VID_rcvr` MUST be taken from the receiver's local value or checked for equality with the value in the received message, while the other fields are taken from the received message as encoded on the wire. The `VID_sndr` in `aad` MUST also match the VID used in the signature verification. `TSP_Tag` is not included in `aad`.
 
@@ -1127,7 +1127,7 @@ The TSP Envelope consists of four objects: TSP_Tag, TSP_Version, VID_sndr, VID_r
 Object | Description | Code | Note
 ----:|----:|--------:|--------:
 TSP_Tag | Indicating the start of a TSP envelope | `-E##` or `--E#####`| Use `-E##` for signable data up to 4095 quadlets/triplets, `--E#####` for signable data up to 1,073,741,823 quadlets/triplets. The length does not include signature part.
-TSP_Version | TSP protocol version | `YTSP-###` | The current version is `YTSP-AAC` (0.2). The three `###` characters should represent MAJOR (the first `#`) and MINOR (the following `##` calculated as `64 * the second # + the third #`) version numbers.
+TSP_Version | TSP protocol version | `YTSP-###` | The current version is `YTSP-BAA` (1.0). The three `###` characters should represent MAJOR (the first `#`) and MINOR (the following `##` calculated as `64 * the second # + the third #`) version numbers.
 VID_String | short VID with lead pad size 0 | `4B##` | The VID string is in a variable length of either 2 Base64 size characters limited to 4095 quadlets/triplets (short VID) or 4 Base64 characters limited to 16,777,215 quadlets/triplets (long VID). In each case, there are 3 variations depending on the lead pad size of 0, 1, or 2.
  ^ | short VID with lead pad size 1 | `5B##` | ^ 
  ^ | short VID with lead pad size 2 | `6B##` | ^ 
@@ -1173,7 +1173,7 @@ Higher layer application payload (Type = `TSP_GEN`) MUST use type encoding `XSCS
 The overall higher layer payload is as follows:
 
 ``` text
--Z## | --Z#####, XSCS, VID_sndr | `4BAA`, Padding_Field, -A## | --A#####, higher-layer-payload-body
+-Z## | --Z#####, XSCS, VID_sndr, Padding_Field, -A## | --A#####, higher-layer-payload-body
 ```
 where, ## or #### stands for a 2 or 4, respectively, character code of the length of the payload. All counts start immediately after the count code, not including the count code itself. The encoding of `VID_sndr` is specified in [TSP Envelope Encoding](#tsp-envelope-encoding). The encoding of the padding field is specified in [Padding Field](#padding-field).
 
@@ -1301,7 +1301,7 @@ In TSP Nested Mode, the inner TSP message is carried inside a payload field of t
 The outer message MUST be encoded with payload type `XHOP`. If this is a direct relationship nested message, the overall message payload is as follows:
 
 ``` text
--Z## | --Z#####, XHOP, VID_sndr | `4BAA`, -JAA, Padding_Field, Encoded_TSP_Message
+-Z## | --Z#####, XHOP, VID_sndr, -JAA, Padding_Field, Encoded_TSP_Message
 ```
 Because this is a message between direct neighbors, the VID hop list field is empty which is encoded as `-JAA`. The inner message can be any correctly encoded TSP message including its envelope, payload and signature. The starting payload length must count the nested message. 
 
@@ -1309,33 +1309,33 @@ Because this is a message between direct neighbors, the VID hop list field is em
 Routed payload is encoded as a nested payload with a non-empty routing hop list.
 
 ``` text
--Z## | --Z#####, XHOP, VID_sndr | `4BAA`, -J## | --J#####, VID_1, ..., Padding_Field, Encoded_TSP_Message
+-Z## | --Z#####, XHOP, VID_sndr, -J## | --J#####, VID_1, ..., Padding_Field, Encoded_TSP_Message
 ```
 The hop list field encoding is specified in [VID Hop List Field](#vid-hop-list-field). The rest is identical to nested payload.
 
 #### Control Message Encoding
 Control messages are composition of payload fields that are used for TSP's own control mechanisms. The following sections define these payload fields in its plaintext text mode. The actual final encoding will be in ciphertext format as described in [Confidential Payload Ciphertext](#confidential-payload-ciphertext).
 
-In every payload layout below, `VID_sndr` is the ESSR sender field. It is always present and MAY be the NULL VID `4BAA` under HPKE-Base and in a non-confidential payload; under Libsodium Sealed Box it MUST carry the sender's VID. See [Receiver Procedure](#receiver-procedure).
+In every payload layout below, `VID_sndr` is the ESSR sender field. It is always present and MUST carry the sender's VID in a confidential payload; in a non-confidential payload it MAY be NULL. See [Receiver Procedure](#receiver-procedure).
 
 ##### TSP_RFI
 
 The TSP_RFI payload is specified in [Direct Relationship Forming](#direct-relationship-forming).
 
 ```text
--Z## | --Z#####, XRFI, VID_sndr | `4BAA`, Digest, Nonce, Reply_Path, Referral_Field, Padding_Field
+-Z## | --Z#####, XRFI, VID_sndr, Digest, Nonce, Reply_Path, Referral_Field, Padding_Field
 ```
 
 A direct invite has `Reply_Path` = `-JAA` and `Referral_Field` = `-JAA`. An invite that asks for a routed reply carries a non-empty `Reply_Path`. An invite that introduces a new VID over an existing relationship, as in [Parallel Relationship Forming](#parallel-relationship-forming), carries a populated `Referral_Field` and MAY carry either form of `Reply_Path`.
 
-`Signature_new` within the `Referral_Field` is made by `VID_new`'s key over {`XRFI`, `VID_sndr | 4BAA`, `Digest`, `Nonce`, `Reply_Path`, `VID_new`}. The referral field's own code and count are not covered; the message signature covers them.
+`Signature_new` within the `Referral_Field` is made by `VID_new`'s key over {`XRFI`, `VID_sndr`, `Digest`, `Nonce`, `Reply_Path`, `VID_new`}. The referral field's own code and count are not covered; the message signature covers them.
 
 ##### TSP_RFA
 
 The TSP_RFA payload is specified in [Direct Relationship Forming](#direct-relationship-forming).
 
 ```text
--Z## | --Z#####, XRFA, VID_sndr | `4BAA`, Digest, Reply_Digest, Padding_Field
+-Z## | --Z#####, XRFA, VID_sndr, Digest, Reply_Digest, Padding_Field
 ```
 
 An accept has one form. Where it accepts a referral, the accepting endpoint's new VID is the sender of the message rather than a payload field, so its control of that VID is proven by the message signature; see [Parallel Relationship Forming](#parallel-relationship-forming).
@@ -1346,7 +1346,7 @@ An accept has one form. Where it accepts a referral, the accepting endpoint's ne
 A `TSP_RFI` is nested by composing it inside a nested outer message:
 
 ```text
--Z## | --Z#####, XHOP, VID_sndr | `4BAA`, -J## | --J#####, VID_HOP_1, ..., Padding_Field, Encoded_TSP_Message
+-Z## | --Z#####, XHOP, VID_sndr, -J## | --J#####, VID_HOP_1, ..., Padding_Field, Encoded_TSP_Message
 ```
 
 The `Encoded_TSP_Message` is an ordinary TSP message — envelope, payload and signature — whose payload is a `TSP_RFI` exactly as specified above. Its envelope sender is the new VID, so the message's own signature is made by that VID, and it is that signature which authenticates the new VID; the payload's `Referral_Field` is `-JAA` unless the nested exchange is itself a referral, as in [Nested Relationship Forming](#nested-relationship-forming). The hop list is `-JAA` when the outer relationship is direct.
@@ -1356,7 +1356,7 @@ The `Encoded_TSP_Message` is an ordinary TSP message — envelope, payload and s
 A `TSP_RFA` is nested by composing it inside a nested outer message:
 
 ```text
--Z## | --Z#####, XHOP, VID_sndr | `4BAA`, -J## | --J#####, VID_HOP_1, ..., Padding_Field, Encoded_TSP_Message
+-Z## | --Z#####, XHOP, VID_sndr, -J## | --J#####, VID_HOP_1, ..., Padding_Field, Encoded_TSP_Message
 ```
 
 The `Encoded_TSP_Message` is an ordinary TSP message — envelope, payload and signature — whose payload is a `TSP_RFA` exactly as specified above. Its envelope sender is the accepting endpoint's new VID and its receiver is the inviting endpoint's new VID, so the message's own signature is made by the accepting endpoint's new VID, and it is that signature which authenticates it. The hop list is `-JAA` when the outer relationship is direct.
@@ -1366,7 +1366,7 @@ The `Encoded_TSP_Message` is an ordinary TSP message — envelope, payload and s
 The `TSP_RFD` message can be constructed as follows in a direct relationship,
 
 ```text
--Z## | --Z#####, XRFD, VID_sndr | `4BAA`, Digest, Padding_Field
+-Z## | --Z#####, XRFD, VID_sndr, Digest, Padding_Field
 ```
 For nested or routed relationships, the same message is encoded as an inner message in the nested or routed outer message. The value of the Digest field is specified in [Relationship Forming Decline or Cancel](#relationship-forming-decline-or-cancel).
 
@@ -1375,14 +1375,14 @@ For nested or routed relationships, the same message is encoded as an inner mess
 A TSP generic control message uses the `XCTL` code in the CESR code table. Its body is defined in [Higher Layer Payload Body](#higher-layer-payload-body).
 
 ```text
--Z## | --Z#####, XCTL, VID_sndr | `4BAA`, Padding_Field, -A## | --A#####, higher-layer-payload-body
+-Z## | --Z#####, XCTL, VID_sndr, Padding_Field, -A## | --A#####, higher-layer-payload-body
 ```
 ##### Padding Message
 
 A TSP padding message uses the `XPAD` code in the CESR code table. 
 
 ```text
--Z## | --Z#####, XPAD, VID_sndr | `4BAA`, Nonce, Padding_Field
+-Z## | --Z#####, XPAD, VID_sndr, Nonce, Padding_Field
 ```
 
 ### TSP Signature Encoding
@@ -1475,11 +1475,11 @@ Properties beyond these belong to the layers above and below TSP. An application
 ### Binding of identifiers
 The construction in [Cryptographic Algorithms](#cryptographic-algorithms) binds the verifiable identifiers (VIDs) of both parties into each message. The VIDs in turn bind with their public keys and key states.
 
-For the sender's identity, bound to the ciphertext through the associated data in *HPKE-Base* and carried within the confidential payload in *Sealed Box*, this indirection is an overall improvement: the binding is to an identifier whose key material may change, so it continues to hold across a rotation.
+For the sender's identity, carried within the confidential payload and, in *HPKE-Base*, also bound to the ciphertext through the associated data, this indirection is an overall improvement: the binding is to an identifier whose key material may change, so it continues to hold across a rotation.
 
 For the receiver's identity, covered by the signature, the basis differs. ESSR, which binds public keys directly, relies on the receiver's public key being fixed at the moment of signing, so that a receiver cannot afterwards assert that a message was addressed under some other key. A VID is fixed in the same way, but what it resolves to is not, and TSP provides no means to establish which key state was current when a signature was made.
 
-The property — receiver unforgeability, in the terms of [[ref:ESSR]] — is retained because the two bindings compose. To assert that a different message was received, a receiver would have to produce a plaintext and a key pair reproducing the ciphertext the sender signed. In HPKE-Base that ciphertext verifies only under associated data naming the sender's and receiver's VIDs as they appear in the envelope, so any such plaintext would be bound to the same two parties. In Sealed Box the plaintext would itself have to be a well-formed payload naming the sender's VID, since a verifier checks that field against the envelope and the signature. No scheme specified here admits a collision meeting these constraints. Where the sender's VID is also carried in the confidential payload under HPKE-Base, the two bindings are independent, and an implementation that does not wish to rely on the associated-data handling of a newer HPKE implementation obtains the same property from the payload check alone.
+The property — receiver unforgeability, in the terms of [[ref:ESSR]] — is retained because the two bindings compose. To assert that a different message was received, a receiver would have to produce a plaintext and a key pair reproducing the ciphertext the sender signed. In HPKE-Base that ciphertext verifies only under associated data naming the sender's and receiver's VIDs as they appear in the envelope, so any such plaintext would be bound to the same two parties. In Sealed Box the plaintext would itself have to be a well-formed payload naming the sender's VID, since a verifier checks that field against the envelope and the signature. No scheme specified here admits a collision meeting these constraints. Since the sender's VID is also carried in the confidential payload under HPKE-Base, the two bindings are independent, and an implementation that does not wish to rely on the associated-data handling of a newer HPKE implementation obtains the same property from the payload check alone.
 
 ### Key Compromise and Recovery
 A VID has keys with distinct roles: a signing key, a decryption key, and the authority to change them. What can be recovered depends on which is compromised, and claims about recovery should be considered in that context. TSP requires that rotation authority be separate from the signing key ([VID General Requirements](#vid-general-requirements)).
@@ -1617,6 +1617,10 @@ TSP sets no maximum message size, and the sizes an encoding permits are large. A
 **[[def:KERI]]**. Key Event Receipt Infrastructure (KERI), Trust over IP Foundation. https://trustoverip.github.io/kswg-keri-specification/.
 
 **[[def:SAID-URN]]**. Namespace Registration for Self-Addressing Identifiers (SAID), IANA, urn:said, 2026. https://www.iana.org/assignments/urn-formal/said.
+
+**[[def:RFC9334]]**. Remote ATtestation procedureS (RATS) Architecture, *H. Birkholz, D. Thaler, M. Richardson, N. Smith, W. Pan*, January 2023, https://datatracker.ietf.org/doc/html/rfc9334.
+
+**[[def:TCG-AF]]**. TCG Attestation Framework, Part 1: Terminology, Concepts, and Requirements, Version 1.0, *Trusted Computing Group*, November 2025, https://trustedcomputinggroup.org/wp-content/uploads/TCG-Attestation-Framework-Part-1_pub.pdf.
 
 **[[def:DID-WEBS]]**. did:webs Method Specification, Trust over IP Foundation. https://trustoverip.github.io/kswg-did-method-webs-specification/.
 
@@ -1826,13 +1830,13 @@ skEm       EgVuWV1WsPbu8JDwzSWiCUkkjCeQUl0PkwIY_wtN3RA
 pkEm       wfprioKR4GMkMcd24cr7B7sM1_iy88nTHbvkED2YVys
 
 message
-  -EBYYTSP-AAC4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
+  -EBYYTSP-BAA4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
   RnNLS1BvNlRyQ21oTTNkZnBx4BATZGlkOnBlZXI6NHpRbVptQ0FzRzdqMWV3VGpYanRk
   ZHd1amlrMzNDRTJjTWJZU1BhZ3BNaVludDFB4CAtwfprioKR4GMkMcd24cr7B7sM1_iy
   88nTHbvkED2YVysWC_6GFqzGqxjBQhW05P2nlttvJtG8bu8WM2kZJiLlOeT7b2Wg0URD
   RYhOFeb4EtB8XpEUW6KqjqW_zwj79vMTAdrf8vq4u27MbDCQpI8qzeiGLN8B-tak3SI1
-  vKAADx68VHVg5TQM-CAX-KAWBADatiGf0keq_Yh5pDYzDpKoicsevHubnS9RNd5rRX8S
-  n21puLukElsJxroPtCRXFYTcwkJqazpoWpCZAv95sW4M
+  vKAADx68VHVg5TQM-CAX-KAWBAC8WRVuxtb3BbVZ_koe0_wQYoAUIYuzDOKelTR8u9Fw
+  O5USoVI7ekbAlSLevvkUqMvkK0KyfNpdp4VKp7xt1HwL
 
 payload
   -ZAcXSCS4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3JoRnNL
@@ -1850,15 +1854,17 @@ ikmE       zmfPZS31ZecVid-0CvG0x7YPwxkwy_8TLqggDcwUDJg
 pkEm       1T4oA1pSbehBiIwnoXFGA24kgHowT34VdE95wF9qjSs
 
 message
-  -EBFYTSP-AAC4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
+  -EBYYTSP-BAA4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
   RnNLS1BvNlRyQ21oTTNkZnBx4BATZGlkOnBlZXI6NHpRbVptQ0FzRzdqMWV3VGpYanRk
-  ZHd1amlrMzNDRTJjTWJZU1BhZ3BNaVludDFB4FAa1T4oA1pSbehBiIwnoXFGA24kgHow
-  T34VdE95wF9qjStBsok4fIkbu8IKODF2nsZMUAmS5BqxDbbYrvl_TNFj6rHuLymWkvlr
-  kt54-cOq-CAX-KAWBADw48mquyWI0O40nsbcI7jRugSJko0JMZR-4S07YFJq3Mzy6jvA
-  kEsDGAecW9jCUVDdwZScckWUaAzSSGbNunMN
+  ZHd1amlrMzNDRTJjTWJZU1BhZ3BNaVludDFB4FAt1T4oA1pSbehBiIwnoXFGA24kgHow
+  T34VdE95wF9qjStBspw4fIkbu9GOQVW07qbNMjem9i6wNJXO6NhuEfPo-jSM2IP6iUTR
+  BAoc96gQHCDKDVyMkTQdM7jaXZx9VD0D6c-dxuJXe4-KNZaQ4MMAYaGCpFQ-B5wfHmsk
+  14WV1x_gDULqviid-CAX-KAWBACcDk1sZY8TSif4hGKZ6IMsQllDLVoEzTuLH3hwyOFj
+  EIV5hyscSeYZd_hfMo7O2SPmhjCw03xBh0qf6ZtLilIO
 
 payload
-  -ZAJXSCS4BAA4BAA-AAF5BAEAGhlbGxvIHdvcmxk
+  -ZAcXSCS4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3JoRnNL
+  S1BvNlRyQ21oTTNkZnBx4BAA-AAF5BAEAGhlbGxvIHdvcmxk
 ```
 
 #### direct-signed-only
@@ -1870,11 +1876,11 @@ sender     alice
 receiver   bob
 
 message
-  -EA3YTSP-AAC4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
+  -EA3YTSP-BAA4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
   RnNLS1BvNlRyQ21oTTNkZnBx4BATZGlkOnBlZXI6NHpRbVptQ0FzRzdqMWV3VGpYanRk
   ZHd1amlrMzNDRTJjTWJZU1BhZ3BNaVludDFB-ZAMXSCS4BAA4BAA-AAI5BAHAHB1Ymxp
-  YyBhbm5vdW5jZW1lbnQh-CAX-KAWBACLj6MsdBES31rSLHtwvsl399JiRr8guUU--hau
-  BWZ9zftvcY7LWzfK5JyEOcqb2l1F5c32MNtpDsQjmQgn1m8F
+  YyBhbm5vdW5jZW1lbnQh-CAX-KAWBAAOGxn5_YhGpaJYlO5dvRoVDvXvkoXs8MXJu8zy
+  qP13dxaFGADFYq4BRCC-2msX8RqIconwwPGbWFJraQ92RFwO
 
 payload
   -ZAMXSCS4BAA4BAA-AAI5BAHAHB1YmxpYyBhbm5vdW5jZW1lbnQh
@@ -1893,17 +1899,19 @@ ikmE       ew2j30RF7AyIl6ompEoE-0acQb8yg_Iyk303CTx8HJ8
 pkEm       U9I24IIKCz-mPGP1IZcfMZohp_eBlv-BBlfLm7vbUWk
 
 message
-  -EBSYTSP-AAC4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
+  -EBlYTSP-BAA4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
   RnNLS1BvNlRyQ21oTTNkZnBx4BATZGlkOnBlZXI6NHpRbVptQ0FzRzdqMWV3VGpYanRk
-  ZHd1amlrMzNDRTJjTWJZU1BhZ3BNaVludDFB4FAnU9I24IIKCz-mPGP1IZcfMZohp_eB
-  lv-BBlfLm7vbUWlcL29m6RzNgGaA6llzgwarcJ_sziA26tvIdjNKso7y8wD8jzERbXsS
-  Q_PA0oxKauyhQSKfn8OxuivWKEaP0_r0j9Jfxnh2oanEUeLFG7wJ97xLQfnY-CAX-KAW
-  BACNFhexhFZuxtMYcR0SnzKbkofePpeJJlPsgTyHPUT2YcG2GR5ELoNtquUeu5ltysJt
-  qfDBwXgi2UvPhsSOJrkJ
+  ZHd1amlrMzNDRTJjTWJZU1BhZ3BNaVludDFB4FA6U9I24IIKCz-mPGP1IZcfMZohp_eB
+  lv-BBlfLm7vbUWlcL1Bm6RzNgHXE7bpj5WVH5x53A3FX121-2mcZnuPxzZW25Kly2Lfp
+  fINIiqkoCZX2I3jF3r2W_0iEVD86cJ5qb6OfAWbXv9NkPtlY2qqu5kEwGGswgTFwm9ML
+  PfYbSoFeex40HyZ2SFTKX_Lsb1D9JFMnkitf1T2x7pWbLWwH7-zEu5IYHrjBRNs0kQ3J
+  -CAX-KAWBAAJOX_3pC4PhLp8iUX8d6OA0g5NjZyif5THck1Ip2ihku1V5bpKIWk7Cc5l
+  jW3lPyQll0G_F7luI-mmrzZRG2YB
 
 payload
-  -ZAWXRFI4BAAIG6HKhYGieW7r7cADGj6gJ0aMB0rNFf6IyDgK_u9jFE60AARERERERER
-  ERERERERERER-JAA-JAA4BAA
+  -ZApXRFI4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3JoRnNL
+  S1BvNlRyQ21oTTNkZnBxINce082jnb_QpUKx6O0LU8JgGHzLjbq2w1zT6LDreHfL0AAR
+  ERERERERERERERERERER-JAA-JAA4BAA
 ```
 
 #### control-rfa-direct
@@ -1917,17 +1925,19 @@ ikmE       vU7UpVjzd8nDZDHJ1NKaDdwEzUDHI7PRmK1Udx160J4
 pkEm       qVZSTmoBq-jrBX8d1pa40Yk5J28FT14vIHOh8-GN6VU
 
 message
-  -EBVYTSP-AAC4BATZGlkOnBlZXI6NHpRbVptQ0FzRzdqMWV3VGpYanRkZHd1amlrMzND
+  -EBoYTSP-BAA4BATZGlkOnBlZXI6NHpRbVptQ0FzRzdqMWV3VGpYanRkZHd1amlrMzND
   RTJjTWJZU1BhZ3BNaVludDFB4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5x
-  d25KWFg0c3JoRnNLS1BvNlRyQ21oTTNkZnBx4FAqqVZSTmoBq-jrBX8d1pa40Yk5J28F
-  T14vIHOh8-GN6VXzL1VMQNnLb62gdEZb0jn-MrOyxuuFV3ljbqcDOSS01nS9XMYTzOI8
-  JqthJqS9-0Y7fa3YLQvlZmF2VPPfUxxkzmGMFsguP9GFj-Wy2_jbXRvbLGRyd9n5Iu0x
-  6fZY-CAX-KAWBADOiTPO66uSeX7v1x8LVcVGkiJvoRaLemx6g7torYTWAC2fXuVzBxTp
-  BBWUxqHq-feLHLlPF04nQtVvKjwBY88D
+  d25KWFg0c3JoRnNLS1BvNlRyQ21oTTNkZnBx4FA9qVZSTmoBq-jrBX8d1pa40Yk5J28F
+  T14vIHOh8-GN6VXzL2BMQNnLb77kc6VLtFoSpTIpC7rkZe6gss50E2Wx5PnKFn5SQzvU
+  AOQrGoxeDCj89WAJEyu2jXJX-q_rFWPyFqv4YMXimtz9rhT3iUk01bLVhWtdW8LBFs_d
+  Ux38BYhn5Fdbif-SpSAtfaDYf3_pyZydt52m13WlhfKH8fBS4TzIyiJCjHueTV2eiF3N
+  zC6ULxA7arRz-CAX-KAWBACJdltbnwRnZaCm9IgwOaEiZJIEuAuWJMpot0oAOeIsk9x6
+  xf4Zda7VzDmlVqqdQ6WJBRhuiyzNIiYswfohjokL
 
 payload
-  -ZAZXRFA4BAAIG6HKhYGieW7r7cADGj6gJ0aMB0rNFf6IyDgK_u9jFE6IFVD0MQtgrqu
-  nFx5ALtyRt4RXR8R4umLVKETH2iu5Z4h4BAA
+  -ZAsXRFA4BATZGlkOnBlZXI6NHpRbVptQ0FzRzdqMWV3VGpYanRkZHd1amlrMzNDRTJj
+  TWJZU1BhZ3BNaVludDFBINce082jnb_QpUKx6O0LU8JgGHzLjbq2w1zT6LDreHfLIALa
+  OO20VPlQYNeyfXABltdTgVzuabrHeE4JmsBTmKZs4BAA
 ```
 
 #### control-rfd
@@ -1941,20 +1951,22 @@ ikmE       16WX82PmX4bBjabLDE16md_SNXRJfNa0xPn5_fp6GVE
 pkEm       OLoHxJkegv3Q68EgUa1HPL_ELnoSkq5XE30aiOOC604
 
 message
-  -EBKYTSP-AAC4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
+  -EBdYTSP-BAA4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
   RnNLS1BvNlRyQ21oTTNkZnBx4BATZGlkOnBlZXI6NHpRbVptQ0FzRzdqMWV3VGpYanRk
-  ZHd1amlrMzNDRTJjTWJZU1BhZ3BNaVludDFB4FAfOLoHxJkegv3Q68EgUa1HPL_ELnoS
-  kq5XE30aiOOC606B3B1YEcvuD4SDhkXCqlpn1_EM92pZdHHBbSC9yCTGuTFQpXadBZ21
-  K0ReTbkUqjyX4lDkzJyHnFRHC20C-CAX-KAWBAAP0xHZu9aQ3ipUAO_IlZ25t-YZycYC
-  nzDoep-n707EY-MQNqkRqA00M3KvMwBAV_iV9_jzDJ8TXrKiirrrahwK
+  ZHd1amlrMzNDRTJjTWJZU1BhZ3BNaVludDFB4FAyOLoHxJkegv3Q68EgUa1HPL_ELnoS
+  kq5XE30aiOOC606B3DJYEcvuD5fHgabSzDmLQHCXOjs4Scd3wXTu5EnFh6Qazu7-sFFO
+  FDTmBY2TzYwEJaMmVqzxpwo2CwnXOrT25jMOoZIV5Y7rSJJnw2WiYHzEzRReA1Uyka8Z
+  UY5vXpiMAB4ltQ0uNnweaX9LdSlA6bNmZZHE-CAX-KAWBABNwBSh-lRnUTzdNvYvY875
+  KhmJrJjk7K2KUBCKj7V3E_haKu4EgJC_CwC00peg4kgUpuhkI_cXABesAoKDytAA
 
 payload
-  -ZAOXRFD4BAAIG6HKhYGieW7r7cADGj6gJ0aMB0rNFf6IyDgK_u9jFE64BAA
+  -ZAhXRFD4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3JoRnNL
+  S1BvNlRyQ21oTTNkZnBxINce082jnb_QpUKx6O0LU8JgGHzLjbq2w1zT6LDreHfL4BAA
 ```
 
 #### control-rfi-sealed-box
 
-A TSP_RFI under the libsodium sealed box, the suite the specification keeps only for existing implementations. Two payload rules differ from HPKE-Base: the Digest is Blake2b-256, whose CESR code is F rather than I, and VID_sndr MUST carry the sender because the sealed box is anonymous, where HPKE-Base defaults it to the NULL VID. See [Section 9](#tsp-encoding) §7.2.1, 8, 9.4.1.
+A TSP_RFI under the libsodium sealed box, the suite the specification keeps only for existing implementations. One payload rule differs from HPKE-Base: the Digest is Blake2b-256, whose CESR code is F rather than I. See [Section 9](#tsp-encoding) §7.2.1, 8, 9.4.1.
 
 ``` text
 sender     alice
@@ -1963,18 +1975,18 @@ skEm       Z4ALsIFbWmoNYPFkP6mR5CYbOlwk3Oa07reQ9j9BbYo
 pkEm       DvRIPYQKw_paPzePKdSbkGiRcRNmjYHhx0gYr0S543I
 
 message
-  -EBlYTSP-AAC4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
+  -EBlYTSP-BAA4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
   RnNLS1BvNlRyQ21oTTNkZnBx4BATZGlkOnBlZXI6NHpRbVptQ0FzRzdqMWV3VGpYanRk
   ZHd1amlrMzNDRTJjTWJZU1BhZ3BNaVludDFB4CA6DvRIPYQKw_paPzePKdSbkGiRcRNm
-  jYHhx0gYr0S543LPuthiS9TykYKBa5GgjpzVaYNucbfQLrI9Q_TfieiYffgOvSAPhO5c
-  Aisip55K2b2AbuPDV4Zk5EnAMy7-470OWR2mI3ouzQl4meT26JPSyg_rg5HmXmMJWnal
-  pAWn06Gal8YMCDRbZ0255gZ9Oo_cZ8lsjAt2L_c9YW-tI0x9gtg3b53hlA0RJj1GWRop
-  -CAX-KAWBACZ_SWKSrGs0IJizGHSPHgDFXfwoB4xQFHecjUVbYA8d8jPfVge-5Lj3FW2
-  E9gY1xx4to73eQgj7fc_jiCVuNAA
+  jYHhx0gYr0S543KVlMk3yL4W08OWfBVHFyWhaYNucbfQLrI9Q_TfieiYffgOvSAPhO5c
+  Aisip55K2b2AbuPDV4Zk5EnAMy7-470OWR2mI3ouzQl4meT26JPSyg_rg_6tE5FNNG_K
+  5ijuTB2B9nrzYn_noJeq1c-EhHqS9tvIjAt2L_c9YW-tI0x9gtg3b53hlA0RJj1GWRop
+  -CAX-KAWBACvVQ2gIAdG9LdKR_Pv07EN9DdfsS9lD5OW9adiBM_MKVdstA4doE98Bp4B
+  V8bRtFnLe0emL2_lPCMffhJeXekL
 
 payload
   -ZApXRFI4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3JoRnNL
-  S1BvNlRyQ21oTTNkZnBxFCAm2-rAs9Ae4dJYRGoAzEhQMvYDNDqdqfjZW7CD8cjB0AAR
+  S1BvNlRyQ21oTTNkZnBxFE9tlhiE3clxo_8R29YbrfSvWL2_8-COmjEg5UXNYNpl0AAR
   ERERERERERERERERERER-JAA-JAA4BAA
 ```
 
@@ -1989,30 +2001,73 @@ ikmE       WZWlZqGZoqjRKMM35-_QVQyC-s46a7F4uOgaQcn-E7o
 pkEm       -RSFKGq436VjiepfHhVnCCTFmsruYqlGoi6kbkIKqU8
 
 message
-  -EE5YTSP-AAC4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
+  -EFMYTSP-BAA4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
   RnNLS1BvNlRyQ21oTTNkZnBx4BATZGlkOnBlZXI6NHpRbVptQ0FzRzdqMWV3VGpYanRk
-  ZHd1amlrMzNDRTJjTWJZU1BhZ3BNaVludDFB4FEO-RSFKGq436VjiepfHhVnCCTFmsru
-  YqlGoi6kbkIKqU8V0M_vVgpSNrrjwBLnXeYQmKsJtapjeG6oqRjZ5D_tuLgeugnAcU-L
-  C592RFq11nnYSDHVhiGGLXCA1Io6TmVIFr4_0Zij8ANtcdJ5ztC-6dIvQaa54aHihImT
-  fA2OcJrW46XmG4Nw-JiQVV0TCnr5SJKS8UVj2Klpb1w1uBWj2V5aTbvJWi8Bz0ujPcgy
-  PR24VZubZ4d8BGbx7LPHb6VoTcJqmRv3hRKfey_U8kYZK29sE0guJ9cGoW8hKvo59E43
-  zL005VQL6VyngtAO_IZkImoEhGwb75wRbihsc711na0haU7i8QzbyKB9Y_-rNP-UBf-S
-  NSTPJ9DuQE1M9zdPf39ckWfyf2Z4vd0CT8HwKUMCkFCB9wPpQtFj59GUwilPjic0wZcK
-  EuOzM-Mkz_xrnBkKqD0pGdPh_LBcYvXZ8gNj5Q8mfBvdL618uz0UB2otOKZyatoqJVrg
-  9Sm1SjoO-LN9PDJ_mnllkrgA5qpiksqTTmpTo2D3jewFhSV-fQS0psC0CnB_DPC5rmOO
-  a3TrYHokDpFHUaFota2Bt_TO27LSMce1p8k6SQ-ywEAWGoSXGy2DjYdTffQJhyMZsDCB
-  H2GFzYXGsg4L633e0h8YAb72bBF9LDKmKEeATzmo_-d_kGkILZM98mhS3kYfnOq8QoFc
-  8R7LZBYy2R0RKdFU176v1fMNN3aCRSjc868SQxc5hP2LKzaLuHvapCFtBu8Q8mXdWjYZ
-  qhFAG_OBrrvHxVNcyGrxCVbS2LfFhmu-T5YsbFrbQrutmO8GiGzg_4Zi6gHhGCFCsF-d
-  SACWC_UGWeW73LZhdXqlE6IF11lgx1bb1BmuBJHlN7kS3ZKWDXdJRKJVCmbmWKRdj7TU
-  obmR4_cryQJsdIcV_nY4JO4Sq95wX2FTgoATnxuupcwp75spTNGjy4OZYd1T_ktZmrQj
-  KJpmMEO8L969IrWR7CpROEqFP8qNRXQg0aICvJ-rfzn7cMqma9m1WH7MysEglh1YpNuO
-  riMTFiTu85GeD9QzGQqmcoo936DAaZtw-CAX-KAWBABPeezGVsjfnjw_5CdV6hpAWWqP
-  Kt7Zk3_LFp8qP2x0gIcOL8m0EV5qcWCFAeXfiYh53AfNB_zYTuX-ZSYlMNMK
+  ZHd1amlrMzNDRTJjTWJZU1BhZ3BNaVludDFB4FEh-RSFKGq436VjiepfHhVnCCTFmsru
+  YqlGoi6kbkIKqU8V0SLvVgpSNqmnjHxmrlmlkQMjtf6GVCryJ9XcLFYl7nIJhsWUYacq
+  Wq3-HH_XtQCPKmuPx1-haBPSqPOP7QHW9ij7TEmZ9rBj1ix7fFineqIrkIsr1U5md7mX
+  F4VOU5Zf3sR4YtMlub7zLxllc16mH8XrmCXMPtGimsqgz4iQh00MQoX-dRBwi2C5J_Qh
+  AmWGOLyLablBUGH224zmZKBYW5x1uhmpg2C1cTrby1UAbEI3BWgeDsJ09X16dYw95nEO
+  y4I71n1r1gj789Ee8aVWVFUnvBEx_78IUChzSqAlwL0wa3vs0QT0j4VmJsWrHNejAK6C
+  NGTeDsHkfxd9hCBIeVcEsUbiUH9dvcoEe7XNCkweg2zHzA3rJt9_mMS_03EYzjl_g4Yf
+  Dsn2HLwP8b1qjww6szBleeGCm4hXPNjZyhtCxC0nSz_NDKc0sj0YDm0gGLFpHZEyZAy_
+  ln_gWio45JUfID9XvCFWxK8tzccdveqlPntV0E7Ylu51hSlmRiWWtfPgMBIDNdHskUmx
+  aHXUN047Cvt7ffhAi4emo63ew7H3cOSgta8SQArm6VYNDbasISrdiLVrS-MimRFFq3W1
+  VDrv85n8z0Bc4HnB1Xwwe_XVdSx_EGf4EUeVT06_2-wlgmhpAdIz5Whxxlouudyzc41S
+  0iqNVikFokkEPf1i1vzLj80lBx66NgTb558SZDtLteipbGG1ryOj9TZSBo1RgHDlRGpz
+  jTFMDOe32p3690Z40EPtLVjnpPfr1GeuaKJUHDjjIbqf9u4C3XTTn4VRyRibXDpZsT_9
+  GBewFPldVsGZ_7hZAEWCJqxUt2hA42r6pAijO7yAB5Z_nvyvClB9N7t_cmzfP_EAs6va
+  5bWv0qAZ2R9yTtRJqU8fAO8-hMBYfWYR9bACiRaR0tw7-7flHYQPGc3yUOtw7w6ogFKE
+  coLDM896Rsw0oWjsMUR4sgZSSWCdsNnt6dxQlwLOVmMmSenoM3p4oQxrAs3kh1UzLseO
+  L3Yf0VdRQlYMIGbzGr7_9o8Pc-nZOz7krPhTrx5SgRVNqPvrKOlUzcvjswPJI2rgGp3P
+  IqzgHhClYE3IYr3RQYbH7yDrqDrlVDAu8jFtBXo0-CAX-KAWBAAvL7xYttu5pbrnm2zZ
+  A6S3gw6rdWc-1pM14rnzrRuSfmF2AeHNUag0Bb6x5khkx97f5MAAGgNbSIyoTJQRN0YJ
 
 payload
-  -ZD9XRFI4BAAICUKu4Pa0HuSHnoFiHkIbL-DZvkv_z-lfne0HF6Z1j940AARERERERER
-  ERERERERERER-JAA-JDn5BDOAGRpZDpwZWVyOjR6UW1SRlJOVVRhclptTWVidnZxTnlB
+  -ZEQXRFI4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3JoRnNL
+  S1BvNlRyQ21oTTNkZnBxII0fOmLaap2OZ9f6I6cKVbx_1Gah0adRdjHljUZu_0sQ0AAR
+  ERERERERERERERERERER-JAA-JDn5BDOAGRpZDpwZWVyOjR6UW1SRlJOVVRhclptTWVi
+  dnZxTnlBRFA3cmtVZ2g1TkZGaHhxV3Z4M2VxcWdTMzp6MjVOUkpNS3BRS3duVW02azlG
+  YlRTcDFlcUFOb3JEdEZpbUhXOW5HZExTZ0FiTjFVaHNRQU5GQW5oaWo4VlhycnduRERH
+  NVJiN0hHcllwQkdaUnkzRWJnbXhpcnFKaTNXdU5maWFqYXZwczZrQWZudms5eWt4R3Fj
+  eEg0dTdQMlRKb2hmYnZpZ0dNVE1HeEFocWtVNEpEa1dZaTFzQnAyNjZuOHR6VHpEM0Rm
+  UlU5RmJ2SFM5OVdiUTNyZDZLYk5xRmZvVXpjaGJiOWJVOENDZndOckY4WjFkaVU4bWRq
+  YmZiUVhrenNhdTRhZXhURnhCZ0NjYkVlTVVzNmZjTUFCSnFRbVg3RHpiM0hkTUU5ZWZQ
+  dlFSUUgzSlhIdkwyamtiUHVCcGoybnFHM2p1eVJXdm90aGNRdXdVYW9jMUNycDE5WXZ4
+  dzh3Mm1UaVYxeTJ4aUF1dHBnNFJiRXU1Z045NGNGUkY0d0VXVXdoWUZnekZZb0xXd3FN
+  R0ptTGJUQTk1VjdqQWZZQUFUblVFdFdLRmN3ZzJiWVlhTTJRbUZWNjdCbWk0M2FHdlFN
+  WThxSkNYY1JEUEZadEV1eGVmUUFtOTE2VjZERjlKQjZvVFJhanp4N3ZKdkc2VmdVS3Y4
+  aG5jVHJDYU1ObXZWMjJ1cGJmVTVkdVpLNHFCVHJYbzFjckpTaE5lbTU0N0ZnOTJGSHZh
+  ZHdIVUxrNDlac1ZCTWJQRVRRcEVFYXRrakJ0Z05n-CAX-KAWBACb7tnYScp9X6HHhI1G
+  9hxZ2iGBIlhUB9gCgkX9jZ-Juwj3gCDm0GghiQPRzt6IL6PzaUhwgn1SYU8mW4dLhY0P
+  4BAA
+
+digestInput
+  YTSP-BAA4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3JoRnNL
+  S1BvNlRyQ21oTTNkZnBx4BATZGlkOnBlZXI6NHpRbVptQ0FzRzdqMWV3VGpYanRkZHd1
+  amlrMzNDRTJjTWJZU1BhZ3BNaVludDFBXRFI4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFG
+  N2lvaUt4SE5xd25KWFg0c3JoRnNLS1BvNlRyQ21oTTNkZnBxIyMjIyMjIyMjIyMjIyMj
+  IyMjIyMjIyMjIyMjIyMjIyMj0AARERERERERERERERERERER-JAA5BDOAGRpZDpwZWVy
+  OjR6UW1SRlJOVVRhclptTWVidnZxTnlBRFA3cmtVZ2g1TkZGaHhxV3Z4M2VxcWdTMzp6
+  MjVOUkpNS3BRS3duVW02azlGYlRTcDFlcUFOb3JEdEZpbUhXOW5HZExTZ0FiTjFVaHNR
+  QU5GQW5oaWo4VlhycnduRERHNVJiN0hHcllwQkdaUnkzRWJnbXhpcnFKaTNXdU5maWFq
+  YXZwczZrQWZudms5eWt4R3FjeEg0dTdQMlRKb2hmYnZpZ0dNVE1HeEFocWtVNEpEa1dZ
+  aTFzQnAyNjZuOHR6VHpEM0RmUlU5RmJ2SFM5OVdiUTNyZDZLYk5xRmZvVXpjaGJiOWJV
+  OENDZndOckY4WjFkaVU4bWRqYmZiUVhrenNhdTRhZXhURnhCZ0NjYkVlTVVzNmZjTUFC
+  SnFRbVg3RHpiM0hkTUU5ZWZQdlFSUUgzSlhIdkwyamtiUHVCcGoybnFHM2p1eVJXdm90
+  aGNRdXdVYW9jMUNycDE5WXZ4dzh3Mm1UaVYxeTJ4aUF1dHBnNFJiRXU1Z045NGNGUkY0
+  d0VXVXdoWUZnekZZb0xXd3FNR0ptTGJUQTk1VjdqQWZZQUFUblVFdFdLRmN3ZzJiWVlh
+  TTJRbUZWNjdCbWk0M2FHdlFNWThxSkNYY1JEUEZadEV1eGVmUUFtOTE2VjZERjlKQjZv
+  VFJhanp4N3ZKdkc2VmdVS3Y4aG5jVHJDYU1ObXZWMjJ1cGJmVTVkdVpLNHFCVHJYbzFj
+  ckpTaE5lbTU0N0ZnOTJGSHZhZHdIVUxrNDlac1ZCTWJQRVRRcEVFYXRrakJ0Z05n
+
+digest
+  jR86YtpqnY5n1_ojpwpVvH_UZqHRp1F2MeWNRm7_SxA
+
+sigNewInput
+  XRFI4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3JoRnNLS1Bv
+  NlRyQ21oTTNkZnBxII0fOmLaap2OZ9f6I6cKVbx_1Gah0adRdjHljUZu_0sQ0AARERER
+  ERERERERERERERER-JAA5BDOAGRpZDpwZWVyOjR6UW1SRlJOVVRhclptTWVidnZxTnlB
   RFA3cmtVZ2g1TkZGaHhxV3Z4M2VxcWdTMzp6MjVOUkpNS3BRS3duVW02azlGYlRTcDFl
   cUFOb3JEdEZpbUhXOW5HZExTZ0FiTjFVaHNRQU5GQW5oaWo4VlhycnduRERHNVJiN0hH
   cllwQkdaUnkzRWJnbXhpcnFKaTNXdU5maWFqYXZwczZrQWZudms5eWt4R3FjeEg0dTdQ
@@ -2024,49 +2079,11 @@ payload
   QTk1VjdqQWZZQUFUblVFdFdLRmN3ZzJiWVlhTTJRbUZWNjdCbWk0M2FHdlFNWThxSkNY
   Y1JEUEZadEV1eGVmUUFtOTE2VjZERjlKQjZvVFJhanp4N3ZKdkc2VmdVS3Y4aG5jVHJD
   YU1ObXZWMjJ1cGJmVTVkdVpLNHFCVHJYbzFjckpTaE5lbTU0N0ZnOTJGSHZhZHdIVUxr
-  NDlac1ZCTWJQRVRRcEVFYXRrakJ0Z05n-CAX-KAWBABVUVsWmVSDym8skkXr_1tUwfW8
-  GaomfMYn40_wY6PvgFouF3_MFWwfvE1IJBrXqrcVX-gbPLFeb4qH7liNRQ0O4BAA
-
-digestInput
-  YTSP-AAC4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3JoRnNL
-  S1BvNlRyQ21oTTNkZnBx4BATZGlkOnBlZXI6NHpRbVptQ0FzRzdqMWV3VGpYanRkZHd1
-  amlrMzNDRTJjTWJZU1BhZ3BNaVludDFBXRFI4BAAIyMjIyMjIyMjIyMjIyMjIyMjIyMj
-  IyMjIyMjIyMjIyMj0AARERERERERERERERERERER-JAA5BDOAGRpZDpwZWVyOjR6UW1S
-  RlJOVVRhclptTWVidnZxTnlBRFA3cmtVZ2g1TkZGaHhxV3Z4M2VxcWdTMzp6MjVOUkpN
-  S3BRS3duVW02azlGYlRTcDFlcUFOb3JEdEZpbUhXOW5HZExTZ0FiTjFVaHNRQU5GQW5o
-  aWo4VlhycnduRERHNVJiN0hHcllwQkdaUnkzRWJnbXhpcnFKaTNXdU5maWFqYXZwczZr
-  QWZudms5eWt4R3FjeEg0dTdQMlRKb2hmYnZpZ0dNVE1HeEFocWtVNEpEa1dZaTFzQnAy
-  NjZuOHR6VHpEM0RmUlU5RmJ2SFM5OVdiUTNyZDZLYk5xRmZvVXpjaGJiOWJVOENDZndO
-  ckY4WjFkaVU4bWRqYmZiUVhrenNhdTRhZXhURnhCZ0NjYkVlTVVzNmZjTUFCSnFRbVg3
-  RHpiM0hkTUU5ZWZQdlFSUUgzSlhIdkwyamtiUHVCcGoybnFHM2p1eVJXdm90aGNRdXdV
-  YW9jMUNycDE5WXZ4dzh3Mm1UaVYxeTJ4aUF1dHBnNFJiRXU1Z045NGNGUkY0d0VXVXdo
-  WUZnekZZb0xXd3FNR0ptTGJUQTk1VjdqQWZZQUFUblVFdFdLRmN3ZzJiWVlhTTJRbUZW
-  NjdCbWk0M2FHdlFNWThxSkNYY1JEUEZadEV1eGVmUUFtOTE2VjZERjlKQjZvVFJhanp4
-  N3ZKdkc2VmdVS3Y4aG5jVHJDYU1ObXZWMjJ1cGJmVTVkdVpLNHFCVHJYbzFjckpTaE5l
-  bTU0N0ZnOTJGSHZhZHdIVUxrNDlac1ZCTWJQRVRRcEVFYXRrakJ0Z05n
-
-digest
-  JQq7g9rQe5IeegWIeQhsv4Nm-S__P6V-d7QcXpnWP3g
-
-sigNewInput
-  XRFI4BAAICUKu4Pa0HuSHnoFiHkIbL-DZvkv_z-lfne0HF6Z1j940AARERERERERERER
-  ERERERER-JAA5BDOAGRpZDpwZWVyOjR6UW1SRlJOVVRhclptTWVidnZxTnlBRFA3cmtV
-  Z2g1TkZGaHhxV3Z4M2VxcWdTMzp6MjVOUkpNS3BRS3duVW02azlGYlRTcDFlcUFOb3JE
-  dEZpbUhXOW5HZExTZ0FiTjFVaHNRQU5GQW5oaWo4VlhycnduRERHNVJiN0hHcllwQkda
-  UnkzRWJnbXhpcnFKaTNXdU5maWFqYXZwczZrQWZudms5eWt4R3FjeEg0dTdQMlRKb2hm
-  YnZpZ0dNVE1HeEFocWtVNEpEa1dZaTFzQnAyNjZuOHR6VHpEM0RmUlU5RmJ2SFM5OVdi
-  UTNyZDZLYk5xRmZvVXpjaGJiOWJVOENDZndOckY4WjFkaVU4bWRqYmZiUVhrenNhdTRh
-  ZXhURnhCZ0NjYkVlTVVzNmZjTUFCSnFRbVg3RHpiM0hkTUU5ZWZQdlFSUUgzSlhIdkwy
-  amtiUHVCcGoybnFHM2p1eVJXdm90aGNRdXdVYW9jMUNycDE5WXZ4dzh3Mm1UaVYxeTJ4
-  aUF1dHBnNFJiRXU1Z045NGNGUkY0d0VXVXdoWUZnekZZb0xXd3FNR0ptTGJUQTk1Vjdq
-  QWZZQUFUblVFdFdLRmN3ZzJiWVlhTTJRbUZWNjdCbWk0M2FHdlFNWThxSkNYY1JEUEZa
-  dEV1eGVmUUFtOTE2VjZERjlKQjZvVFJhanp4N3ZKdkc2VmdVS3Y4aG5jVHJDYU1ObXZW
-  MjJ1cGJmVTVkdVpLNHFCVHJYbzFjckpTaE5lbTU0N0ZnOTJGSHZhZHdIVUxrNDlac1ZC
-  TWJQRVRRcEVFYXRrakJ0Z05n
+  NDlac1ZCTWJQRVRRcEVFYXRrakJ0Z05n
 
 sigNew
-  VVFbFplUg8pvLJJF6_9bVMH1vBmqJnzGJ-NP8GOj74BaLhd_zBVsH7xNSCQa16q3FV_o
-  GzyxXm-Kh-5YjUUNDg
+  m-7Z2EnKfV-hx4SNRvYcWdohgSJYVAfYAoJF_Y2fibsI94Ag5tBoIYkD0c7eiC-j82lI
+  cIJ9UmFPJluHS4WNDw
 ```
 
 ### Test Vectors for Direct Mode Nested TSP Message
@@ -2082,28 +2099,34 @@ ikmE       wTSnRd6U5rWz-3yO0ngUXXg_6V5WgUjGbGLk0LrLj0g
 pkEm       2lwtszl6nTuyUHQPcfgHqTOLcllbgMpL5_tD3myO5ko
 
 message
-  -ECeYTSP-AAC4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
+  -EDEYTSP-BAA4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
   RnNLS1BvNlRyQ21oTTNkZnBx4BATZGlkOnBlZXI6NHpRbVptQ0FzRzdqMWV3VGpYanRk
-  ZHd1amlrMzNDRTJjTWJZU1BhZ3BNaVludDFB4FBz2lwtszl6nTuyUHQPcfgHqTOLcllb
-  gMpL5_tD3myO5kqpyGOhlgwX9CKraR5Zqsd5gQo7pmzcqpslHmtpSe0VUGRKNk7lkfZ2
-  0A6iBtCP1VqpCenjGyAJ53mdytJaBU4yQlfk6_h_qkKkr8jSQoN13rtqJFnFKtSekDzd
-  d8MtUk82fdLHrNnmk8228jNhzbL2mewQhT_V3x1-FikjdZELf5LksMYsRVdiTbIqnVk0
-  Co_EAAO_fNEtKS-g8X2RFjJ4RHAqC-HmTC9rQg-YRasfnB2d9HuK9nLecMZspuUHPEV7
-  Tw6UDpjSHAqwyxLkQ7LxxmW98egYKdSiaRxh6Js6BBoX_MBnjRKhY6-kPFnkWJgUA2Nh
-  QyzZ4QpYOZwiRT6qkzqB1SWU_hgQ_WLLxr1bMoaVuflEN9Dv2tKRmXJx1LMtWUkeP6Z_
-  e5y0Cnl3d0m10M-GJnvVBBtp-CAX-KAWBAAf8fKbSjXyszjAzBQMtY580wZ_F-rhMqGM
-  YbEGBs4te68JmWebtqW0r4cO_jyf4EQxMSV2wDmc00e0XoUo1N4M
+  ZHd1amlrMzNDRTJjTWJZU1BhZ3BNaVludDFB4FCZ2lwtszl6nTuyUHQPcfgHqTOLcllb
+  gMpL5_tD3myO5kqpyImhlgwX9DE3kHqDyqLks3Vu6LJJ_9XzPzZuEc8YSW5GDwyZpdZs
+  2yyJNKmJ91m_ENjPfBh5gX-WkuImZW0hdGtkGpvV-HsOqsT_MHvnqfbORRJBU6PAiT2C
+  dZx8WiRvYuvZldnk95fV8yxNkoLA_-gB3VaVtDBxPRQqWqs2Wc_gssIVYUtAZJge33CF
+  f_VAOX1SwPj03Onp5WnrMnETAs6PAtxBBwZInnO0ZK6HSUC29v7G416SyR0YraUo9Q6a
+  vtctbI0P7hk5GCuh2nsoVmix8IlvxSV27WlS0OD44nS8VNvqYTBMjhXWElfh1EpHRmIQ
+  PT-e_sFr5xjDfO7Eot6GQu9DN9YR5VveSE8qAn4dF6x-PjVLRayvpm8TF0Eu1cHPHs5j
+  fVthaYmdzL5M9b15uVUsG2AutWVUpuu4zzNE8-BUoml60FB5Rk8p90oQLMKpywMYvnJt
+  S2zmaqLxzsrI5kPoYwaU9JSdxJS745XnvzhUmJa1LxlHroq18BJVvuB3r1L48WF1280m
+  o8H-UNwoXsMewGyWv7qPphynHRikF0kojDNWI4CO-CAX-KAWBAB1gxFSqrdBUn2MGzDH
+  TyRlftwBm4QN8CQXz8g-znfsjEKZUVIp5s4EEJwrGwulezHd6rBq3q7osFyxft3kgAoJ
 
 payload
-  -ZBiXHOP4BAA-JAA4BAA-EBFYTSP-AAC4BATZGlkOnBlZXI6NHpRbWVoc2pNdVBrUGp6
-  ZzdXRjJ0SDVYMVNHdUZNeGFjSkI5UkVUTEZ3amdNRHFY4BATZGlkOnBlZXI6NHpRbVNN
-  dzQxM2tlS2hncFRwWW0xcThqem1wcU5Zd2RkVkdQdWJrSE5ncDNxUWVp4FAa18xMvIf8
-  fW5FF3cOHHKPlmJY7CNOU4gMdUw06e03UW_1PVt1O92_IkwQWqsgqb--yVFkjJd6aYMU
-  klWFZRfxcW8kYJv_yPb6pVojLsUg-CAX-KAWBACNI0H7OMKnaJi-UyGHZNAp6gG7SlaA
-  8JKfZxONWL5MWABhfZ2Jh9BUUC2Twe8ziNrziMbT23NJ4WeK45mWqqgJ
+  -ZCIXHOP4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3JoRnNL
+  S1BvNlRyQ21oTTNkZnBx-JAA4BAA-EBYYTSP-BAA4BATZGlkOnBlZXI6NHpRbWVoc2pN
+  dVBrUGp6ZzdXRjJ0SDVYMVNHdUZNeGFjSkI5UkVUTEZ3amdNRHFY4BATZGlkOnBlZXI6
+  NHpRbVNNdzQxM2tlS2hncFRwWW0xcThqem1wcU5Zd2RkVkdQdWJrSE5ncDNxUWVp4FAt
+  18xMvIf8fW5FF3cOHHKPlmJY7CNOU4gMdUw06e03UW_1PU51O92_Il-UI8_i2d8_q29Q
+  nqN7YIRHj3eCWRhYaBN79uCs2IPG--bWLEWNtvnOubC74usCMrj-tq7OV7dBpwSGLq88
+  N02BHnnU1-3E4mxG9bDrgqExnpbFtDyaEMJNpxwOnUcB-CAX-KAWBABE7ohf2jB9CmAt
+  v03sVi9pZkh9-3VPqMPLiyGYnuuib0zXz6A9YXe-7-VNg15nPOUoTI5T1ckJS_5bSCKb
+  b8UO
 
 innerPayload
-  -ZAJXSCS4BAA4BAA-AAF5BAEAGhlbGxvIHdvcmxk
+  -ZAcXSCS4BATZGlkOnBlZXI6NHpRbWVoc2pNdVBrUGp6ZzdXRjJ0SDVYMVNHdUZNeGFj
+  SkI5UkVUTEZ3amdNRHFY4BAA-AAF5BAEAGhlbGxvIHdvcmxk
 ```
 
 ### Test Vectors for Routed Mode Message
@@ -2119,34 +2142,39 @@ ikmE       H_LnY626_NNxiT6uU0Cd6029AGyYDUMOKrr3BlRyk4g
 pkEm       u3jQxhX4ryavA7_XLCdatfNVJssymR8KjHMqFhCjl1c
 
 message
-  -EDGYTSP-AAC4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
+  -EDsYTSP-BAA4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3Jo
   RnNLS1BvNlRyQ21oTTNkZnBx4BATZGlkOnBlZXI6NHpRbVh1WXg1cXVOcEFZdnUxc3lh
-  b0hwSld4SGNlQk04UG5BUzFKODRtakVvMTE44FCbu3jQxhX4ryavA7_XLCdatfNVJssy
-  mR8KjHMqFhCjl1fHhCX_UWAqrxNVo7bN-T0MGRTxtZbXHohFBpJBtj56fuw7UmON9OGL
-  5WewM8NS0pCOIVlwvkg3zFasindp0QF9RtKf60Y5ZewPVLKJE6zrYGM2B6fCupmO_qBm
-  BJjXuHWh01-rGzvpFO_-Lldld7PmcFCcTrJDwLb39GhO_MQ8anZkjGz3AOAArmiwDhfV
-  o9HNWj-7OnZ5fsKE5hBbf_2ZGN059sGqofoBGzM3KV9eCcZccBL0gmUCp5pqy_VTzsB1
-  9HhzED39WmMiFK67ZwFMmME9yBfMk9hRjyiq7UTulmS6E4X-TJSOhoMq7a3jrDKLzLeF
-  yh6v_Jbu5_aYnz_dohJstsSkhwqCSuQxudCHC9pumoAaO4rE9pg8N1_yMg3bHL7i_SwH
-  ELoRSb9zMJy_BDGNeNPqYE7UdwnDanzHVqJ3UHzfkt9mwF1MM_QZdKOvgvfBxE9dxEHP
-  R_J5qlizbf5nGw-4-Nbqt0y1YspyqoHUM7RS8CNS49ihzipCXyaTJQKe8iAamp_Ifkpy
-  a_Ufh2-9B0rfUcgRguVt6plFzt_cfp7d8p7yHAIaRGlVeVEi-CAX-KAWBADXtOMgFILi
-  tn6czr6D3zzczLT8uAfUBn8x0pBiFu92B-gyI5V8KaYiOvtCqiKVplPFx--C4YAVoNb7
-  mnR2PR4P
+  b0hwSld4SGNlQk04UG5BUzFKODRtakVvMTE44FDBu3jQxhX4ryavA7_XLCdatfNVJssy
+  mR8KjHMqFhCjl1fHhB__UWAqrwDJWvoXmUsNAkr_v6LfOf5HTY1P0zMsRNE3YXW_4qKZ
+  6FjZDq5z1YuOHHdsjFVVrU6NjW0Xuw9vUMQEEjS6RK6LLcXXCq20YjxnD8yblIOC_r90
+  SMeeiyKP2E3qKhLiDK3JWFhIeLHDC2OJQKQm3oz28GRl2_kvaFbV-RZzeYTCnki0SKIZ
+  2YJAGWGoZyNwZcKq_E0fUdytEIQ7pOalnOEgPxAnemxOfOJhJyGNn0UH0qZDz__5nPnf
+  8XReYsVvLS6GdeU_HnYSgcBiykidm7MIkBG01ETs8j7ZEprSE6S44Ic7tcSjxx-E54qM
+  5SSS2svq5fKhuyP_izhY9O0V8nAGc5r3r1BhEHtn-WPw8abqf6n1QPFBjdjcCgTMyBvw
+  N1hEB2MqAA_VdQFxK9W2RQ3b_FM8OCUWLTqAC813wQcCffVZh8B8XJvG5Sm-tgHZ_sJA
+  JS_2UkgxciBHT6YAZvBT-V7EQGencJvn2nMqBOV1NRA9PKqBn1O0jIcjVgG7_pfREoX2
+  DCZ2CS43HK6h9CgByefMPCRlGTP9bhZ639ir6uzfiCOYiKyEfBJ7iXgkcK0parug5iez
+  n9qaNTkgGCutnqx-3Vw2BkpPPEq7BE5IcrJnyNMNrONTEDNKLvH4zbi_9AlWMfRDR64D
+  NgzKXdyIeGy16S5G68LcNIaYeSmMtQa93qNwl63XaGyoAoeqAJf2P-9FgpRLc0M8-CAX
+  -KAWBACdgfSSUG5oJvVz_yIDD7CoyYZFAAzkXgP7q9cxzuvbEEHqwkHCBO9aJ2-sv8le
+  AAsWruqPuvyt2f6X9D6q_3cA
 
 payload
-  -ZCKXHOP4BAA-JAo4BATZGlkOnBlZXI6NHpRbVRLYVNSZXhuelgyZWN1MWVZUnVzRk5l
-  V2JyVDVqYmpyM1lqdGZnY2laYzFR4BATZGlkOnBlZXI6NHpRbVNNdzQxM2tlS2hncFRw
-  WW0xcThqem1wcU5Zd2RkVkdQdWJrSE5ncDNxUWVp4BAA-EBFYTSP-AAC4BATZGlkOnBl
-  ZXI6NHpRbWVoc2pNdVBrUGp6ZzdXRjJ0SDVYMVNHdUZNeGFjSkI5UkVUTEZ3amdNRHFY
-  4BATZGlkOnBlZXI6NHpRbVNNdzQxM2tlS2hncFRwWW0xcThqem1wcU5Zd2RkVkdQdWJr
-  SE5ncDNxUWVp4FAa_Gblg2mbPRmyh5lhWb0A-hzL-Neyd0LKd1gGhh-ILyOsKH7KHRVU
-  qhRWKUcoR8U9j2EogB7xFwucVDU959QzKK2G4rFZMNrehW6FfO0x-CAX-KAWBABWD3cF
-  kPXspFtG2yV_hfnwBEx7lavatfw4gv5PitdP_HI2KG60AU1lnhuVcTcxVeThYwBJX0fz
-  Y60YST347tMJ
+  -ZCwXHOP4BATZGlkOnBlZXI6NHpRbVVMNjFOYzFGN2lvaUt4SE5xd25KWFg0c3JoRnNL
+  S1BvNlRyQ21oTTNkZnBx-JAo4BATZGlkOnBlZXI6NHpRbVRLYVNSZXhuelgyZWN1MWVZ
+  UnVzRk5lV2JyVDVqYmpyM1lqdGZnY2laYzFR4BATZGlkOnBlZXI6NHpRbVNNdzQxM2tl
+  S2hncFRwWW0xcThqem1wcU5Zd2RkVkdQdWJrSE5ncDNxUWVp4BAA-EBYYTSP-BAA4BAT
+  ZGlkOnBlZXI6NHpRbWVoc2pNdVBrUGp6ZzdXRjJ0SDVYMVNHdUZNeGFjSkI5UkVUTEZ3
+  amdNRHFY4BATZGlkOnBlZXI6NHpRbVNNdzQxM2tlS2hncFRwWW0xcThqem1wcU5Zd2Rk
+  VkdQdWJrSE5ncDNxUWVp4FAt_Gblg2mbPRmyh5lhWb0A-hzL-Neyd0LKd1gGhh-ILyOs
+  KGvKHRVUqgfSUCPqN6W87V8ckirwHgzPSRc629uzlcqVoClth3da9VDiPGqg6RutIeIT
+  c-Ya6OtFzgTlOa-oplHkrY3i1_3jrJNgflGp6Fl9S7k3fOZ3i6dfT6Q38QVC_5FGIFNM
+  -CAX-KAWBABgVHhPC4Pi1Z8_8I_hnUnlbmQGVOImBIglNbcRixZva1zj_GdTAzZRQPGd
+  jHDdHh0W-wDQmcuav_JAeLaUcnwJ
 
 innerPayload
-  -ZAJXSCS4BAA4BAA-AAF5BAEAGhlbGxvIHdvcmxk
+  -ZAcXSCS4BATZGlkOnBlZXI6NHpRbWVoc2pNdVBrUGp6ZzdXRjJ0SDVYMVNHdUZNeGFj
+  SkI5UkVUTEZ3amdNRHFY4BAA-AAF5BAEAGhlbGxvIHdvcmxk
 ```
 
 ### Test Vectors for Post-Quantum Key Types
@@ -2664,9 +2692,9 @@ sender     pq_alice
 receiver   pq_bob
 
 message
-  -EGwYTSP-AAC4BATZGlkOnBlZXI6NHpRbWJMcXUzd2VadHNuTmVzQnplY0NabTVGQTZ1
+  -EHDYTSP-BAA4BATZGlkOnBlZXI6NHpRbWJMcXUzd2VadHNuTmVzQnplY0NabTVGQTZ1
   YUdrZ0NXWVI1V25kcjZHenpk4BATZGlkOnBlZXI6NHpRbVpzS21mZm53WVZiR0xiNlpt
-  Wjhna2d5VHM4RDc2WVFSQnQ1WW5GTks0U25v5FGFAG_gn35RNoXWKshZoo7uJpjoK4rc
+  Wjhna2d5VHM4RDc2WVFSQnQ1WW5GTks0U25v5FGYAG_gn35RNoXWKshZoo7uJpjoK4rc
   Kk2jfCWOYB5delcb_W29HoRlEL0dSVeU4hgMITPH3cryDD1lyXErM9gmApU_t3X2VMWT
   bHMN8i8YqhdzaUnPWWDqRNtFjChapB_euEuUWFXJYvlz7tyudeTDJxbbXFn5s_fzwvfK
   wPMsvzF0asVGhxKC77xe3cMht126-gHc0xx908WrHrMVUtfLXWQiQmIsnXcbHqPwbHnx
@@ -2688,74 +2716,76 @@ message
   wJphXfBIQcy27pYcOPDm5Q1vjLryDv5kyyp0bIni5sIqUQnrJ9InUy2VBtSB0wE_drno
   iwQu2_rMb_M0jgnuNZ-N3Y9haW4AMX7a-5uttqK-eyQO0OogmCBr8pLN0ZC7aQz2KbPl
   _TDxQQgrCn2ra_1VsYn8hl0x_D1FQUeB4y6bA3LnfUuVkYYYoUFQQGy5oCdT-AjqCSqf
-  OoGRjRRBfsOpm67DykdVa1BXIEgfXNPCzfHzPHvAkYdH1aar1fOZINtK9jKJZjz-5Rti
-  E2yvMWqj629LAtbbXg63OW_A6SJ7Y_4N-CRR-KRQ1AAQB4RkRy_co2t-SiuKfXPHlU5e
-  s2uIAfVB_WJ8artzk1efysbPS2uf5bdHL7krPJXl1ZV31V-rdxoXv1ESppt27vrwNAd2
-  NnxWkjH9Dnif3SyV8ZY2fxe0X-_hDFVfdst75PK69kAbhCDPaMjczGLVKCFh34fGQVSc
-  KIlfsswAuzYPQaTNmt6Zg98lGlWG7oZJ1dXR89NBTYEHk2vJBWS_-qDu28hGUiGpgjK6
-  0GNxo0m9JAHvGC_SkURCtRlIydqr1o1sI_ZOIgU43EFYhYrafPrWtx6by6wRSdlRKjKS
-  IDHkuobUsVYruanR6aPdbpjFf31Ez3sFBmn3c1VjqBOl4vBUOBapAVbbj3lnwd6eJC1p
-  sRYLgcgqPkLe2sq2i6FhlxDeBX9h9T7qI1hiWmTAwdt3W9CeR00IXIQNE_0OH_THREAv
-  2RE-pBFtg447EwfVpvK1T-3oiPsqrgRq-zoOc5jWqfzY-CLl9lOLE5pO_bAbzzglRNs8
-  oDbfoxSKbhl09GTFbLr5mQ3PGfReVlzL9s-wO4DTYX7zmuVPCEQY5NldKhXHXsPtNrrg
-  edWnpsdIeHsMJ-M_z6gOmhmzctMcf1c8fPluVYmYa6-h5pEIuvmWpkWOVLVZoI7aADx5
-  v1sDXNPokBSo6TY4g8SB2_gcxERbmSp8_BXumw-9RAtwNx0fWkqmJAzZJOLgX-cYOwQy
-  VQvuZv_HhMFtUhhSFEzg6cHQJmbhaTLqVa7iiiJMXU-vPmpro0kf5eKw2nkbrEZ6lnH2
-  -eniGRpycY1PsyRThIkosGwv-9SlMvieR1qMsHxr_p3SfAAvtRupWrFIUZfCECTYx5l9
-  IuV7PEQPxvUiYjAE41NKJ2SX5d_AiX62TYfZDmuRRG5cg7cA6IhD8Uf0sm3_eLErf3di
-  fy4uEy7ftvqqQqUHdm-rVaHPp9UdK_7knXvSqXBnfch1ZORlo9e5_nG9KT0zF2Gp6Ahc
-  oDYjtXVLVjF_3mmc7SmY6gCNQuqhyrLZLzXOtMmNXM-g_Wg-Wy9KISyfHtOp86HA_mjz
-  GNxOO470A5iQuI-nF_L4kLmhQv1PsVrusUDRNx7dyqBqhIBTetL9uU8a-2dXuBIn-5Qe
-  01XxcnZcmDazq1BPQoeUSgYD30sBAaqEgOZ89nOB7u9nmyB5iirWH9-ejdnx9wkR2wIo
-  B4y9ohwEG3-Gs776uNrTUI73vEHTYrcZNBod432Fnr-iibMsTMa8B_G-EZ4PXIqxzyi7
-  j-SkGK4uVRfsPxhLsC8EvcbtHzyhRczCEhVUFHlikoFUdEoNMze09wq_d8st6OsEobm0
-  WZr6nPlqiJ-gPJWsY0WA7Q_w1Ql5W1M-x0ThkeGxw_RMo_IScHchZ36OodPGm_n0Zjbd
-  h-S_pnlKr8l8YUb6AtIEkOtyhl0ZBHdHTIeJZbSCNNtSaFjKmHwvDdK79CaR4vgN7y2X
-  7aZkVlMwrCmMTydhK_8mvryyhkr6eSQb2A4faz-yzhac09e0abg6_-dXZKr7QWxD3f_3
-  -V42y1AcmemYwKti_RFgE3koDZGY0ghZu851hvRgNzJx0iI6Yz4sdxlzD2GQ_xGKdoZj
-  ZLPXeO_Z4PKd6Gb77i-ekutyKDzy3l9g2gaKB8L5T2O9NPWPju3IqFaVzAiwH0qSzxtO
-  6wTk99jVfX6qOBNkgcoJYp1DgQXheDGj5AS7AYWFIrI29uA7PYCEAL_DWT1-nEQFJGZ3
-  vUlsMWRevEg4BnB_64Xw1SvKDpC9dlrot2AWe9Y6K1bcpU2ZObp2kUD7S1hgRGjpjz31
-  Lon4iSdCdhEhXmFU9FQ9zf3K7X_oV8NFYmaUgUk8rFP2jBFG3OmCuMY2lgWN39kh5Vp6
-  KSvvZ4GAcgds5FzUIO3sVfmEWECxnzFPvnJtWaloj2rarXLF50F6FWIJeaJsPks-4D9S
-  B5RiLRE9OT7P-jg9F1asn7D3oE0VfOa1mW1erVL6eHbVV4l_IQCZlRMXzg7V8naaSXXE
-  4mcRC7IA3aq7nHGmTqr2RdzJNpHXebDqL37k7myswdHyX1bHUb--Ku45s9WZwECCXfSf
-  FzKmnGRl_2tOSix5ypPLtJZj4e11usS391NVr7lgUgQBfRAUqrBkx0yhkDc4_ChvfXGd
-  yacRkzmu7kkDZx7PnHGQsvrtSGimxYx9Fa13dRZcW4tH4sFBhc0oUM10yGsjEXhfK0o4
-  zAz94N_Glw5kH-kFtGPkFLTwUEECISWD7xpHVIiNSfM4YtJsNkWXbBtj0UYM57MuGDzb
-  PqDkCnrhHBl2AhHJ5eKz4byR8ouf6i5xQQIG8NU-4cGyiGErUze1QUYQx-10xi1Q8p9I
-  bz3ejHpSIXmJxUyUMToqTgOA-eQqn073VyLZrc9_AYmSdT9BT1UE56jl7tITcEq0ix_T
-  h0A5zdSoVw5lp_iXrv5V1cy-2Z_rvbjoc6Bw6NikjsKQrX5we9n8hQ-R8ugYW1eIUP-B
-  91inNBWLp8UtY98LE5c8-CulvVJavFjQZXdpC1_Gy8s-GB1QdYfZdoLlbjrojhN-p_HG
-  2L67eakv4hNrgNHJjMs2VvDKuGNZTOF_AFg8QBUWnD5onGwDKt1LhkzCpSgH-qjM79a5
-  AhZPlNrk99jum_TcdKxsBZgjoU3kbs5Nvgb-MHx0tyr35A1r6O18jyBHBH61-KsVu1b3
-  CH6sUVlZ3Vpbl5rGHi02Kv3gf2Z76Oe7rjDmgEtCwp9otovvpBrJxadkdoIOexK45Nw9
-  ZjlArqDxfBAuIeY0VQySHyUQvRJiLC3_1SF8a4d8qnHNlmBEdYnH2bXtnvlBiaF0Zknj
-  Cy6IRynUWGYN3kEnE9MjwLWsx1DHdstewkMhq_U5qtxvh6RUmrANXB97GK17vj9E6uCf
-  ndQfq_AzSB3WEmWxXHwLDwII7cyN90FwthhxbRM-HfL0Mzj61ljk1fZXtbB9-uRw1S4K
-  qqxJqMxe5giSzZ8A4yhL91ILt5Z6_gvxwCbZEP_BAJut2tCdSu6X6rcCiO0eIyM8MsvX
-  GlBOsY0M_7jvbHJVA86NF8dV6k0uxsN-r1B-0Mg1AOEGt_8gC2YzhN0a6-4PDycJFHsa
-  WFbgoSJZbM_Uy4OEg6QTG4WYaLcjbXES-UzTF1BHsjSO8BEKDHexDlJN_wY2EXJaAoUi
-  Pu1JPVjWemHBSNy-HvZGIpdXZ7XSOnBYtCbCVf3khiNNoY6NlhoZtDx5Y92xJlDcVupu
-  q8CBsVZY8ruHd5XVlgFD8QfDKWjzyVqjKQ2yitWOtX6FY443axjZOykFWS_fBwehTV7N
-  VX_yvYiVLFjeJ0XG_9DZqofn8cVg71FBC4AuY1_CdjPnHPlUPPUeEY9NdSyUMDqGDiLT
-  HSWNvhFUbi4La5loNjugGEyvvHmlx6_YFKSJ747WH64AdLSnvNsQ7jgPQtD5rlxUDfdG
-  S_0rE10jfvZGJo_sABL7DIAzi79ecyVCyG0PG3fCfNWHa7iTT6rk8KYRBC4mFhrLmdM3
-  mIe57xu5rMdg1axkXsPOn8heZ-QZyxlSQXXTFEf70S9bgfFT86xs83Cp1k2KaEzlCYno
-  PxOJOUNdthWv5Skp-OszV5cwUMq5u4Wlei5V1SRzN1ydS27r60I2_JdWg5ymLRlvj5wL
-  1eeaeB7LZF4ROd6uxDmbErX1zPPuSaHMopqEBJOWc-wjFfKF2Hdz4riu6_tYvmbYdrbQ
-  Vh8ciGOlY4oQX_7EwrCD1fBzDXVtAk59DeyVL6uiFwWRuXTlmYb0yHk4YAnv3pN4BZGX
-  0d6hacYQIbVZFyfRHKE3BmGWamgiLH1-q1OIcpAVfALQcKEjrR666EstrZN_wk2Ydwru
-  u_-Lgj9TPE2eRc-AVYVb-2p29KE1rBkpIkLTHtUqjvIt3YeMv-N2gfVWsPVhr7VtR7vU
-  hzkIASUDBQ3udRiWEQRI2TsFQjgBoNyDCmtBSEJY8eEHd9lA1Jyh2ZLXMVpLNxskklrA
-  z7Xse51jjcbtlHWlHw26pmPHpXfpYxxEQE2JXTbBAvTsa5ei3A7ObX9Cg22ghgv6eMq2
-  zX3-eHurDyZhsSuqd6WSdETenn8HmuEVWybbize-m9AfKQaH5YZN7jUL-nUgbBiOz217
-  AbduaOY9dcnn6-sQPGoik6RxWfHN6r94ox62zRXHxLPwn8A9ycZVAX31Yvi42j435NB5
-  gtwVK3PvykKS0iht2tWkBacQP9R5sFPGgy-mDQ2y8QeRa6rA3Ezyr36wk6OJec9oVd7A
-  qBfXvnI9IiQ3HyeDswRGzukXMncJ0zao4l6hvXP2uE_n6Yhbc1wr_hM2OdQodTirJPaq
-  eS8igmjIeMGhw2RqO1lxI7YII0RswgIDC2SYpsvq-JvP4voJDkFJcXd6kbjd_CcqQFiL
-  EyCS2wAAAAAAAAAAAAAAAAAAAAAABQ4SHSIm
+  OoGRjRRBfsOpm67DykdVa1BXIEgfXNPCzfHzPHvAkZJH1aar1eAdWb-IhlIIBALK9y9j
+  HU_-Mzam4lEwcZQ7lN6Xq4HKb5NEPzOFprhTSWuo6u40S7KjnKbbYqoqjY6_vh53PQ_c
+  usZe2cWrT_fSYcCdiwfrwWudTnNuZ4Kuwt3KpYSR-CRR-KRQ1AAQxrqolgJyqX4nFor_
+  R8KcsOIDy-kcTYi24hdyxNV4_UEeV2YrMrNYI3y1_jrMCRcM_2lhFevmgLEdiGbDVRfu
+  K0JeMYblmMezTGwZfrN1OP7N2oJbitrJGvARkelQHNLUp2ayTLv6ZMx7h-zBUtS_iMiW
+  p5Q6PDxQOkNVPHyZMxHiJb5muQOVC5OW74Y6NyTjdOc5kcqrzTpg1i6tsHmrF721EIxd
+  aDfpV43yFg30Z8_qkzja2QrCFjd_bswSfiQX8o0C7P7HwHVQ09_PeRUdeSZsj_qr5yU-
+  FRta-WdXQnQzv0NJL4r2-7KzvFYtxnx6gtarihuucsJ5VxBC33rw-r2Cg8d00p_F7R9F
+  ZHPxHwNorD38WywwSeeJM3PCU9nLzKICRZ76EZmlWCU7iNl27GzH9awWKcEkEv8f9q_5
+  kk_VMKwQ-hx_w_yRR7vjJudcvLignKBnkxXcv5HPAItLw8ofWRotQ1YTRhauW9SmNYZh
+  GV_ASrmNojQ5_xh-gysA12owet6WyG95kN0jLE2OWYjtf-BklKXl423cDUkb42HXm7p1
+  UJsLrFcqOGgeXrCXjIj0r6GQckNTp5CHQn9hlaE-uo8qiRJ3aIje-JaYTFExBG4IrQtC
+  1vARskTWJ5-Q7mZSY9gTeaO4l8Jr0wGDsp-5rJFBGeVo86RI_dXLPKh-P5CMysScQuwl
+  R_qqt2QF5snDdO2hKZwQZNflInQHtEqBGveR59tdW196ePY8v_L1G-NVZx72ti9Nzx2z
+  fVHPUKg_xYrQSJxZtUJGLx8lFDratoC0Joqj8jk4j6QnoQ00fuYeUGa1ddsydQNwvmst
+  tHDwO-ZEMKATHNyzwitQF_cTy4SilkB9YHv8shQJnTsNSYsDgfyRJC4w9v6Vs9U-6gS_
+  5XZSB7INHcQpMqK_hBtIkL9qWB6R7hpyKw_WPWGeMq6UaU6_CZO_Ss_qxQRB3uqU47ye
+  fisf9EZbJBREvE8QgVA8TDazpNakLorExNLbQs4yl1AAPiH2_UqaipxvJaQatdvOhL1k
+  AIALqLdCNt7OAPT_k3gO1mhOFxYD7BiL0hktxm_NMvNDPlzOzM7IldkS8WluDwhUlhCW
+  yZMMwMYtcubUu19jV08C1rjsmQXSQTCb9m3liI-9YvqOyk9AVsnsuOhFnrvJ3AG0wlp6
+  k3labfw2X0ra6sfLikajKKhZ81WGbiQjOT0TK2nAiyt0Dbe0B7-m0_opFcfdbSrOaomb
+  zNj7K9mRxlxFt352UH0Z0xpUEK134I6xRrG6iQEeNEl3ffr398eF20M2IMQ4s7vxn9qV
+  KI7SY5J79tyuFkv2wT-OoNrzaoHdi09yhCutIyCw4pwNZKhAeXhryPQT72V52_lk8moX
+  Uj_lHRYBxJ9G6OD15sHTRheeufsG7lgZElb9l2ySU8S2mxavebMjDGaK34fKZ-H0OtR0
+  bgzpgmXU15MrqQw8CSRhcq5c-iggz36SsduQB3JhOaOpY2KxNLm0-5HziXRlURGp3O0d
+  oSKsRjsFmyS4hVE878x64plLcF3sz5IxwQLBFls0CPQbyRY-5RoDnRT36XiV22_JQ-2v
+  w0YalGFcIm8zhATW-hrlOz2tx7tqquOWyfhwt_qIvPTOwiZZnX7a-qW2CF8pa-Lg2qH1
+  7S0hHeJeGhUGsQm12mu4VzSiEd6vz0Sak0bzB8MfrSNhJleeaCRoNBLhVr3rVbcnX03o
+  nqNLz5EGuxw9huLJlDhc3c9azg7RAIJKYDNJdYCPfeq_Oq7CMqaMuIjf9f2HNoxS6Igz
+  OXUlyW2kShCkM4dAR-Mpapv465Jd7Ixe_eWAGF6FuzWw0VqDYthrkCbfdWPpZCIMvP6i
+  VpKkuv-lKmpf2tShpz1ADbvRGfaZWezVnLW-Vvxg2hbWvRia_CGZ5qTC4V__9RGv4sAR
+  Iz2X6kuxjAJDKPwVz9yX8cJHN9WOt-gjEHyJYmX9_Hr8PJVFHun_xWQ478txsvsrHfNe
+  gjDPzcoLzwB-_XY3Ho3CMH6EpvRX3njq1IqRCJoAEZc_xlbiwoOYjaOePhBIcIwKs9A4
+  qnc6MQLu2UHMbqzUobCEinWBExQ4JaK9SSxwNHijhl21TMb2kgO7_Ci7ZquM7omAf8dr
+  lKxMtOD2nPQnZPFirrI2HHC_G9HYE3VCTlWF6pE5tAiaFM_keMe22xfucgLSM7wOpChD
+  GpDxJsKzLBNNRDyZWG6vMz3cdX9XEZ71SJp4o3UleOqkvLxwRgWdHB55TqP3PcVRsaPx
+  KTewEpkKe_sKTtt1uHlj4L9zs6qYDX4RbTM9pesWG-xE826qb8gqA2Nv4uesbq0X_SFf
+  cXU8KIDyW5DVWMVpuIy4UHsfUX3_WucLJeYBGpsOdgDhr2CgiWKBHbwFWbNcU84RI-Ft
+  fm-SK1j4ogB9yMdhpi-k2l84OrerUUuRWLARhL0CyMVhj9f1P5LqkIFUhaIR-dWpUUPb
+  OtQ4PhNNTu08vBIIzWEwVBPhIIZKcKo_lRkdjxAWt6ARNqfhlzTRKPy8XnCly2IwDVcl
+  aZ-MgldhgC3fO5mbuDJ89hPUBJ8Vy2_9XY3W-r3ne1ZlfCIBRrRo2cpTjQ0Pv92yXTLs
+  5NyykUujF9oxQpwwF3weFMRix3cZgvwmb7J6DBxv_9Kx8WhkVHYtd2qQ7fc0-I8U-1sJ
+  JVDCOLa3RhZS4i3Z5nx0MciR5lH7NfOjz_QmdrS7XINUlUo_xu9UN02nXes9Ed98QPIg
+  otE5a_ZaX1CpBHtRLiePl2o6KqF304tsgZwUDFfaegpHMTyXS4tTSGp69sVbdCHWiYNT
+  ef1EqnkLgxUCCho5rD6u76CVJMCGWHeJyZmpiW3Zr7PabveQNZiUhS99UHKO20lOfvw-
+  96VIN4qQJcZWP_S92BFPBoB7sMXX0Yp5bnU-ca13KpysdpGt4gygPMtk2KCkuxH23TKG
+  wJ5g2AhNNDNgB9o-DoGicGnh2MDuUxRrQ1RRsaELjnT9j_RuWuNoHWvazQZIh9sFsG3C
+  XFNyUHsUw-HKXaGvJ6R1mSXyla4OnbWp1rz8L28aDsf26ccM_p_PlCzmoJZvtRW2XQmS
+  DClYvKB_Hpn7Du5DpQ_7M3o2ZnOhVkoCC0G-owcM7d_oyaw7w3O1lwuucJlfeJwpqEz8
+  DnSHwS_EjrQ7fmJVn4xsW6IyhA_-xgw4nPbNlf9K1f_FMb4bzmtnf7YojdpxmFN9r00l
+  LajlawiFqcUbhR6EDzyeZh2sKtIXbVYqz8hEKrs_RarwjlioTPemuzLmh0ZsCxGYLQVd
+  Igr24JbPFLMbf6a5hOg3PIYzvarcOTGWsVigKeb205Ggnl8WuzTBI-EovqVY8CoHrjk0
+  3ZfDYMCPRIzqsJdqS1OjiHmQnwFMeeKVH4h_qXAQIap_xHXGEdbvMBavr3ADpq7n8YjH
+  VdO5ze5Xy6A6Nf1q12Sv5e-RSXY1TABK5gwLSdMYWjj5hyHTgXyzxHQOtB-qdPst6TNW
+  HDvoUVMS2GWXfwItykAFwcKDV9zafPYqsLgVxzlBjIotuyggAnCwpFpCVFMR3gU5DQvB
+  sok47aj0GmiAibhYEUECioVl21CVo96hnR1sUzbceD2X77n5SlhxRgJupOfFKxi_zNN7
+  0JSCqfSfLHCI9npJzXJfxt9MAkoKQw6OoPmvUVs9XrdXywxYAcn-QYyaQcegolL21RZq
+  UKkg-225K5ZZZ50YA-lrQ9JmjOIhaafmnIC3e1eLWGgLgd9WB2asPRMQkC-jPqBwfHHx
+  VAukyZMLtkofvzfghBCQd1JM3g8jTybCoxC2wTeUmML5Q62_vaGjOqbgWh1KaVWhfQ4t
+  r628PoosSHHhIVdSyRGLc4GutCcL1Ub733A3b6VFWdMpZ4J7rzQn9j9VqKhy5Mjh3aZM
+  a2eA0dZ3yI7imcfdes8U7PDifslV0efzrcpLS-2tTtU3MU7zb6N6jkrdRB9thaouhKHj
+  lQ02xPu5NqzGwpDSH4bu2DvEDYviyuKcPFpsj9w-7Z_6RAL-MlmDJMa9F2aUwmIZlp8R
+  QBQDkpBlO5Ce8-Twg46MwLcGhOT8CFsI08EvdNZ3S5dC14DXb_vKnvr6JIgBLRvlVfcl
+  sM-yNTY6shUXEDVbvtMNYuC0u4Q19damlbS6SI3FuiMVF7VfQQpBGi5L0iEEhErE20GT
+  8GThCbweDLmWNBNzNaJklRkvn5v1SK_XtcTXSYISb-npkLCA6CyjfzliXwDe5sM-RPki
+  qYgca8W39LmMdxyn3H7aDz3zBU9lcj_ZQiuK9ALcfK70Pd7UrWEw1YvBdvKW2tN1z4pr
+  zkmUA8t1h49Lv9C30xQvztFu925gaawKLzo_d6r-UaGuttZOevIPEBskePJDgds1Q2py
+  e4K8zP4AAAAAAAAAAAAAAAAAAAAAAAAAAAAABwwPFRgh
 
 payload
-  -ZAJXSCS4BAA4BAA-AAF5BAEAGhlbGxvIHdvcmxk
+  -ZAcXSCS4BATZGlkOnBlZXI6NHpRbWJMcXUzd2VadHNuTmVzQnplY0NabTVGQTZ1YUdr
+  Z0NXWVI1V25kcjZHenpk4BAA-AAF5BAEAGhlbGxvIHdvcmxk
 ```
