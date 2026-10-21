@@ -488,7 +488,7 @@ TSP routed messages have the same TSP Envelope as TSP messages sent in direct mo
 ``` text
 Control_Payload_Fields = {VID_sndr, VID_hop2, ..., VID_hopk, VID_exit}
 ```
-The first field `VID_sndr` is the sender VID required by ESSR ([[ref:ESSR]]) PKAE schemes. This field is always present in every TSP confidential payload and MUST carry the sender's VID, as specified in [Ciphertext of the Confidential Payloads](#ciphertext-of-the-confidential-payloads) and [Receiver Procedure](#receiver-procedure).
+The first field `VID_sndr` is the sender VID required by ESSR ([[ref:ESSR]]) PKAE schemes. This field is always present in every TSP payload and MUST carry the sender's VID in every confidential payload, as specified in [Ciphertext of the Confidential Payloads](#ciphertext-of-the-confidential-payloads) and [Receiver Procedure](#receiver-procedure).
 
 The VIDs following the first `VID_sndr` is an ordered list of next hop VIDs of intermediary systems and the last VID represents the destination endpoint. The list can vary in length from 1, 2, to k > 2, and should be interpreted as an ordered routing path with the `VID_hop2` coming first, followed by `VID_hop3`, `VID_hop4` etc... Note that the first hop is already identified as the `VID_rcvr`.
 
@@ -1958,7 +1958,7 @@ payload
 
 #### control-rfi-sealed-box
 
-A TSP_RFI under the libsodium sealed box, the suite the specification keeps only for existing implementations. Two payload rules differ from HPKE-Base: the Digest is Blake2b-256, whose CESR code is F rather than I. See [Section 9](#tsp-encoding) §7.2.1, 8, 9.4.1.
+A TSP_RFI under the libsodium sealed box, the suite the specification keeps only for existing implementations. One payload rule differs from HPKE-Base: the Digest is Blake2b-256, whose CESR code is F rather than I. See [Section 9](#tsp-encoding) §7.2.1, 8, 9.4.1.
 
 ``` text
 sender     alice
