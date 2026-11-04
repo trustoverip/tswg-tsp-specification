@@ -1398,10 +1398,10 @@ An Ed25519 (EdDSA) signature is always 64 bytes. Within the indexed signature gr
 
 #### ML-DSA-65 Signature
 
-An ML-DSA-65 signature is always 3309 bytes. It is identified by the CESR code `1AAQ`, followed by the 3309-byte signature in binary. As 3309 is a multiple of 3, no lead-pad bytes are required. The equivalent text format is 1103 triplets. The full primitive is 4416 characters in the text domain.
+An ML-DSA-65 signature is always 3309 bytes. It is identified by the CESR code `1AAT`, followed by the 3309-byte signature in binary. As 3309 is a multiple of 3, no lead-pad bytes are required. The equivalent text format is 1103 triplets. The full primitive is 4416 characters in the text domain.
 
 ::: note
-The code point 1AAQ is provisional. It is the next available code in the CESR master code table for genus -_AAACAA and does not conflict with any currently assigned code, but it has not yet been formally registered. See CESR issue #14.
+The code `1AAT` is the ML-DSA-65 signature code in the CESR v1.1 master code table for genus `-_AAACAA`, added by [kswg-cesr-specification PR #165](https://github.com/trustoverip/kswg-cesr-specification/pull/165). Release 1.0 of this specification used `1AAQ`, which CESR v1.1 assigns to the FN-DSA-512 public verification key. A parser that follows CESR v1.1 reads `1AAQ` as a 1200-character primitive, so a signature encoded under that code cannot be parsed.
 :::
 
 ## Transports
@@ -2685,7 +2685,7 @@ skE        CDZNS-gKPeJMsblGZC33c-6rrv-JsuuVfitTnkg6wnw
 
 #### direct-hpke-base-pq
 
-The same message as direct-hpke-base, to endpoints whose VIDs declare post-quantum key types. Post-quantum support is not a separate mode: this is HPKE-Base with the MLKEM768-X25519 hybrid KEM, selected by the recipient VID's encryption key type, and the ciphertext code is the same 4F as any other HPKE-Base message. What changes is size — the encapsulation is 1120 bytes rather than 32 — and the signature, which is ML-DSA-65 under the code 1AAQ rather than an indexed Ed25519 signature. There is no sealed-box counterpart to this vector; that suite has no post-quantum option. This is the one vector with no published ephemeral value: the hybrid KEM derives no ephemeral keypair, drawing encapsulation randomness instead, so there is nothing of that shape to publish and check. Its bytes reproduce from the recorded seed. See [Section 9](#tsp-encoding) §8.2, 8.3, 9.2.8.
+The same message as direct-hpke-base, to endpoints whose VIDs declare post-quantum key types. Post-quantum support is not a separate mode: this is HPKE-Base with the MLKEM768-X25519 hybrid KEM, selected by the recipient VID's encryption key type, and the ciphertext code is the same 4F as any other HPKE-Base message. What changes is size — the encapsulation is 1120 bytes rather than 32 — and the signature, which is ML-DSA-65 under the code `1AAT` rather than an indexed Ed25519 signature. There is no sealed-box counterpart to this vector; that suite has no post-quantum option. This is the one vector with no published ephemeral value: the hybrid KEM derives no ephemeral keypair, drawing encapsulation randomness instead, so there is nothing of that shape to publish and check. Its bytes reproduce from the recorded seed. See [Section 9](#tsp-encoding) §8.2, 8.3, 9.2.8.
 
 ``` text
 sender     pq_alice
@@ -2718,7 +2718,7 @@ message
   _TDxQQgrCn2ra_1VsYn8hl0x_D1FQUeB4y6bA3LnfUuVkYYYoUFQQGy5oCdT-AjqCSqf
   OoGRjRRBfsOpm67DykdVa1BXIEgfXNPCzfHzPHvAkZJH1aar1eAdWb-IhlIIBALK9y9j
   HU_-Mzam4lEwcZQ7lN6Xq4HKb5NEPzOFprhTSWuo6u40S7KjnKbbYqoqjY6_vh53PQ_c
-  usZe2cWrT_fSYcCdiwfrwWudTnNuZ4Kuwt3KpYSR-CRR-KRQ1AAQxrqolgJyqX4nFor_
+  usZe2cWrT_fSYcCdiwfrwWudTnNuZ4Kuwt3KpYSR-CRR-KRQ1AATxrqolgJyqX4nFor_
   R8KcsOIDy-kcTYi24hdyxNV4_UEeV2YrMrNYI3y1_jrMCRcM_2lhFevmgLEdiGbDVRfu
   K0JeMYblmMezTGwZfrN1OP7N2oJbitrJGvARkelQHNLUp2ayTLv6ZMx7h-zBUtS_iMiW
   p5Q6PDxQOkNVPHyZMxHiJb5muQOVC5OW74Y6NyTjdOc5kcqrzTpg1i6tsHmrF721EIxd
